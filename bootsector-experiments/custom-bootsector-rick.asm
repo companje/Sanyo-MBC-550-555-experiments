@@ -1,8 +1,4 @@
-; Disassembling the Sanyo MBC-555 MS-DOS 2.11 floppy bootsector
-; Rick Companje, The Netherlands, March 28th, 2022
-; reconstructed using ndisasm 
-; ndisasm -b16 empty-base.img > tmp.lst                 # this is for disassembling most of the code
-; ndisasm -b16 -e 68 -o 68 empty-base.img  >  tmp2.lst  # this part is for the code at 0x44
+; Rick Companje, The Netherlands, March 29th, 2022
 
     cpu 8086
     org 0x00
@@ -100,25 +96,43 @@ _0xc2:
     db 'MSDOS   SYS'
 
 _0xe7:
-    cli
-    cld
-    mov ax,cs
-    mov ds,ax
-    mov ss,ax
-    mov sp,0x400
+code:  
+    mov al,0x04
+    out 0x10,al
+    mov ax,0x0c00
+    mov es,ax
     
-    db 0x33,0xff                         ; xor di,di
-    db 0x33,0xf6                         ; xor si,si
+    mov al,0
+    cld
+top:
+    mov cx,0x4000
+    xor di,di
+    ; in al,0x24
+    inc al
+input:
+    stosb
+    loop input
+    jmp top
 
-    mov ax,0x20
-    db 0x8E,0xC0 ; mov es,ax
-    mov cx,0x100
-    repz movsw
+    ; cli
+    ; cld
+    ; mov ax,cs
+    ; mov ds,ax
+    ; mov ss,ax
+    ; mov sp,0x400
+    
+    ; db 0x33,0xff                         ; xor di,di
+    ; db 0x33,0xf6                         ; xor si,si
 
-    push es
-    mov ax,_0x106
-    push ax
-    retf
+    ; mov ax,0x20
+    ; db 0x8E,0xC0 ; mov es,ax
+    ; mov cx,0x100
+    ; repz movsw
+
+    ; push es
+    ; mov ax,_0x106
+    ; push ax
+    ; retf
 
 _0x106:
     mov ax,cs
@@ -236,10 +250,5 @@ _0x1c9:
     ; call 0x0000:0x000a                                ; call IO.SYS  ?      
     db 0x9a,0x0a,0x00   ; missing two bytes here for call . Are those bytes in IO.SYS?
 
-times 512-($-$$) db 0x00
-
-incbin "mbc555-non-system-disk.img",512  ; include default disk image skipping first 512 bytes
-
-
-
+incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
 
