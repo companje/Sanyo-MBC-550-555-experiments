@@ -31,7 +31,7 @@ _0x54:
 _0x60:
     out 0xe,al
     mov al,0x18
-    out 0x8,al  ; floppy command
+    out 0x8,al                     ; floppy command
     mov al,0x0
     jnc _0x6c
     mov al,0x4
@@ -39,12 +39,12 @@ _0x6c:
     out 0x1c,al
     aam
 _0x70:
-    in al,0x8    ;  floppy status
+    in al,0x8                      ; floppy status
     test al,0x1
     jnz _0x70
 _0x76:
-    db 0x8a,0xc6     ;mov al,dh
-    out 0xc,al
+    db 0x8a,0xc6   ;mov al,dh
+    out 0xc,al                     ; floppy set sector
     db 0x8b, 0xea  ;mov bp,dx
     mov dx,0x8
     mov si,0xa5
