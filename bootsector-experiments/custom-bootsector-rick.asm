@@ -1,4 +1,4 @@
-; Rick Companje, The Netherlands, March 29th, 2022
+; Rick Companje, March 29th, 2022
 
     cpu 8086
     org 0x00
@@ -11,33 +11,155 @@
     db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00,0xff
     db '       Sanyo MBC-550/555        ',0x00
 
+; cols equ 16
+offsetLeftTop equ 4*24 + 4*80*8
+
 code:  
     mov al,0x04
     out 0x10,al
     mov ax,0x0c00
     mov es,ax
-    
-    mov al,0
-    cld
-top:
-    mov cx,0x1000
-    xor di,di
-    ; in al,0x24
-    inc al
-input:
-    stosb
-    stosb
-    stosb
-    stosb
-    ; add di,3
-    ; loop input
 
-    ; push ax
-    ; mov ax,0xf000
+    mov ax,cs
+    mov ds,ax
+
+    mov ax,0xf400
+    mov bp,ax
+    xor bx,bx
+
+    cld
+
+top:
+    mov di,offsetLeftTop
+    mov al,15
+    call drawDot
+; top:
+;     mov di,offsetLeftTop
+;     mov si,img
+; cell:
+
+;     mov cx,32*4
+;     rep movsb
+
+;     add di,40*4
+;     mov cx,32*4
+;     rep movsb
+
+    jmp top
+
+drawDot:
+    push di
+    push ax
+    in al,0x20
+    and al,15    ; limit to 4 lower bits [0..15]
+    mov cl,8
+    mul cl        ; ax=al*8
+
+    mov si,ax
+    add si,img
+    times 4 movsw
+
+    add di,320-40
+    mov si,ax
+    add si,img+128
+    times 4 movsw
+    
+    pop ax
+    pop di
+    ret
+
+
+    ; mov cx,cols*4
+    ; mov al,85
+    ; rep stosb
+
+    ; mov si,img
+    ; mov cx,128
+    ; rep movsb
+
+    ; add di,320-128
+    ; mov cx,128
+    ; rep movsb
+
+    ; add di,320-128
+    ; inc bx
+    ; cmp bx,16
+    ; jle cell
+    ; mov ax,0xf400
+    ; mov es,ax
+    ; cmp bx,20
+    ; jle top
+
+    hlt
+
+
+    ; xor di,di
+    ; mov al,255
+    ; stosb
+    ; hlt
+
+img:
+    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
+    db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
+    db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
+    db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
+    db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
+    db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
+    db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
+    db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
+
+    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+    db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
+    db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
+    db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
+    db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
+    db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
+    db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
+;     stosb
+
+;     mov al,128
+;     mov si,0
+;     mov di,0
+; forY:
+;     mov dx,0
+; forX:
+;     test dx,di
+;     jz inc_si
+;     mov [si],al
+; inc_si:
+;     add si,4
+;     add dx,8
+;     cmp dx,639
+;     jl forX
+    
+;     add di,4
+;     cmp di,199
+;     jl forY
+
+;     hlt    
+
+;     mov al,0
+;     cld
+; top:
+;     mov cx,0x1000
+;     xor di,di
+;     ; in al,0x24
+;     inc al
+; input:
+;     stosb
+;     stosb
+;     stosb
+;     stosb
+;     ; add di,3
+;     ; loop input
+
+;     ; push ax
+;     ; mov ax,0xf000
     ; mov es,ax
     ; pop ax
 
-    jmp top
+    ; jmp top
 
 
     ; cli
