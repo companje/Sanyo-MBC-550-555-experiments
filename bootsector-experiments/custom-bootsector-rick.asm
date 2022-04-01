@@ -1,7 +1,8 @@
 ; Rick Companje, March 29th, 2022
+cpu 8086
+org 0x0
 
-    cpu 8086
-    org 0x00
+%define use_abs8
 
     jmp code
 
@@ -27,12 +28,16 @@ code:
     mov bp,ax
     xor bx,bx
 
+
+
+
     cld
 
 top:
     mov di,offsetLeftTop
-    mov al,15
-    call drawDot
+    
+    mov al,-8
+    call drawDotWithColor     ;
 ; top:
 ;     mov di,offsetLeftTop
 ;     mov si,img
@@ -47,11 +52,35 @@ top:
 
     jmp top
 
+
+drawDotWithColor:
+    push bp
+    mov bp,0xf000  ; red
+    mov es,bp
+    call drawDot
+    mov bp,0x0c00  ; green
+    mov es,bp
+    call drawDot
+    mov bp,0xf400  ; blue
+    mov es,bp
+    call drawDot
+    pop bp
+
+; wat ook kan is dat ik in drawDot altijd naar alle 3 kleuren schrijf
+; en afhankelijk van het -teken schrijf ik een 0 of een karakter
+
 drawDot:
     push di
     push ax
-    in al,0x20
-    and al,15    ; limit to 4 lower bits [0..15]
+    push cx
+    
+    ; or al,al
+    ; pushf
+
+    ; jns .return
+
+    call abs8
+
     mov cl,8
     mul cl        ; ax=al*8
 
@@ -64,6 +93,7 @@ drawDot:
     add si,img+128
     times 4 movsw
     
+    pop cx
     pop ax
     pop di
     ret
@@ -297,6 +327,8 @@ img:
 ;     push word [bx+0xa2e]                  
 ;     ; call 0x0000:0x000a                                ; call IO.SYS  ?      
 ;     db 0x9a,0x0a,0x00   ; missing two bytes here for call . Are those bytes in IO.SYS?
+
+%include "lib.asm"
 
 incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
 

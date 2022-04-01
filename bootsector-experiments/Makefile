@@ -1,5 +1,5 @@
 build: 
-	nasm custom-bootsector-rick.asm -o 0001-mbc555-bootsector.img
+	nasm custom-bootsector-rick.asm -o 0001-mbc555-bootsector.img -l myfile.lst
 	cp 0001-mbc555-bootsector.img /Volumes/FLASHFLOPPY/
 	
 # 		xxd 0001-boot.img > 0001-boot.hex

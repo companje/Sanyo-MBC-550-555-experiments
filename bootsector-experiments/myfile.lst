@@ -1,0 +1,358 @@
+     1                                  ; Rick Companje, March 29th, 2022
+     2                                  cpu 8086
+     3                                  org 0x0
+     4                                  
+     5                                  %define use_abs8
+     6                                  
+     7 00000000 EB41                        jmp code
+     8                                  
+     9 00000002 53616E796F312E32            db 'Sanyo1.2'
+    10 0000000A 0002020100027000            db 0x00,0x02,0x02,0x01,0x00,0x02,0x70,0x00
+    11 00000012 D002FD0200090002            db 0xd0,0x02,0xfd,0x02,0x00,0x09,0x00,0x02
+    12 0000001A 00000000001C00FF            db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00,0xff
+    13 00000022 202020202020205361-         db '       Sanyo MBC-550/555        ',0x00
+    13 0000002B 6E796F204D42432D35-
+    13 00000034 35302F353535202020-
+    13 0000003D 202020202000       
+    14                                  
+    15                                  ; cols equ 16
+    16                                  offsetLeftTop equ 4*24 + 4*80*8
+    17                                  
+    18                                  code:  
+    19 00000043 B004                        mov al,0x04
+    20 00000045 E610                        out 0x10,al
+    21 00000047 B8000C                      mov ax,0x0c00
+    22 0000004A 8EC0                        mov es,ax
+    23                                  
+    24 0000004C 8CC8                        mov ax,cs
+    25 0000004E 8ED8                        mov ds,ax
+    26                                  
+    27 00000050 B800F4                      mov ax,0xf400
+    28 00000053 89C5                        mov bp,ax
+    29 00000055 31DB                        xor bx,bx
+    30                                  
+    31                                  
+    32                                  
+    33                                  
+    34 00000057 FC                          cld
+    35                                  
+    36                                  top:
+    37 00000058 BF600A                      mov di,offsetLeftTop
+    38                                      
+    39 0000005B B0F8                        mov al,-8
+    40 0000005D E80200                      call drawDotWithColor     ;
+    41                                  ; top:
+    42                                  ;     mov di,offsetLeftTop
+    43                                  ;     mov si,img
+    44                                  ; cell:
+    45                                  
+    46                                  ;     mov cx,32*4
+    47                                  ;     rep movsb
+    48                                  
+    49                                  ;     add di,40*4
+    50                                  ;     mov cx,32*4
+    51                                  ;     rep movsb
+    52                                  
+    53 00000060 EBF6                        jmp top
+    54                                  
+    55                                  
+    56                                  drawDotWithColor:
+    57 00000062 55                          push bp
+    58 00000063 BD00F0                      mov bp,0xf000  ; red
+    59 00000066 8EC5                        mov es,bp
+    60 00000068 E81100                      call drawDot
+    61 0000006B BD000C                      mov bp,0x0c00  ; green
+    62 0000006E 8EC5                        mov es,bp
+    63 00000070 E80900                      call drawDot
+    64 00000073 BD00F4                      mov bp,0xf400  ; blue
+    65 00000076 8EC5                        mov es,bp
+    66 00000078 E80100                      call drawDot
+    67 0000007B 5D                          pop bp
+    68                                  
+    69                                  
+    70                                  drawDot:
+    71 0000007C 57                          push di
+    72 0000007D 50                          push ax
+    73 0000007E 51                          push cx
+    74                                      
+    75                                      ; or al,al
+    76                                      ; pushf
+    77                                  
+    78                                      ; jns .return
+    79                                  
+    80 0000007F E82101                      call abs8
+    81                                  
+    82 00000082 B108                        mov cl,8
+    83 00000084 F6E1                        mul cl        ; ax=al*8
+    84                                  
+    85 00000086 89C6                        mov si,ax
+    86 00000088 81C6[A300]                  add si,img
+    87 0000008C A5<rep 4h>                  times 4 movsw
+    88                                  
+    89 00000090 81C71801                    add di,320-40
+    90 00000094 89C6                        mov si,ax
+    91 00000096 81C6[2301]                  add si,img+128
+    92 0000009A A5<rep 4h>                  times 4 movsw
+    93                                      
+    94 0000009E 59                          pop cx
+    95 0000009F 58                          pop ax
+    96 000000A0 5F                          pop di
+    97 000000A1 C3                          ret
+    98                                  
+    99                                  
+   100                                      ; mov cx,cols*4
+   101                                      ; mov al,85
+   102                                      ; rep stosb
+   103                                  
+   104                                      ; mov si,img
+   105                                      ; mov cx,128
+   106                                      ; rep movsb
+   107                                  
+   108                                      ; add di,320-128
+   109                                      ; mov cx,128
+   110                                      ; rep movsb
+   111                                  
+   112                                      ; add di,320-128
+   113                                      ; inc bx
+   114                                      ; cmp bx,16
+   115                                      ; jle cell
+   116                                      ; mov ax,0xf400
+   117                                      ; mov es,ax
+   118                                      ; cmp bx,20
+   119                                      ; jle top
+   120                                  
+   121 000000A2 F4                          hlt
+   122                                  
+   123                                  
+   124                                      ; xor di,di
+   125                                      ; mov al,255
+   126                                      ; stosb
+   127                                      ; hlt
+   128                                  
+   129                                  img:
+   130 000000A3 000000000000000000-         db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
+   130 000000AC 00000000000080     
+   131 000000B3 00000001000000C000-         db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
+   131 000000BC 000001000000C0     
+   132 000000C3 00000003000080E000-         db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
+   132 000000CC 000003000080E0     
+   133 000000D3 000003070000E0F000-         db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
+   133 000000DC 0003070000E0F0     
+   134 000000E3 0000070F0080F0F800-         db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
+   134 000000EC 00070F0080F0F8     
+   135 000000F3 00030F1F00E0F8FC00-         db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
+   135 000000FC 071F1F00F0FCFC     
+   136 00000103 000F1F3F80F8FCFE00-         db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
+   136 0000010C 0F3F3F80F8FEFE     
+   137 00000113 071F3F7FF0FCFEFF07-         db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
+   137 0000011C 3F7F7FF0FEFFFF     
+   138                                  
+   139 00000123 000000000000000000-         db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+   139 0000012C 00000000000000     
+   140 00000133 000000000000000000-         db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+   140 0000013C 00000000000000     
+   141 00000143 000000008000000000-         db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
+   141 0000014C 00000080000000     
+   142 00000153 03000000E000000003-         db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
+   142 0000015C 000000E0000000     
+   143 00000163 07000000F080000007-         db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
+   143 0000016C 000000F0800000     
+   144 00000173 0F030000F8E000001F-         db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
+   144 0000017C 070000FCF00000     
+   145 00000183 1F0F0000FCF880003F-         db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
+   145 0000018C 0F0000FEF88000     
+   146 00000193 3F1F0700FEFCF0007F-         db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
+   146 0000019C 3F0700FFFEF000     
+   147                                  ;     stosb
+   148                                  
+   149                                  ;     mov al,128
+   150                                  ;     mov si,0
+   151                                  ;     mov di,0
+   152                                  ; forY:
+   153                                  ;     mov dx,0
+   154                                  ; forX:
+   155                                  ;     test dx,di
+   156                                  ;     jz inc_si
+   157                                  ;     mov [si],al
+   158                                  ; inc_si:
+   159                                  ;     add si,4
+   160                                  ;     add dx,8
+   161                                  ;     cmp dx,639
+   162                                  ;     jl forX
+   163                                      
+   164                                  ;     add di,4
+   165                                  ;     cmp di,199
+   166                                  ;     jl forY
+   167                                  
+   168                                  ;     hlt    
+   169                                  
+   170                                  ;     mov al,0
+   171                                  ;     cld
+   172                                  ; top:
+   173                                  ;     mov cx,0x1000
+   174                                  ;     xor di,di
+   175                                  ;     ; in al,0x24
+   176                                  ;     inc al
+   177                                  ; input:
+   178                                  ;     stosb
+   179                                  ;     stosb
+   180                                  ;     stosb
+   181                                  ;     stosb
+   182                                  ;     ; add di,3
+   183                                  ;     ; loop input
+   184                                  
+   185                                  ;     ; push ax
+   186                                  ;     ; mov ax,0xf000
+   187                                      ; mov es,ax
+   188                                      ; pop ax
+   189                                  
+   190                                      ; jmp top
+   191                                  
+   192                                  
+   193                                      ; cli
+   194                                      ; cld
+   195                                      ; mov ax,cs
+   196                                      ; mov ds,ax
+   197                                      ; mov ss,ax
+   198                                      ; mov sp,0x400
+   199                                      
+   200                                      ; db 0x33,0xff                         ; xor di,di
+   201                                      ; db 0x33,0xf6                         ; xor si,si
+   202                                  
+   203                                      ; mov ax,0x20
+   204                                      ; db 0x8E,0xC0 ; mov es,ax
+   205                                      ; mov cx,0x100
+   206                                      ; repz movsw
+   207                                  
+   208                                      ; push es
+   209                                      ; mov ax,_0x106
+   210                                      ; push ax
+   211                                      ; retf
+   212                                  
+   213                                  ; _0x106:
+   214                                  ;     mov ax,cs
+   215                                  ;     mov ds,ax
+   216                                  ;     mov ax,0
+   217                                  ;     db 0x8E,0xC0 ; mov es,ax
+   218                                  ;     db 0xBF,0x00,0x00 ; mov di,0
+   219                                  ;     mov dx,0x400
+   220                                  
+   221                                  ;     test byte [cs:0x15],0x2
+   222                                  ;     jnz _0x121
+   223                                  ;     inc dh
+   224                                  ;     inc dh
+   225                                  ; _0x121:
+   226                                  ;     mov cx,0x1
+   227                                  ;     jmp _0x54
+   228                                  ; _0x127:
+   229                                  ;     mov ax,cs
+   230                                  ;     mov ds,ax
+   231                                  ;     db 0x33,0xC0  ; xor ax,ax
+   232                                  ;     db 0x8E,0xC0  ; mov es,ax
+   233                                  ;     db 0x8B,0xF8  ; mov di,ax
+   234                                  ;     db 0x8B,0xD8  ; mov bx,ax
+   235                                  ;     mov dl,0xf
+   236                                  ; _0x135:
+   237                                  ;     mov si,0xd1
+   238                                  ;     jmp short _0x143
+   239                                  ; _0x13a:
+   240                                  ;     db 0x0A,0xDB; or bl,bl
+   241                                  ;     jnz _0x15b
+   242                                  ;     mov bl,0x1
+   243                                  ; _0x140:
+   244                                  ;     db 0xBE,0xDC,0x00  ;mov si,0xdc
+   245                                  ; _0x143:
+   246                                  ;     db 0x8B,0xEF  ;mov bp,di
+   247                                  ;     mov cx,0xb
+   248                                  ;     repe cmpsb
+   249                                  ;     db 0x8B,0xFD ; mov di,bp
+   250                                  ;     jz _0x13a
+   251                                  ;     add di,byte +0x20
+   252                                  ;     dec dl
+   253                                  ;     jz _0x192
+   254                                  ;     db 0x0A,0xDB  ;or bl,bl
+   255                                  ;     jz _0x135
+   256                                  ;     jmp short _0x140
+   257                                  ; _0x15b:
+   258                                  ;     mov byte [cs:0x1e],0x1
+   259                                  ;     mov ax,0x40
+   260                                  ;     db 0x8E,0xC0 ; mov es,ax
+   261                                  ;     db 0xBF,0x00,0x00 ; mov di,0
+   262                                  ;     mov ax,0x7
+   263                                  ;     test byte [cs:0x15],0x1
+   264                                  ;     jz _0x177
+   265                                  ;     mov ax,0xa
+   266                                  ; _0x177:
+   267                                  ;     mov dl,0x8
+   268                                  ;     test byte [cs:0x15],0x2
+   269                                  ;     jnz _0x186
+   270                                  ;     mov dl,0x9
+   271                                  ;     db 0x05,0x02,0x00 ; add ax,0x2
+   272                                  ; _0x186:
+   273                                  ;     div dl
+   274                                  ;     inc ah
+   275                                  ;     db 0x8B,0xD0 ;mov dx,ax
+   276                                  ;     mov cx,0x54
+   277                                  ;     jmp _0x54
+   278                                  ; _0x192:
+   279                                  ;     db 0x2E,0x8E,0x06,0x1F,0x00 ;  mov es,[cs:0x1f]
+   280                                  ;     db 0x33,0xC0  ; xor ax,ax
+   281                                  ;     db 0x33,0xff                         ; xor di,di
+   282                                  ;     mov cx,0x4000
+   283                                  ;     rep stosw
+   284                                  ;     mov al,0x5
+   285                                  ;     out 0x10,al
+   286                                  ;     mov ds,[cs:0x21]
+   287                                  ;     mov dx,0x1b50
+   288                                  ;     db 0x33,0xDB ; xor bx,bx
+   289                                  ; _0x1ae:
+   290                                  ;     db 0x2E,0x8A,0x87,0x23,0x00; mov al,[cs:bx+0x23]
+   291                                  ;     inc bx
+   292                                  ;     db 0x0A,0xC0 ;or al,al
+   293                                  ; _0x1b6:
+   294                                  ;     jz _0x1b6    ;  ??? endless loop? incorrect offset...?
+   295                                  ;     mov cl,0x8
+   296                                  ;     mul cl
+   297                                  ;     db 0x8B,0xF0 ;mov si,ax
+   298                                  ;     db 0x8B,0xFA; mov di,dx
+   299                                  ;     mov es,[cs:0x1f]
+   300                                  ;     mov ch,0x2
+   301                                  ; _0x1c7:
+   302                                  ;     mov cl,0x2
+   303                                  ; _0x1c9:
+   304                                  ;     lodsw   
+   305                                  ;     mov [es:di],ax            
+   306                                  ;     inc di    
+   307                                  ;     inc di    
+   308                                  ;     dec cl    
+   309                                  ;     jnz _0x1c9        
+   310                                  ;     add di,0x11c          
+   311                                  ;     dec ch    
+   312                                  ;     jnz _0x1c7        
+   313                                  ;     add dx,byte +0x4              
+   314                                  ;     jmp short _0x1ae              
+   315                                  ;     loopne 0x16b     ; incorrect address...?                                     
+   316                                  ;     inc si    
+   317                                  ;     db 0xf0,0x8b,0x46,0xf4       ; lock mov ax,[bp-0xc]                  
+   318                                  ;     mov cl,0x7        
+   319                                  ;     shr ax,cl       
+   320                                  ;     mov [bp-0xe],ax             
+   321                                  ;     push word [bp-0x14]                 
+   322                                  ;     mov bl,[0x160e]             
+   323                                  ;     mov bh,0x0        
+   324                                  ;     shl bx,1      
+   325                                  ;     push word [bx+0xa2e]                  
+   326                                  ;     ; call 0x0000:0x000a                                ; call IO.SYS  ?      
+   327                                  ;     db 0x9a,0x0a,0x00   ; missing two bytes here for call . Are those bytes in IO.SYS?
+   328                                  
+   329                                  %include "lib.asm"
+   330                              <1> %ifdef use_abs8
+   331                              <1> abs8:
+   332 000001A3 08C0                <1>     or al,al
+   333 000001A5 7902                <1>     jns .return
+   334 000001A7 F6D8                <1>     neg al
+   335 000001A9 C3                  <1> .return ret
+   336                              <1> %endif
+   330                                  
+   331 000001AA <bin 59E56h>            incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
+   332                                  
