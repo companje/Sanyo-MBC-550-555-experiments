@@ -26,159 +26,43 @@ code:
 
     call clearScreen
 
-top:
     mov ax,0x0c00
     mov es,ax
-    mov al,255
-    mov di,0
-    mov cx,8000
-    mov di,offsetLeftTop    
 
-    ; mov ax,cs
-    ; mov ds,ax
-    ; mov si,img
+    mov ax,cs
+    mov ds,ax
 
-    rep stosb
+    mov ax,0xf400
+    mov bp,ax
+    xor bx,bx
 
+    cld
 
-    ; mov di,offsetLeftTop    
-    ; mov al,15
-    ; call drawDotWithColor     ;
-    ; jmp top
-
-;     mov ax,0x0c00
-;     mov es,ax
-;     xor bp,bp
-;     mov dh,0                    ; t
-; draw:
-;     mov dl,0                    ; i
-;     mov bl,0                    ; y
-; repeatY:
-;     mov bh,0                    ; x
-; repeatX:
-;     ; push bp
-;     ; push bx
-;     ; xchg bx,bp
-;     ; mov bp,[bx+table]
-;     ; and bp,0xff
-;     ; or bp,0x100
-;     ; pop bx
-;     ; call bp
-;     ; pop bp
-
-;     push bx
-;     mov bx,0xc00
-;     mov es,bx
-;     mov al,255
-;     call drawchar
-;     mov bx,0xf400
-;     mov es,bx
-;     call drawchar
-;     pop bx
-
-;     add di,8
-
-;     inc dl                       ; i++
-;     inc bh                       ; x++
-;     cmp bh,16
-;     jl repeatX
-;     add di,192+320
-;     inc bl                        ; y++
-;     cmp bl,16
-;     jl repeatY
-
-;     inc dh
-;     jmp draw
-
-; drawchar:
-;     push di
-;     push ax
-;     and al,15                     ; limit to 4 lower bits [0..15]
-;     mov cl,8
-;     mul cl                        ; ax=al*8
-
-;     mov si,ax
-;     add si,img
-;     times 4 movsw
-;     add di,320-8
-;     mov si,ax
-;     add si,img+128
-;     times 4 movsw
-;     pop ax
-;     pop di
-;     ret
-
-; table: db fx0,fx1 ;,fx2,fx3,fx4,fx5,fx6,fx7
-
-; fx0:
-;     mov al,bl
-;     add al,dh
-;     and al,bh
-;     ret
-
-; fx1:                            ;x*y+t
-;     mov al,bh
-;     mul bl
-;     add al,dh
-;     ret
-
-
-img:
-    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
-    db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
-    db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
-    db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
-    db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
-    db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
-    db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
-    db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
-
-    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-    db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
-    db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
-    db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
-    db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
-    db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
-    db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
-
-
-
-
-
-
-
-;     mov ax,cs
-;     mov ds,ax
-
-;     mov ax,0xf400
-;     mov bp,ax
-;     xor bx,bx
-
-;     cld
+top:
+    mov di,offsetLeftTop
+    
+    mov al,-15
+    call drawDotWithColor     ;
 
 ; top:
 ;     mov di,offsetLeftTop
-    
-;     mov al,-15
-;     call drawDotWithColor     ;
+;     mov si,img
+; cell:
 
-; ; top:
-; ;     mov di,offsetLeftTop
-; ;     mov si,img
-; ; cell:
+;     mov cx,32*4
+;     rep movsb
 
-; ;     mov cx,32*4
-; ;     rep movsb
+;     add di,40*4
+;     mov cx,32*4
+;     rep movsb
 
-; ;     add di,40*4
-; ;     mov cx,32*4
-; ;     rep movsb
-
-;     jmp top
+    jmp top
 
 
 drawDotWithColor:
+    ; or al,al
+    ; jns .return    ; if positive white else red
+
     push bp
     mov bp,0xf000  ; red
     mov es,bp
@@ -190,16 +74,20 @@ drawDotWithColor:
     mov es,bp
     call drawDot
     pop bp
-    ret
 
-; ; wat ook kan is dat ik in drawDot altijd naar alle 3 kleuren schrijf
-; ; en afhankelijk van het -teken schrijf ik een 0 of een karakter
+; wat ook kan is dat ik in drawDot altijd naar alle 3 kleuren schrijf
+; en afhankelijk van het -teken schrijf ik een 0 of een karakter
 
 drawDot:
     push di
     push ax
     push cx
     
+    ; or al,al
+    ; pushf
+
+    ; jns .return
+
     call abs8
 
     mov cl,8
@@ -241,7 +129,7 @@ drawDot:
     ; cmp bx,20
     ; jle top
 
-    ; hlt
+    hlt
 
 ;     ; set up 25x80
 ;     ; mov dx,0x30 ;CRTC address port
@@ -384,6 +272,25 @@ drawDot:
 ;     ; mov al,255
 ;     ; stosb
 ;     ; hlt
+
+img:
+    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
+    db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
+    db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
+    db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
+    db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
+    db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
+    db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
+    db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
+
+    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+    db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
+    db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
+    db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
+    db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
+    db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
+    db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
 
 ; ;     stosb
 
