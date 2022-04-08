@@ -1039,7 +1039,7 @@ public static class Intel8086 {
    *            word/byte operation
    * @return the value
    */
-  private int getMem(final int w) {
+  public int getMem(final int w) {
     final int addr = getAddr(cs, ip);
     int val = memory[addr];
     if (w == W)
@@ -1057,7 +1057,7 @@ public static class Intel8086 {
    *            the address
    * @return the value
    */
-  private int getMem(final int w, final int addr) {
+  public int getMem(final int w, final int addr) {
     int val = memory[addr];
     if (w == W) {
       if ((addr & 0b1) == 0b1)
