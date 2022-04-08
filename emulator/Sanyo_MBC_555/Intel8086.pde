@@ -1379,8 +1379,8 @@ public static class Intel8086 {
    */
   private void setMem(final int w, final int addr, final int val) {
     // IBM BIOS and BASIC are ROM.
-    if (addr >= 0xf6000)
-      return;
+    //if (addr >= 0xf6000)   ///DIT WAS HET PROBLEEM in m'n blauwe kanaal!
+    //  return;
     memory[addr] = val & 0xff;
     if (w == W) {
       if ((addr & 0b1) == 0b1)
