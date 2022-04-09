@@ -12,7 +12,6 @@ clearScreen:
     xor ax,ax
     mov cx,16000
     rep stosw
-
     mov bp,0x0c00  ; green
     mov es,bp
     xor di,di
@@ -20,6 +19,8 @@ clearScreen:
     mov cx,8000
     rep stosw
  .return ret
+
+ 
 
 ; setProfile25x72:
 ;     mov si,CRTC.profile25x72

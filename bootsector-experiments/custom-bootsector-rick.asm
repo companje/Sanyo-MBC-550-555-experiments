@@ -10,9 +10,13 @@ org 0x0
     db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00,0xff,
     db '       Sanyo MBC-550/555        ',0x00
 
-; cols equ 16
-offsetLeftTop equ 4*24 + 4*80*8
+cols equ 80
+offsetLeftTop equ 4*24 + 4*cols*8
 
+col: db 0
+row: db 0
+index: dw 0
+; cursorIndex: db 0
 
 t: db 0
 i: db 0
@@ -21,551 +25,181 @@ y: db 0
 
 
 code:  
-    mov si,CRTC.profile25x72
+    mov si,CRTC.profile25x80
     call CRTC.setProfile
-
     call clearScreen
 
-top:
-    mov ax,0x0c00
-    mov es,ax
-    mov al,255
+draw:
+    mov di,0   ; 0*4*cols
+
+    mov bx,0x0c00
+    mov es,bx
     mov di,0
-    mov cx,8000
-    mov di,offsetLeftTop    
+    
+    mov al,0
+charset:
+    call putChar
+    inc al
+    add di,4
+    ; call nextChar
 
-    ; mov ax,cs
-    ; mov ds,ax
-    ; mov si,img
+    cmp al,85
+    jl charset
 
-    rep stosb
+    ; add di,cols*4
 
 
-    ; mov di,offsetLeftTop    
-    ; mov al,15
-    ; call drawDotWithColor     ;
-    ; jmp top
+    hlt
 
-;     mov ax,0x0c00
-;     mov es,ax
-;     xor bp,bp
-;     mov dh,0                    ; t
-; draw:
-;     mov dl,0                    ; i
-;     mov bl,0                    ; y
+; nextChar:
+;     push ax
+;     push dx
+;     cs inc word [index]
+;     cs mov ax,[index]
+;     inc ax
+;     mov dx,cols
+;     div dx
+;     cmp dx,0
+;     jne .nextCol
+; .nextLine:
+;     add ax,cols*4
+; .nextCol:
+;     add ax,4
+;     mov di,ax
+;     pop dx
+;     pop ax
+    
+
+setCursor:
+    ;bh,bl = row,col
+
+putChar:               ; draw char with code al to es:di, di increases with 8. 
+    push ax
+    push bx
+    mov bx,0xfd00      ; ROM charset
+    mov ds,bx
+    cbw                ; extend al into ax, clear ah
+    shl ax,1
+    shl ax,1
+    shl ax,1           
+    mov si,ax          ; si=charcode*8
+    movsw
+    movsw
+    add di,cols*4-4    ; next nibble below current
+    movsw
+    movsw
+    sub di,cols*4+4    ; return to nibble above
+    pop bx
+    pop ax
+    ret
+
+; updateCursor:
+
+    ; inc byte [col]
+
+; getCharShape:          ; al=char code, output point to char in DS:SI
+    
+
+    ; lodsw
+
+;     mov dl,0    ; i
+;     mov bl,0    ; y
+;     ; mov di,9*(4*cols)+cols ; view topleft
+;     mov di,8 + 8*cols
 ; repeatY:
-;     mov bh,0                    ; x
+;     mov bh,0    ; x
 ; repeatX:
-;     ; push bp
-;     ; push bx
-;     ; xchg bx,bp
-;     ; mov bp,[bx+table]
-;     ; and bp,0xff
-;     ; or bp,0x100
-;     ; pop bx
-;     ; call bp
-;     ; pop bp
+    ; push bp
+    ; push bx
+    ; xchg bx,bp
+    ; mov bp,[bx+table]
+    ; and bp,0xff
+    ; or bp,0x0100
+    ; pop bx
+    ; call bp
+    ; pop bp
+
+    ; call fx0
+
+;     cld
+;     mov cx,8
+; asdf:
+;     mov al,15
 
 ;     push bx
-;     mov bx,0xc00
-;     mov es,bx
-;     mov al,255
+;     mov bx,0xf000    ; red
 ;     call drawchar
-;     mov bx,0xf400
-;     mov es,bx
-;     call drawchar
+;     ; mov bx,0x0c00    ; green
+;     ; call drawchar
+;     ; mov bx,0xf400    ; blue
+;     ; call drawchar
 ;     pop bx
 
 ;     add di,8
 
-;     inc dl                       ; i++
-;     inc bh                       ; x++
-;     cmp bh,16
-;     jl repeatX
-;     add di,192+320
-;     inc bl                        ; y++
-;     cmp bl,16
-;     jl repeatY
+;     loop asdf
 
-;     inc dh
+
 ;     jmp draw
+
+
+    ; add di,8
+
+    ; inc dl    ; i++
+    ; inc bh    ; x++
+    ; cmp bh,16
+    ; jl repeatX
+    ; add di,(cols-16)*8
+    ; inc bl    ; y++
+    ; cmp bl,16
+    ; jl repeatY
+
+    ; inc dh    ; t++
 
 ; drawchar:
 ;     push di
 ;     push ax
-;     and al,15                     ; limit to 4 lower bits [0..15]
+;     mov es,bx ; vram
+;     and al,15    
 ;     mov cl,8
-;     mul cl                        ; ax=al*8
-
+;     mul cl    ; ax=al*8
 ;     mov si,ax
 ;     add si,img
-;     times 4 movsw
-;     add di,320-8
+;     times 4 cs movsw
+;     add di,(4*cols)-8
 ;     mov si,ax
 ;     add si,img+128
-;     times 4 movsw
+;     times 4 cs movsw
 ;     pop ax
 ;     pop di
 ;     ret
 
-; table: db fx0,fx1 ;,fx2,fx3,fx4,fx5,fx6,fx7
+; table: db fx0
 
 ; fx0:
-;     mov al,bl
-;     add al,dh
-;     and al,bh
+;     mov al,15
+;     ; mul bl
+;     ; add al,dh
 ;     ret
 
-; fx1:                            ;x*y+t
-;     mov al,bh
-;     mul bl
-;     add al,dh
-;     ret
-
-
-img:
-    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
-    db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
-    db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
-    db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
-    db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
-    db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
-    db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
-    db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
-
-    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-    db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-    db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
-    db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
-    db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
-    db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
-    db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
-    db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
-
-
-
-
-
-
-
-;     mov ax,cs
-;     mov ds,ax
-
-;     mov ax,0xf400
-;     mov bp,ax
-;     xor bx,bx
-
-;     cld
-
-; top:
-;     mov di,offsetLeftTop
-    
-;     mov al,-15
-;     call drawDotWithColor     ;
-
-; ; top:
-; ;     mov di,offsetLeftTop
-; ;     mov si,img
-; ; cell:
-
-; ;     mov cx,32*4
-; ;     rep movsb
-
-; ;     add di,40*4
-; ;     mov cx,32*4
-; ;     rep movsb
-
-;     jmp top
-
-
-drawDotWithColor:
-    push bp
-    mov bp,0xf000  ; red
-    mov es,bp
-    call drawDot
-    mov bp,0x0c00  ; green
-    mov es,bp
-    call drawDot
-    mov bp,0xf400  ; blue
-    mov es,bp
-    call drawDot
-    pop bp
-    ret
-
-; ; wat ook kan is dat ik in drawDot altijd naar alle 3 kleuren schrijf
-; ; en afhankelijk van het -teken schrijf ik een 0 of een karakter
-
-drawDot:
-    push di
-    push ax
-    push cx
-    
-    call abs8
-
-    mov cl,8
-    mul cl        ; ax=al*8
-
-    mov si,ax
-    add si,img
-    times 4 movsw
-
-    add di,320-40
-    mov si,ax
-    add si,img+128
-    times 4 movsw
-    
-    pop cx
-    pop ax
-    pop di
-    ret
-
-
-    ; mov cx,cols*4
-    ; mov al,85
-    ; rep stosb
-
-    ; mov si,img
-    ; mov cx,128
-    ; rep movsb
-
-    ; add di,320-128
-    ; mov cx,128
-    ; rep movsb
-
-    ; add di,320-128
-    ; inc bx
-    ; cmp bx,16
-    ; jle cell
-    ; mov ax,0xf400
-    ; mov es,ax
-    ; cmp bx,20
-    ; jle top
-
-    ; hlt
-
-;     ; set up 25x80
-;     ; mov dx,0x30 ;CRTC address port
-;     ; mov di,0x32 ;CRTC data port
-;     ; mov si,CRTC.profile25x80
-;     ; mov al,[si+6] ;get # rows*2
-;     ; shr ax,1      ;divide by 2 (reg 6 has 4 scanline rows, chars are 8)
-;     ; dec ax        ;subtract 1 (it's zero based)
-;     ; mov [BV.ScreenRows],al
-;     ; call CRTC_LoadProfile
-
-;     ; mov al,0x4
-;     ; out 0x10,al
-
-;     ; call clr
-
-;     mov al,0x04
-;     out 0x10,al
-;     mov ax,0x0c00
-;     mov es,ax
-
-;     mov ax,cs
-;     mov ds,ax
-
-;     mov ax,0xf400
-;     mov bp,ax
-;     xor bx,bx
-
-
-;     hlt
-
-;     ; mov al,0x4
-;     ; out 0x10,al
-;     ; ; mov al,0x5
-;     ; ; out 0x10,al
-
-;     ; mov ax,0x0800
-;     ; mov es,ax
-
-;     ; mov ax,cs
-;     ; mov ds,ax
-
-;     ; mov ax,0xf400
-;     ; mov bp,ax
-;     ; xor bx,bx
-
-;     ; cld
-
-; top:
-;     mov di,offsetLeftTop
-    
-;     mov al,-8
-;     call drawDotWithColor     ;
-; ; top:
-; ;     mov di,offsetLeftTop
-; ;     mov si,img
-; ; cell:
-
-; ;     mov cx,32*4
-; ;     rep movsb
-
-; ;     add di,40*4
-; ;     mov cx,32*4
-; ;     rep movsb
-
-;     jmp top
-
-
-; drawDotWithColor:
-;     push bp
-;     mov bp,0xf000  ; red
-;     mov es,bp
-;     call drawDot
-;     mov bp,0x0400  ; green
-;     mov es,bp
-;     call drawDot
-;     mov bp,0xf400  ; blue
-;     mov es,bp
-;     call drawDot
-;     pop bp
-
-; ; wat ook kan is dat ik in drawDot altijd naar alle 3 kleuren schrijf
-; ; en afhankelijk van het -teken schrijf ik een 0 of een karakter
-
-; drawDot:
-;     push di
-;     push ax
-;     push cx
-    
-;     ; or al,al
-;     ; pushf
-
-;     ; jns .return
-
-;     call abs8
-
-;     mov cl,8
-;     mul cl        ; ax=al*8
-
-;     mov si,ax
-;     add si,img
-;     times 4 movsw
-
-;     add di,320-40
-;     mov si,ax
-;     add si,img+128
-;     times 4 movsw
-    
-;     pop cx
-;     pop ax
-;     pop di
-;     ret
-
-
-;     ; mov cx,cols*4
-;     ; mov al,85
-;     ; rep stosb
-
-;     ; mov si,img
-;     ; mov cx,128
-;     ; rep movsb
-
-;     ; add di,320-128
-;     ; mov cx,128
-;     ; rep movsb
-
-;     ; add di,320-128
-;     ; inc bx
-;     ; cmp bx,16
-;     ; jle cell
-;     ; mov ax,0xf400
-;     ; mov es,ax
-;     ; cmp bx,20
-;     ; jle top
-
-;     hlt
-
-
-;     ; xor di,di
-;     ; mov al,255
-;     ; stosb
-;     ; hlt
-
-; ;     stosb
-
-; ;     mov al,128
-; ;     mov si,0
-; ;     mov di,0
-; ; forY:
-; ;     mov dx,0
-; ; forX:
-; ;     test dx,di
-; ;     jz inc_si
-; ;     mov [si],al
-; ; inc_si:
-; ;     add si,4
-; ;     add dx,8
-; ;     cmp dx,639
-; ;     jl forX
-    
-; ;     add di,4
-; ;     cmp di,199
-; ;     jl forY
-
-; ;     hlt    
-
-; ;     mov al,0
-; ;     cld
-; ; top:
-; ;     mov cx,0x1000
-; ;     xor di,di
-; ;     ; in al,0x24
-; ;     inc al
-; ; input:
-; ;     stosb
-; ;     stosb
-; ;     stosb
-; ;     stosb
-; ;     ; add di,3
-; ;     ; loop input
-
-; ;     ; push ax
-; ;     ; mov ax,0xf000
-;     ; mov es,ax
-;     ; pop ax
-
-;     ; jmp top
-
-
-;     ; cli
-;     ; cld
-;     ; mov ax,cs
-;     ; mov ds,ax
-;     ; mov ss,ax
-;     ; mov sp,0x400
-    
-;     ; db 0x33,0xff                         ; xor di,di
-;     ; db 0x33,0xf6                         ; xor si,si
-
-;     ; mov ax,0x20
-;     ; db 0x8E,0xC0 ; mov es,ax
-;     ; mov cx,0x100
-;     ; repz movsw
-
-;     ; push es
-;     ; mov ax,_0x106
-;     ; push ax
-;     ; retf
-
-; ; _0x106:
-; ;     mov ax,cs
-; ;     mov ds,ax
-; ;     mov ax,0
-; ;     db 0x8E,0xC0 ; mov es,ax
-; ;     db 0xBF,0x00,0x00 ; mov di,0
-; ;     mov dx,0x400
-
-; ;     test byte [cs:0x15],0x2
-; ;     jnz _0x121
-; ;     inc dh
-; ;     inc dh
-; ; _0x121:
-; ;     mov cx,0x1
-; ;     jmp _0x54
-; ; _0x127:
-; ;     mov ax,cs
-; ;     mov ds,ax
-; ;     db 0x33,0xC0  ; xor ax,ax
-; ;     db 0x8E,0xC0  ; mov es,ax
-; ;     db 0x8B,0xF8  ; mov di,ax
-; ;     db 0x8B,0xD8  ; mov bx,ax
-; ;     mov dl,0xf
-; ; _0x135:
-; ;     mov si,0xd1
-; ;     jmp short _0x143
-; ; _0x13a:
-; ;     db 0x0A,0xDB; or bl,bl
-; ;     jnz _0x15b
-; ;     mov bl,0x1
-; ; _0x140:
-; ;     db 0xBE,0xDC,0x00  ;mov si,0xdc
-; ; _0x143:
-; ;     db 0x8B,0xEF  ;mov bp,di
-; ;     mov cx,0xb
-; ;     repe cmpsb
-; ;     db 0x8B,0xFD ; mov di,bp
-; ;     jz _0x13a
-; ;     add di,byte +0x20
-; ;     dec dl
-; ;     jz _0x192
-; ;     db 0x0A,0xDB  ;or bl,bl
-; ;     jz _0x135
-; ;     jmp short _0x140
-; ; _0x15b:
-; ;     mov byte [cs:0x1e],0x1
-; ;     mov ax,0x40
-; ;     db 0x8E,0xC0 ; mov es,ax
-; ;     db 0xBF,0x00,0x00 ; mov di,0
-; ;     mov ax,0x7
-; ;     test byte [cs:0x15],0x1
-; ;     jz _0x177
-; ;     mov ax,0xa
-; ; _0x177:
-; ;     mov dl,0x8
-; ;     test byte [cs:0x15],0x2
-; ;     jnz _0x186
-; ;     mov dl,0x9
-; ;     db 0x05,0x02,0x00 ; add ax,0x2
-; ; _0x186:
-; ;     div dl
-; ;     inc ah
-; ;     db 0x8B,0xD0 ;mov dx,ax
-; ;     mov cx,0x54
-; ;     jmp _0x54
-; ; _0x192:
-; ;     db 0x2E,0x8E,0x06,0x1F,0x00 ;  mov es,[cs:0x1f]
-; ;     db 0x33,0xC0  ; xor ax,ax
-; ;     db 0x33,0xff                         ; xor di,di
-; ;     mov cx,0x4000
-; ;     rep stosw
-; ;     mov al,0x5
-; ;     out 0x10,al
-; ;     mov ds,[cs:0x21]
-; ;     mov dx,0x1b50
-; ;     db 0x33,0xDB ; xor bx,bx
-; ; _0x1ae:
-; ;     db 0x2E,0x8A,0x87,0x23,0x00; mov al,[cs:bx+0x23]
-; ;     inc bx
-; ;     db 0x0A,0xC0 ;or al,al
-; ; _0x1b6:
-; ;     jz _0x1b6    ;  ??? endless loop? incorrect offset...?
-; ;     mov cl,0x8
-; ;     mul cl
-; ;     db 0x8B,0xF0 ;mov si,ax
-; ;     db 0x8B,0xFA; mov di,dx
-; ;     mov es,[cs:0x1f]
-; ;     mov ch,0x2
-; ; _0x1c7:
-; ;     mov cl,0x2
-; ; _0x1c9:
-; ;     lodsw   
-; ;     mov [es:di],ax            
-; ;     inc di    
-; ;     inc di    
-; ;     dec cl    
-; ;     jnz _0x1c9        
-; ;     add di,0x11c          
-; ;     dec ch    
-; ;     jnz _0x1c7        
-; ;     add dx,byte +0x4              
-; ;     jmp short _0x1ae              
-; ;     loopne 0x16b     ; incorrect address...?                                     
-; ;     inc si    
-; ;     db 0xf0,0x8b,0x46,0xf4       ; lock mov ax,[bp-0xc]                  
-; ;     mov cl,0x7        
-; ;     shr ax,cl       
-; ;     mov [bp-0xe],ax             
-; ;     push word [bp-0x14]                 
-; ;     mov bl,[0x160e]             
-; ;     mov bh,0x0        
-; ;     shl bx,1      
-; ;     push word [bx+0xa2e]                  
-; ;     ; call 0x0000:0x000a                                ; call IO.SYS  ?      
-; ;     db 0x9a,0x0a,0x00   ; missing two bytes here for call . Are those bytes in IO.SYS?
+; img:
+;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
+;     db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
+;     db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
+;     db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
+;     db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
+;     db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
+;     db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
+;     db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
+
+;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+;     db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
+;     db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
+;     db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
+;     db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
+;     db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
+;     db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
 
 %include "lib.asm"
 
