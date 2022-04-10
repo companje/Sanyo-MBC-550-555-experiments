@@ -1,8 +1,22 @@
 build:
-	nasm custom-bootsector-rick.asm -o 0001-mbc555-bootsector.img -l myfile.lst
-	cp 0001-mbc555-bootsector.img /Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555/data/
+	nasm tixy2.asm -o rick.com -l rick.lst
+
+	hdiutil attach /Volumes/FLASHFLOPPY/0001-mbc555-bootsector.img
+
+	cp rick.com /Volumes/SYSTEM
+
+	diskutil eject "/dev/disk5"
+
+	diskutil eject "/dev/disk4"
 	
-# 	processing-java --sketch=/Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555 --run
+
+
+
+# build:
+# 	nasm custom-bootsector-rick.asm -o 0001-mbc555-bootsector.img -l myfile.lst
+# 	cp 0001-mbc555-bootsector.img /Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555/data/
+	
+# # # 	processing-java --sketch=/Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555 --run
 	
 # 	cp 0001-mbc555-bootsector.img /Volumes/FLASHFLOPPY/
 # 	diskutil eject "/dev/disk4"

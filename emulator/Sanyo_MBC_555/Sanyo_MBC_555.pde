@@ -1,6 +1,6 @@
 Intel8086 cpu = new Intel8086();
 PImage img;
-int cols=80;
+int cols=72;
 
 void setup() {
   //noSmooth();
@@ -67,6 +67,7 @@ void draw() {
 
 void mousePressed() {
   saveImage();
+  reload();
 }
 
 void saveImage() {

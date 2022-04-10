@@ -5,26 +5,26 @@ abs8:
 .return ret
 
 setDisplayMode80x25:
-    mov si,CRTC.profile25x80
+    cs mov si,CRTC.profile25x80
     call CRTC.setProfile
     call clearScreen
     ret
 
-clearScreen:
-    cld
-    mov bp,0xf000  ; red + blue
-    mov es,bp
-    xor di,di
-    xor ax,ax
-    mov cx,0x4000
-    rep stosw
-    mov bp,0x0c00  ; green
-    mov es,bp
-    xor di,di
-    xor ax,ax
-    mov cx,0x2000
-    rep stosw
- .return ret
+; clearScreen:
+;     cld
+;     mov bp,0xf000  ; red + blue
+;     mov es,bp
+;     xor di,di
+;     mov ax,0x8080
+;     mov cx,0x4000
+;     rep stosw
+;     mov bp,0x0c00  ; green
+;     mov es,bp
+;     xor di,di
+;     mov ax,0x8080
+;     mov cx,0x2000
+;     rep stosw
+;  .return ret
 
 
 CRTC:

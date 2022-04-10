@@ -10,13 +10,65 @@ org 0x0
     db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00,0xff,
     db '       Sanyo MBC-550/555        ',0x00
 
-cols equ 80
+cols equ 72
 startpos equ 4*24 + 4*cols*8
 
+
+; setProfile:
+;     mov bx,0
+;     cld
+; .lp:
+;     mov al,bl
+;     out 0x30,al            ;CRTC address port
+;     mov al,[cs: bx+si+0]
+;     out 0x32,al            ;CRTC data port
+;     inc bx
+;     cmp bl,10
+;     jl .lp
+;     ret
+
+; profile25x80:
+;     db 112  ;0  Horizontal Total
+;     db 80   ;1  Horizontal Displayed
+;     db 88   ;2  Horizontal Sync Position
+;     db 0x4a ;3  Horizontal and Vertical Sync Widths
+;     db 65   ;4  Vertical Total
+;     db 0    ;5  Vertical Total Adjust
+;     db 50   ;6  Vertical Displayed
+;     db 56   ;7  Vertical Sync position
+;     db 0    ;8  Interlace and Skew
+;     db 3    ;9  Maximum Raster Address
+
+
+clearScreen:
+    cld
+    mov ax,0x5555  ; bitmap pattern
+    mov bp,0xf000  ; red + blue
+    mov es,bp
+    mov di,0
+    mov cx,0x4000
+    rep stosw
+    mov bp,0x0c00  ; green
+    mov es,bp
+    mov di,0
+    mov cx,0x2000
+    rep stosw
+    ret
+
 code:  
-    call setDisplayMode80x25
+    ; call setDisplayMode80x25
+    ; mov si,profile25x80
+    ; call setProfile
+    call clearScreen
+
+; _loop:
+;     jmp _loop
+
+    ; push cs
+    ; pop ds              ; data=code segment
+
+draw:
     mov ch,0            ; t
-    mov dh,0            ; y
 top:
     mov cl,0            ; i
     mov di,startpos
@@ -24,9 +76,22 @@ top:
 repeatY:
     mov dl,0            ; x
 repeatX:
-    mov al,cl           ; -15 is rode stip, +15 wit
-    times 4 shr al,1    ; al/=16
+    ; push bx
+    ; cs call fx0
+    ; mov al,dh
     
+    ; pop bx
+
+    mov al,15
+    add al,ch
+
+    ; mov al,ch           ; t
+    ; times 2 shr al,1    ; /=2
+    ; and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+    ; times 2 shl al,1    ; *=4
+    ; mov bx,sin
+    ; cs xlat                ; extract sin value
+
     call draw_dot_color
     inc dl              ; x
     inc cl              ; i
@@ -40,6 +105,17 @@ repeatX:
     jl repeatY
     inc ch              ; t
     jmp top
+
+
+
+fx0:
+    mov al,ch           ; t
+    times 2 shr al,1    ; /=2
+    and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+    times 2 shl al,1    ; *=4
+    mov bx,sin
+    cs xlat                ; extract sin value
+    ret
 
 draw_dot_color:
     mov bx,0xf000    ; red
@@ -82,11 +158,11 @@ draw_dot:
 
 table: db fx0
 
-fx0:
-    mov al,15
-    ; mul bl
-    ; add al,dh
-    ret
+sin:
+    db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0E,0x0F,0x0F,0x0F
+    db 0x0F,0x0F,0x0F,0x0F,0x0E,0x0E,0x0D,0x0C,0x0B,0x0A,0x09,0x07,0x06,0x04,0x03,0x01
+    db 0x00,0xFF,0xFD,0xFC,0xFA,0xF9,0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF2,0xF1,0xF1,0xF1
+    db 0xF1,0xF1,0xF1,0xF1,0xF2,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xF9,0xFA,0xFC,0xFD,0xFF
 
 img:
     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
@@ -106,6 +182,7 @@ img:
     db 0x1F,0x0F,0x00,0x00,0xFC,0xF8,0x80,0x00,0x3F,0x0F,0x00,0x00,0xFE,0xF8,0x80,0x00
     db 0x3F,0x1F,0x07,0x00,0xFE,0xFC,0xF0,0x00,0x7F,0x3F,0x07,0x00,0xFF,0xFE,0xF0,0x00
 
-%include "lib.asm"
+
+; %include "lib.asm"
 incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
 
