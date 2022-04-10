@@ -11,197 +11,101 @@ org 0x0
     db '       Sanyo MBC-550/555        ',0x00
 
 cols equ 80
-offsetLeftTop equ 4*24 + 4*cols*8
-
-col: db 0
-row: db 0
-index: dw 0
-; cursorIndex: db 0
-
-t: db 0
-i: db 0
-x: db 0
-y: db 0
-
+startpos equ 4*24 + 4*cols*8
 
 code:  
-    mov si,CRTC.profile25x80
-    call CRTC.setProfile
-    call clearScreen
-
-draw:
-    mov di,0   ; 0*4*cols
-
-    mov bx,0x0c00
-    mov es,bx
-    mov di,0
+    call setDisplayMode80x25
+    mov ch,0            ; t
+    mov dh,0            ; y
+top:
+    mov cl,0            ; i
+    mov di,startpos
+    mov dh,0            ; y           
+repeatY:
+    mov dl,0            ; x
+repeatX:
+    mov al,cl           ; -15 is rode stip, +15 wit
+    times 4 shr al,1    ; al/=16
     
-    mov al,0
-charset:
-    call putChar
-    inc al
-    add di,4
-    ; call nextChar
+    call draw_dot_color
+    inc dl              ; x
+    inc cl              ; i
+    add di,8
+    cmp dl,16
+    jl repeatX
+    mov dl,0
+    add di,(cols-16)*8    ; skip remaining cols
+    inc dh
+    cmp dh,16
+    jl repeatY
+    inc ch              ; t
+    jmp top
 
-    cmp al,85
-    jl charset
-
-    ; add di,cols*4
-
-
-    hlt
-
-; nextChar:
-;     push ax
-;     push dx
-;     cs inc word [index]
-;     cs mov ax,[index]
-;     inc ax
-;     mov dx,cols
-;     div dx
-;     cmp dx,0
-;     jne .nextCol
-; .nextLine:
-;     add ax,cols*4
-; .nextCol:
-;     add ax,4
-;     mov di,ax
-;     pop dx
-;     pop ax
-    
-
-setCursor:
-    ;bh,bl = row,col
-
-putChar:               ; draw char with code al to es:di, di increases with 8. 
-    push ax
-    push bx
-    mov bx,0xfd00      ; ROM charset
-    mov ds,bx
-    cbw                ; extend al into ax, clear ah
-    shl ax,1
-    shl ax,1
-    shl ax,1           
-    mov si,ax          ; si=charcode*8
-    movsw
-    movsw
-    add di,cols*4-4    ; next nibble below current
-    movsw
-    movsw
-    sub di,cols*4+4    ; return to nibble above
-    pop bx
-    pop ax
+draw_dot_color:
+    mov bx,0xf000    ; red
+    call draw_dot
+    or al,al
+    jns .draw_blue_green  ; check sign bit for negative number
+    mov al,0         ; clear dot on blue and green channel
+.draw_blue_green:
+    neg al
+    mov bx,0xf400    ; blue
+    call draw_dot
+    mov bx,0x0c00    ; green
+    call draw_dot
     ret
 
-; updateCursor:
+draw_dot:
+    push di
+    push ax
+    push cx
+    mov ah,al    
+    or al,al
+    jns .positive
+    neg al
+.positive:
+    mov es,bx    ; vram
+    and al,15    ; limit to 15 (4 bits)
+    mov cl,8
+    mul cl    ; ax=al*8
+    mov si,ax
+    add si,img
+    times 4 cs movsw
+    add di,(4*cols)-8
+    mov si,ax
+    add si,img+128
+    times 4 cs movsw
+    pop cx
+    pop ax
+    pop di
+    ret
 
-    ; inc byte [col]
+table: db fx0
 
-; getCharShape:          ; al=char code, output point to char in DS:SI
-    
+fx0:
+    mov al,15
+    ; mul bl
+    ; add al,dh
+    ret
 
-    ; lodsw
-
-;     mov dl,0    ; i
-;     mov bl,0    ; y
-;     ; mov di,9*(4*cols)+cols ; view topleft
-;     mov di,8 + 8*cols
-; repeatY:
-;     mov bh,0    ; x
-; repeatX:
-    ; push bp
-    ; push bx
-    ; xchg bx,bp
-    ; mov bp,[bx+table]
-    ; and bp,0xff
-    ; or bp,0x0100
-    ; pop bx
-    ; call bp
-    ; pop bp
-
-    ; call fx0
-
-;     cld
-;     mov cx,8
-; asdf:
-;     mov al,15
-
-;     push bx
-;     mov bx,0xf000    ; red
-;     call drawchar
-;     ; mov bx,0x0c00    ; green
-;     ; call drawchar
-;     ; mov bx,0xf400    ; blue
-;     ; call drawchar
-;     pop bx
-
-;     add di,8
-
-;     loop asdf
-
-
-;     jmp draw
-
-
-    ; add di,8
-
-    ; inc dl    ; i++
-    ; inc bh    ; x++
-    ; cmp bh,16
-    ; jl repeatX
-    ; add di,(cols-16)*8
-    ; inc bl    ; y++
-    ; cmp bl,16
-    ; jl repeatY
-
-    ; inc dh    ; t++
-
-; drawchar:
-;     push di
-;     push ax
-;     mov es,bx ; vram
-;     and al,15    
-;     mov cl,8
-;     mul cl    ; ax=al*8
-;     mov si,ax
-;     add si,img
-;     times 4 cs movsw
-;     add di,(4*cols)-8
-;     mov si,ax
-;     add si,img+128
-;     times 4 cs movsw
-;     pop ax
-;     pop di
-;     ret
-
-; table: db fx0
-
-; fx0:
-;     mov al,15
-;     ; mul bl
-;     ; add al,dh
-;     ret
-
-; img:
-;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
-;     db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
-;     db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
-;     db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
-;     db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
-;     db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
-;     db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
-;     db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
-
-;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-;     db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
-;     db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
-;     db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
-;     db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
-;     db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
-;     db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
+img:
+    db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
+    db 0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xC0,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xC0
+    db 0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xE0,0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xE0
+    db 0x00,0x00,0x03,0x07,0x00,0x00,0xE0,0xF0,0x00,0x00,0x03,0x07,0x00,0x00,0xE0,0xF0
+    db 0x00,0x00,0x07,0x0F,0x00,0x80,0xF0,0xF8,0x00,0x00,0x07,0x0F,0x00,0x80,0xF0,0xF8
+    db 0x00,0x03,0x0F,0x1F,0x00,0xE0,0xF8,0xFC,0x00,0x07,0x1F,0x1F,0x00,0xF0,0xFC,0xFC
+    db 0x00,0x0F,0x1F,0x3F,0x80,0xF8,0xFC,0xFE,0x00,0x0F,0x3F,0x3F,0x80,0xF8,0xFE,0xFE
+    db 0x07,0x1F,0x3F,0x7F,0xF0,0xFC,0xFE,0xFF,0x07,0x3F,0x7F,0x7F,0xF0,0xFE,0xFF,0xFF
+    db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+    db 0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00
+    db 0x03,0x00,0x00,0x00,0xE0,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0xE0,0x00,0x00,0x00
+    db 0x07,0x00,0x00,0x00,0xF0,0x80,0x00,0x00,0x07,0x00,0x00,0x00,0xF0,0x80,0x00,0x00
+    db 0x0F,0x03,0x00,0x00,0xF8,0xE0,0x00,0x00,0x1F,0x07,0x00,0x00,0xFC,0xF0,0x00,0x00
+    db 0x1F,0x0F,0x00,0x00,0xFC,0xF8,0x80,0x00,0x3F,0x0F,0x00,0x00,0xFE,0xF8,0x80,0x00
+    db 0x3F,0x1F,0x07,0x00,0xFE,0xFC,0xF0,0x00,0x7F,0x3F,0x07,0x00,0xFF,0xFE,0xF0,0x00
 
 %include "lib.asm"
-
 incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
 

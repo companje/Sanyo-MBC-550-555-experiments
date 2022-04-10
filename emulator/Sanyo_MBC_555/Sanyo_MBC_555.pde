@@ -37,7 +37,7 @@ void reload() {
 }
 
 void draw() {
-  //scale(2);
+  //scale(1.5);
   if (frameCount%60==0) reload();
   
   img.loadPixels();
@@ -55,9 +55,9 @@ void draw() {
   image(img, 0, 0, width, height);
   
   //vlines
-  for (int y=0; y<height; y+=float(height)/200) {
-    stroke(0,200);
-    //line(0,y,width,y);
+  for (int y=0; y<height; y+=height/200.) {
+    stroke(0,50);
+    line(0,y,width,y);
   }
   
   if (frameCount<20) {
