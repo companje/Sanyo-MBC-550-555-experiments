@@ -10,179 +10,222 @@
     10                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00,0xff,
     11                                  ;     db '       Sanyo MBC-550/555        ',0x00
     12                                  
-    13                                  ; cols equ 72
-    14                                  ; startpos equ 4*24 + 4*cols*8
-    15                                  
-    16                                  
-    17                                  ; ; setProfile:
-    18                                  ; ;     mov bx,0
-    19                                  ; ;     cld
-    20                                  ; ; .lp:
-    21                                  ; ;     mov al,bl
-    22                                  ; ;     out 0x30,al            ;CRTC address port
-    23                                  ; ;     mov al,[cs: bx+si+0]
-    24                                  ; ;     out 0x32,al            ;CRTC data port
-    25                                  ; ;     inc bx
-    26                                  ; ;     cmp bl,10
-    27                                  ; ;     jl .lp
-    28                                  ; ;     ret
-    29                                  
-    30                                  ; ; profile25x80:
-    31                                  ; ;     db 112  ;0  Horizontal Total
-    32                                  ; ;     db 80   ;1  Horizontal Displayed
-    33                                  ; ;     db 88   ;2  Horizontal Sync Position
-    34                                  ; ;     db 0x4a ;3  Horizontal and Vertical Sync Widths
-    35                                  ; ;     db 65   ;4  Vertical Total
-    36                                  ; ;     db 0    ;5  Vertical Total Adjust
-    37                                  ; ;     db 50   ;6  Vertical Displayed
-    38                                  ; ;     db 56   ;7  Vertical Sync position
-    39                                  ; ;     db 0    ;8  Interlace and Skew
-    40                                  ; ;     db 3    ;9  Maximum Raster Address
-    41                                  
-    42                                  
-    43                                  ; clearScreen:
-    44                                  ;     cld
-    45                                  ;     mov ax,0x5555  ; bitmap pattern
-    46                                  ;     mov bp,0xf000  ; red + blue
-    47                                  ;     mov es,bp
-    48                                  ;     mov di,0
-    49                                  ;     mov cx,0x4000
-    50                                  ;     rep stosw
-    51                                  ;     mov bp,0x0c00  ; green
-    52                                  ;     mov es,bp
-    53                                  ;     mov di,0
-    54                                  ;     mov cx,0x2000
-    55                                  ;     rep stosw
-    56                                  ;     ret
-    57                                  
-    58                                  ; code:  
-    59                                  ;     ; call setDisplayMode80x25
-    60                                  ;     ; mov si,profile25x80
-    61                                  ;     ; call setProfile
-    62                                  ;     call clearScreen
-    63                                  
-    64                                  ; ; _loop:
-    65                                  ; ;     jmp _loop
-    66                                  
-    67                                  ;     ; push cs
-    68                                  ;     ; pop ds              ; data=code segment
-    69                                  
-    70                                  ; draw:
-    71                                  ;     mov ch,0            ; t
-    72                                  ; top:
-    73                                  ;     mov cl,0            ; i
-    74                                  ;     mov di,startpos
-    75                                  ;     mov dh,0            ; y           
-    76                                  ; repeatY:
-    77                                  ;     mov dl,0            ; x
-    78                                  ; repeatX:
-    79                                  ;     ; push bx
-    80                                  ;     ; cs call fx0
-    81                                  ;     ; mov al,dh
-    82                                      
-    83                                  ;     ; pop bx
+    13                                  cols equ 80
+    14                                  rows equ 25
+    15                                  lines equ 200
+    16                                  ; startpos equ 4*24 + 4*cols*8
+    17                                  
+    18                                  ; %define t ch  ; dit werkt op zich
+    19                                  
+    20                                  ; setProfile:
+    21                                  ;     mov bx,0
+    22                                  ;     cld
+    23                                  ; .lp:
+    24                                  ;     mov al,bl
+    25                                  ;     out 0x30,al            ;CRTC address port
+    26                                  ;     mov al,[cs: bx+si+0]
+    27                                  ;     out 0x32,al            ;CRTC data port
+    28                                  ;     inc bx
+    29                                  ;     cmp bl,10
+    30                                  ;     jl .lp
+    31                                  ;     ret
+    32                                  
+    33                                  ; profile25x80:
+    34                                  ;     db 112  ;0  Horizontal Total
+    35                                  ;     db 80   ;1  Horizontal Displayed
+    36                                  ;     db 88   ;2  Horizontal Sync Position
+    37                                  ;     db 0x4a ;3  Horizontal and Vertical Sync Widths
+    38                                  ;     db 65   ;4  Vertical Total
+    39                                  ;     db 0    ;5  Vertical Total Adjust
+    40                                  ;     db 50   ;6  Vertical Displayed
+    41                                  ;     db 56   ;7  Vertical Sync position
+    42                                  ;     db 0    ;8  Interlace and Skew
+    43                                  ;     db 3    ;9  Maximum Raster Address
+    44                                  
+    45                                  
+    46                                  code:
+    47 00000000 E80400                      call clearScreen
+    48                                      ; hlt
+    49 00000003 B30A                        mov bl,10
+    50 00000005 EBF9                        jmp code
+    51                                  
+    52                                  clearScreen:
+    53 00000007 FC                          cld
+    54                                      ; mov ax,0x5555  ; bitmap pattern
+    55                                      ; mov ax,0x8080  ; bitmap pattern
+    56                                      ; mov bp,0xf000  ; red + blue
+    57                                      ; mov es,bp
+    58                                      ; mov di,0
+    59                                      ; mov cx,32000-100 ; 0x4000
+    60                                      ; rep stosb
+    61                                  
+    62 00000008 B055                        mov al,0x55
+    63 0000000A BD00F0                      mov bp,0xf000  ; red
+    64 0000000D 8EC5                        mov es,bp
+    65 0000000F BF0000                      mov di,0
+    66 00000012 B9803E                      mov cx,cols*lines
+    67 00000015 F3AA                        rep stosb
+    68                                  
+    69 00000017 B055                        mov al,0x55
+    70 00000019 BD000C                      mov bp,0x0c00  ; green
+    71 0000001C 8EC5                        mov es,bp
+    72 0000001E BF0000                      mov di,0
+    73 00000021 B9803E                      mov cx,cols*lines
+    74 00000024 F3AA                        rep stosb
+    75                                  
+    76 00000026 B055                        mov al,0x55
+    77 00000028 BD00F4                      mov bp,0xf400  ; blue
+    78 0000002B 8EC5                        mov es,bp
+    79 0000002D BF0000                      mov di,0
+    80 00000030 B9803E                      mov cx,cols*lines
+    81 00000033 F3AA                        rep stosb
+    82                                  
+    83 00000035 C3                          ret
     84                                  
-    85                                  ;     mov al,15
-    86                                  ;     add al,ch
-    87                                  
-    88                                  ;     ; mov al,ch           ; t
-    89                                  ;     ; times 2 shr al,1    ; /=2
-    90                                  ;     ; and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
-    91                                  ;     ; times 2 shl al,1    ; *=4
-    92                                  ;     ; mov bx,sin
-    93                                  ;     ; cs xlat                ; extract sin value
+    85                                  
+    86                                  ; code:  
+    87                                  ;     ; call setDisplayMode80x25
+    88                                  ;     ; mov si,profile25x80
+    89                                  ;     ; call setProfile
+    90                                  ;     call clearScreen
+    91                                  
+    92                                  ; ; _loop:
+    93                                  ; ;     jmp _loop
     94                                  
-    95                                  ;     call draw_dot_color
-    96                                  ;     inc dl              ; x
-    97                                  ;     inc cl              ; i
-    98                                  ;     add di,8
-    99                                  ;     cmp dl,16
-   100                                  ;     jl repeatX
-   101                                  ;     mov dl,0
-   102                                  ;     add di,(cols-16)*8    ; skip remaining cols
-   103                                  ;     inc dh
-   104                                  ;     cmp dh,16
-   105                                  ;     jl repeatY
-   106                                  ;     inc ch              ; t
-   107                                  ;     jmp top
-   108                                  
-   109                                  
-   110                                  
-   111                                  ; fx0:
-   112                                  ;     mov al,ch           ; t
-   113                                  ;     times 2 shr al,1    ; /=2
-   114                                  ;     and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
-   115                                  ;     times 2 shl al,1    ; *=4
-   116                                  ;     mov bx,sin
-   117                                  ;     cs xlat                ; extract sin value
-   118                                  ;     ret
-   119                                  
-   120                                  ; draw_dot_color:
-   121                                  ;     mov bx,0xf000    ; red
-   122                                  ;     call draw_dot
-   123                                  ;     or al,al
-   124                                  ;     jns .draw_blue_green  ; check sign bit for negative number
-   125                                  ;     mov al,0         ; clear dot on blue and green channel
-   126                                  ; .draw_blue_green:
-   127                                  ;     neg al
-   128                                  ;     mov bx,0xf400    ; blue
-   129                                  ;     call draw_dot
-   130                                  ;     mov bx,0x0c00    ; green
-   131                                  ;     call draw_dot
-   132                                  ;     ret
+    95                                  ;     ; push cs
+    96                                  ;     ; pop ds              ; data=code segment
+    97                                  
+    98                                  ; draw:
+    99                                  ;     mov ch,0            ; t
+   100                                  ; top:
+   101                                  ;     mov cl,0            ; i
+   102                                  ;     mov di,startpos
+   103                                  ;     mov dh,0            ; y           
+   104                                  ; repeatY:
+   105                                  ;     mov dl,0            ; x
+   106                                  ; repeatX:
+   107                                  ;     ; push bx
+   108                                  ;     ; cs call fx0
+   109                                  ;     ; mov al,dh
+   110                                      
+   111                                  ;     ; pop bx
+   112                                  
+   113                                  ;     ; mov al,15
+   114                                  ;     ; add al,ch
+   115                                  ;     ; push bx
+   116                                  ;     ; mov bx,buf
+   117                                  ;     ; mov al,cl
+   118                                  ;     ; times 4 shr al,1
+   119                                  ;     ; sub al,7
+   120                                  ;     ; cs xlat
+   121                                  ;     ; pop bx
+   122                                  
+   123                                  ;     ; mov al,dh           ; y
+   124                                  ;     ; times 3 shr al,1    ; /=8
+   125                                  ;     ; ; add al,ch           ; +=t
+   126                                  ;     ; and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+   127                                  ;     ; ; times 2 shl al,1    ; *=4
+   128                                  ;     ; mov bx,sin
+   129                                  ;     ; cs xlat                ; extract sin value
+   130                                  ;     mov al,cl
+   131                                  ;     times 4 shr al,1    ; /=16
+   132                                  ;     add al,ch
    133                                  
-   134                                  ; draw_dot:
-   135                                  ;     push di
-   136                                  ;     push ax
-   137                                  ;     push cx
-   138                                  ;     mov ah,al    
-   139                                  ;     or al,al
-   140                                  ;     jns .positive
-   141                                  ;     neg al
-   142                                  ; .positive:
-   143                                  ;     mov es,bx    ; vram
-   144                                  ;     and al,15    ; limit to 15 (4 bits)
-   145                                  ;     mov cl,8
-   146                                  ;     mul cl    ; ax=al*8
-   147                                  ;     mov si,ax
-   148                                  ;     add si,img
-   149                                  ;     times 4 cs movsw
-   150                                  ;     add di,(4*cols)-8
-   151                                  ;     mov si,ax
-   152                                  ;     add si,img+128
-   153                                  ;     times 4 cs movsw
-   154                                  ;     pop cx
-   155                                  ;     pop ax
-   156                                  ;     pop di
-   157                                  ;     ret
-   158                                  
-   159                                  ; table: db fx0
+   134                                      
+   135                                  
+   136                                  ;     call draw_dot_color
+   137                                  ;     inc dl              ; x
+   138                                  ;     inc cl              ; i
+   139                                  ;     add di,8
+   140                                  ;     cmp dl,16
+   141                                  ;     jl repeatX
+   142                                  ;     mov dl,0
+   143                                  ;     add di,(cols-16)*8    ; skip remaining cols
+   144                                  ;     inc dh
+   145                                  ;     cmp dh,16
+   146                                  ;     jl repeatY
+   147                                  ;     inc ch              ; t
+   148                                  ;     jmp top
+   149                                  
+   150                                  
+   151                                  
+   152                                  ; fx0:
+   153                                  ;     mov al,ch           ; t
+   154                                  ;     times 2 shr al,1    ; /=2
+   155                                  ;     and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+   156                                  ;     times 2 shl al,1    ; *=4
+   157                                  ;     mov bx,sin
+   158                                  ;     cs xlat                ; extract sin value
+   159                                  ;     ret
    160                                  
-   161                                  ; sin:
-   162                                  ;     db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0E,0x0F,0x0F,0x0F
-   163                                  ;     db 0x0F,0x0F,0x0F,0x0F,0x0E,0x0E,0x0D,0x0C,0x0B,0x0A,0x09,0x07,0x06,0x04,0x03,0x01
-   164                                  ;     db 0x00,0xFF,0xFD,0xFC,0xFA,0xF9,0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF2,0xF1,0xF1,0xF1
-   165                                  ;     db 0xF1,0xF1,0xF1,0xF1,0xF2,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xF9,0xFA,0xFC,0xFD,0xFF
-   166                                  
-   167                                  ; img:
-   168                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
-   169                                  ;     db 0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xC0,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xC0
-   170                                  ;     db 0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xE0,0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xE0
-   171                                  ;     db 0x00,0x00,0x03,0x07,0x00,0x00,0xE0,0xF0,0x00,0x00,0x03,0x07,0x00,0x00,0xE0,0xF0
-   172                                  ;     db 0x00,0x00,0x07,0x0F,0x00,0x80,0xF0,0xF8,0x00,0x00,0x07,0x0F,0x00,0x80,0xF0,0xF8
-   173                                  ;     db 0x00,0x03,0x0F,0x1F,0x00,0xE0,0xF8,0xFC,0x00,0x07,0x1F,0x1F,0x00,0xF0,0xFC,0xFC
-   174                                  ;     db 0x00,0x0F,0x1F,0x3F,0x80,0xF8,0xFC,0xFE,0x00,0x0F,0x3F,0x3F,0x80,0xF8,0xFE,0xFE
-   175                                  ;     db 0x07,0x1F,0x3F,0x7F,0xF0,0xFC,0xFE,0xFF,0x07,0x3F,0x7F,0x7F,0xF0,0xFE,0xFF,0xFF
-   176                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-   177                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-   178                                  ;     db 0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00
-   179                                  ;     db 0x03,0x00,0x00,0x00,0xE0,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0xE0,0x00,0x00,0x00
-   180                                  ;     db 0x07,0x00,0x00,0x00,0xF0,0x80,0x00,0x00,0x07,0x00,0x00,0x00,0xF0,0x80,0x00,0x00
-   181                                  ;     db 0x0F,0x03,0x00,0x00,0xF8,0xE0,0x00,0x00,0x1F,0x07,0x00,0x00,0xFC,0xF0,0x00,0x00
-   182                                  ;     db 0x1F,0x0F,0x00,0x00,0xFC,0xF8,0x80,0x00,0x3F,0x0F,0x00,0x00,0xFE,0xF8,0x80,0x00
-   183                                  ;     db 0x3F,0x1F,0x07,0x00,0xFE,0xFC,0xF0,0x00,0x7F,0x3F,0x07,0x00,0xFF,0xFE,0xF0,0x00
-   184                                  
-   185                                  
-   186                                  ; %include "lib.asm"
-   187 00000000 <bin 5A000h>            incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
-   188                                  
+   161                                  ; draw_dot_color:
+   162                                  ;     mov bx,0xf000    ; red
+   163                                  ;     call draw_dot
+   164                                  ;     or al,al
+   165                                  ;     jns .draw_blue_green  ; check sign bit for negative number
+   166                                  ;     mov al,0         ; clear dot on blue and green channel
+   167                                  ; .draw_blue_green:
+   168                                  ;     neg al
+   169                                  ;     mov bx,0xf400    ; blue
+   170                                  ;     call draw_dot
+   171                                  ;     mov bx,0x0c00    ; green
+   172                                  ;     call draw_dot
+   173                                  ;     ret
+   174                                  
+   175                                  ; draw_dot:
+   176                                  ;     push di
+   177                                  ;     push ax
+   178                                  ;     push cx
+   179                                  ;     mov ah,al    
+   180                                  ;     or al,al
+   181                                  ;     jns .positive
+   182                                  ;     neg al
+   183                                  ; .positive:
+   184                                  ;     mov es,bx    ; vram
+   185                                  ;     and al,15    ; limit to 15 (4 bits)
+   186                                  ;     mov cl,8
+   187                                  ;     mul cl    ; ax=al*8
+   188                                  ;     mov si,ax
+   189                                  ;     add si,img
+   190                                  ;     times 4 cs movsw
+   191                                  ;     add di,(4*cols)-8
+   192                                  ;     mov si,ax
+   193                                  ;     add si,img+128
+   194                                  ;     times 4 cs movsw
+   195                                  ;     pop cx
+   196                                  ;     pop ax
+   197                                  ;     pop di
+   198                                  ;     ret
+   199                                  
+   200                                  ; table: db fx0
+   201                                  
+   202                                  ; sin:
+   203                                  ;     db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0E,0x0F,0x0F,0x0F
+   204                                  ;     db 0x0F,0x0F,0x0F,0x0F,0x0E,0x0E,0x0D,0x0C,0x0B,0x0A,0x09,0x07,0x06,0x04,0x03,0x01
+   205                                  ;     db 0x00,0xFF,0xFD,0xFC,0xFA,0xF9,0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF2,0xF1,0xF1,0xF1
+   206                                  ;     db 0xF1,0xF1,0xF1,0xF1,0xF2,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xF9,0xFA,0xFC,0xFD,0xFF
+   207                                  
+   208                                  ; img:
+   209                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
+   210                                  ;     db 0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xC0,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xC0
+   211                                  ;     db 0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xE0,0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xE0
+   212                                  ;     db 0x00,0x00,0x03,0x07,0x00,0x00,0xE0,0xF0,0x00,0x00,0x03,0x07,0x00,0x00,0xE0,0xF0
+   213                                  ;     db 0x00,0x00,0x07,0x0F,0x00,0x80,0xF0,0xF8,0x00,0x00,0x07,0x0F,0x00,0x80,0xF0,0xF8
+   214                                  ;     db 0x00,0x03,0x0F,0x1F,0x00,0xE0,0xF8,0xFC,0x00,0x07,0x1F,0x1F,0x00,0xF0,0xFC,0xFC
+   215                                  ;     db 0x00,0x0F,0x1F,0x3F,0x80,0xF8,0xFC,0xFE,0x00,0x0F,0x3F,0x3F,0x80,0xF8,0xFE,0xFE
+   216                                  ;     db 0x07,0x1F,0x3F,0x7F,0xF0,0xFC,0xFE,0xFF,0x07,0x3F,0x7F,0x7F,0xF0,0xFE,0xFF,0xFF
+   217                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+   218                                  ;     db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+   219                                  ;     db 0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00
+   220                                  ;     db 0x03,0x00,0x00,0x00,0xE0,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0xE0,0x00,0x00,0x00
+   221                                  ;     db 0x07,0x00,0x00,0x00,0xF0,0x80,0x00,0x00,0x07,0x00,0x00,0x00,0xF0,0x80,0x00,0x00
+   222                                  ;     db 0x0F,0x03,0x00,0x00,0xF8,0xE0,0x00,0x00,0x1F,0x07,0x00,0x00,0xFC,0xF0,0x00,0x00
+   223                                  ;     db 0x1F,0x0F,0x00,0x00,0xFC,0xF8,0x80,0x00,0x3F,0x0F,0x00,0x00,0xFE,0xF8,0x80,0x00
+   224                                  ;     db 0x3F,0x1F,0x07,0x00,0xFE,0xFC,0xF0,0x00,0x7F,0x3F,0x07,0x00,0xFF,0xFE,0xF0,0x00
+   225                                  
+   226                                  ; buf:
+   227                                  ;     times 16*16 db 5
+   228                                  
+   229                                  ; %include "lib.asm"
+   230                                  ; incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
+   231                                  

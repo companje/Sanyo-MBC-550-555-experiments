@@ -1,185 +1,197 @@
-     1                                  	org 0x100
-     2                                  setup:
-     3 00000000 B80200                  	mov ax,0x0002
-     4 00000003 CD10                    	int 0x10
-     5 00000005 B8003C                  	mov ax,0x3c00
-     6 00000008 8EC0                    	mov es,ax
-     7 0000000A 31ED                    	xor bp,bp
-     8 0000000C B600                    	mov dh,0	; t
-     9                                  draw:
-    10 0000000E B200                    	mov dl,0	; i
-    11 00000010 B300                    	mov bl,0	; y
-    12 00000012 BF900B                  	mov di,9*320+80	; view top left
-    13                                  repeatY:
-    14 00000015 B700                    	mov bh,0	; x
-    15                                  repeatX:
-    16 00000017 55                      	push bp
-    17 00000018 53                      	push bx
-    18 00000019 87DD                    	xchg bx,bp
-    19 0000001B 8BAF[A900]              	mov bp,[bx+table]
-    20 0000001F 81E5FF00                	and bp,0xff
-    21 00000023 81CD0001                	or bp,0x100
-    22 00000027 5B                      	pop bx
-    23 00000028 FFD5                    	call bp
-    24 0000002A 5D                      	pop bp
-    25                                  
-    26 0000002B 53                      	push bx
-    27 0000002C 3C00                    	cmp al,0
-    28 0000002E 7D16                    	jge white
-    29                                  gray:
-    30 00000030 BB00F4                  	mov bx,0xf400
-    31 00000033 8EC3                    	mov es,bx
-    32 00000035 F6D8                    	neg al
-    33 00000037 E84C00                  	call drawchar
-    34 0000003A BB003C                  	mov bx,0x3c00
-    35 0000003D 8EC3                    	mov es,bx
-    36 0000003F B000                    	mov al,0
-    37 00000041 E84200                  	call drawchar
-    38 00000044 EB10                    	jmp nextchar
-    39                                  white:
-    40 00000046 BB003C                  	mov bx,0x3c00
-    41 00000049 8EC3                    	mov es,bx
-    42 0000004B E83800                  	call drawchar
-    43 0000004E BB00F4                  	mov bx,0xf400
-    44 00000051 8EC3                    	mov es,bx
-    45 00000053 E83000                  	call drawchar
-    46                                  
-    47                                  nextchar:
-    48 00000056 5B                      	pop bx
-    49 00000057 83C708                  	add di,8
-    50 0000005A FEC2                    	inc dl		; i++
-    51 0000005C FEC7                    	inc bh		; x++
-    52 0000005E 80FF10                  	cmp bh,16
-    53 00000061 7CB4                    	jl repeatX
-    54 00000063 81C70002                	add di,192+320
-    55 00000067 FEC3                    	inc bl		; y++
-    56 00000069 80FB10                  	cmp bl,16
-    57 0000006C 7CA7                    	jl repeatY
-    58                                  
-    59                                  key:
-    60 0000006E E438                    	in al,0x38
-    61 00000070 3C1B                    	cmp al,0x1b
-    62 00000072 740C                    	je end
-    63 00000074 B400                    	mov ah,0
-    64 00000076 2C30                    	sub al,0x30
-    65 00000078 2407                    	and al,7
-    66 0000007A 89C5                    	mov bp,ax
-    67                                  
-    68 0000007C FEC6                    	inc dh		; t++
-    69 0000007E EB8E                    	jmp draw
-    70                                  
-    71                                  end:
-    72 00000080 B400                    	mov ah,0
-    73 00000082 CD16                    	int 0x16
-    74 00000084 CD20                    	int 0x20
-    75                                  
-    76                                  drawchar:
-    77 00000086 57                      	push di
-    78 00000087 50                      	push ax
-    79 00000088 240F                    	and al,15	; limit to 4 lower bits [0..15]
-    80 0000008A B108                    	mov cl,8
-    81 0000008C F6E1                    	mul cl		; ax=al*8
-    82                                  
-    83 0000008E 89C6                    	mov si,ax
-    84 00000090 81C6[E800]              	add si,img
-    85 00000094 A5                      	movsw
-    86 00000095 A5                      	movsw
-    87 00000096 A5                      	movsw
-    88 00000097 A5                      	movsw
-    89 00000098 81C73801                	add di,320-8
-    90 0000009C 89C6                    	mov si,ax
-    91 0000009E 81C6[6801]              	add si,img+128
-    92 000000A2 A5                      	movsw
-    93 000000A3 A5                      	movsw
-    94 000000A4 A5                      	movsw
-    95 000000A5 A5                      	movsw
-    96                                  ;sub di,320-8
-    97 000000A6 58                      	pop ax
-    98 000000A7 5F                      	pop di
-    99 000000A8 C3                      	ret
-   100                                  
-   101 000000A9 [B1][BD][C4][C7]-       table:	db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7
-   101 000000AD [CA][CF][E0][E5]   
-   102                                  
-   103                                  fx0:			; sierpinsky triangle
-   104 000000B1 88D8                    	mov al,bl
-   105 000000B3 00F0                    	add al,dh
-   106 000000B5 20F8                    	and al,bh
-   107 000000B7 9F                      	lahf
-   108 000000B8 86E0                    	xchg ah,al
-   109 000000BA 2440                    	and al,0x40
-   110 000000BC C3                      	ret
-   111                                  
-   112                                  fx1:			; x*y+t
-   113 000000BD 88F8                    	mov al,bh
-   114 000000BF F6E3                    	mul bl
-   115 000000C1 00F0                    	add al,dh
-   116 000000C3 C3                      	ret
-   117                                  
-   118                                  fx2:			; noise from timer
-   119 000000C4 E422                    	in al,0x22
-   120 000000C6 C3                      	ret
-   121                                  
-   122                                  fx3:
-   123 000000C7 E420                    	in al,0x20	; 0x20 0x22 0x24 are timers
-   124 000000C9 C3                      	ret
-   125                                  
-   126                                  fx4:			; y-x
-   127 000000CA 88D8                    	mov al,bl
-   128 000000CC 28F8                    	sub al,bh
-   129 000000CE C3                      	ret
-   130                                  
-   131                                  fx5:			; poging tot binary clock
-   132 000000CF 88F0                    	mov al,dh
-   133 000000D1 88F9                    	mov cl,bh
-   134 000000D3 B501                    	mov ch,1
-   135 000000D5 D2E5                    	shl ch,cl
-   136 000000D7 20E8                    	and al,ch
-   137 000000D9 D0E8                    	shr al,1
-   138 000000DB D0E8                    	shr al,1
-   139 000000DD D0E8                    	shr al,1
-   140 000000DF C3                      	ret
-   141                                  
-   142                                  fx6:			; x-y
-   143 000000E0 88F8                    	mov al,bh
-   144 000000E2 28D8                    	sub al,bl
-   145 000000E4 C3                      	ret
-   146                                  
-   147                                  fx7:
-   148 000000E5 B0FF                    	mov al,-1
-   149 000000E7 C3                      	ret
-   150                                  img:
-   151 000000E8 000000000000000000-     	db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
-   151 000000F1 00000000000080     
-   152 000000F8 00000001000000C000-     	db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
-   152 00000101 000001000000C0     
-   153 00000108 00000003000080E000-     	db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
-   153 00000111 000003000080E0     
-   154 00000118 000003070000E0F000-     	db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
-   154 00000121 0003070000E0F0     
-   155 00000128 0000070F0080F0F800-     	db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
-   155 00000131 00070F0080F0F8     
-   156 00000138 00030F1F00E0F8FC00-     	db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
-   156 00000141 071F1F00F0FCFC     
-   157 00000148 000F1F3F80F8FCFE00-     	db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
-   157 00000151 0F3F3F80F8FEFE     
-   158 00000158 071F3F7FF0FCFEFF07-     	db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
-   158 00000161 3F7F7FF0FEFFFF     
-   159 00000168 000000000000000000-     	db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-   159 00000171 00000000000000     
-   160 00000178 000000000000000000-     	db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
-   160 00000181 00000000000000     
-   161 00000188 000000008000000000-     	db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
-   161 00000191 00000080000000     
-   162 00000198 03000000E000000003-     	db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
-   162 000001A1 000000E0000000     
-   163 000001A8 07000000F080000007-     	db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
-   163 000001B1 000000F0800000     
-   164 000001B8 0F030000F8E000001F-     	db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
-   164 000001C1 070000FCF00000     
-   165 000001C8 1F0F0000FCF880003F-     	db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
-   165 000001D1 0F0000FEF88000     
-   166 000001D8 3F1F0700FEFCF0007F-     	db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
-   166 000001E1 3F0700FFFEF000     
-   167                                  
-   168                                  
+     1                                  ; Rick Companje, April 10, 2022
+     2                                      cpu 8086
+     3                                      org 0x100
+     4                                  
+     5                                      cols equ 80
+     6                                      startpos equ 4*24 + 4*cols*8
+     7                                  
+     8 00000000 B80200                      mov ax,0x0002
+     9 00000003 CD10                        int 0x10
+    10                                  
+    11 00000005 B500                        mov ch,0  ; t
+    12                                  forT:
+    13 00000007 B100                        mov cl,0  ; i
+    14 00000009 B200                        mov dl,0  ; x
+    15 0000000B B600                        mov dh,0  ; y           
+    16 0000000D BF600A                      mov di,startpos
+    17                                  
+    18 00000010 E82F00                      call clear
+    19                                  
+    20                                  forY:
+    21 00000013 B200                        mov dl,0
+    22                                  forX:
+    23                                      ; mov al,15
+    24                                      ; mov al,ch    ; t
+    25                                      ; and al,7     ; 
+    26                                  
+    27                                      ; add al,dh
+    28                                      ; sub al,7
+    29 00000015 52                          push dx
+    30                                      ; shl dh,1
+    31                                      ; shl dl,1
+    32                                      ; sub dh,ch
+    33                                      ; add dl,ch
+    34 00000016 88F0                        mov al,dh  ;  x*y+t
+    35 00000018 F6E2                        mul dl
+    36 0000001A 00E8                        add al,ch
+    37 0000001C 5A                          pop dx
+    38                                  
+    39                                      ; mov al,ch           ; t
+    40                                      ; times 2 shr al,1    ; /=2
+    41                                      ; and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+    42                                      ; times 2 shl al,1    ; *=4
+    43                                      ; mov bx,sin
+    44                                      ; cs xlat                ; extract sin value
+    45                                  
+    46 0000001D E84000                      call draw_dot_color2
+    47 00000020 FEC2                        inc dl              ; x
+    48 00000022 FEC1                        inc cl              ; i
+    49 00000024 83C708                      add di,8
+    50 00000027 80FA10                      cmp dl,16
+    51 0000002A 7CE9                        jl forX
+    52 0000002C B200                        mov dl,0
+    53 0000002E 81C70002                    add di,(cols-16)*8    ; skip remaining cols
+    54 00000032 FEC6                        inc dh
+    55 00000034 80FE10                      cmp dh,16
+    56 00000037 7CDA                        jl forY
+    57 00000039 FEC5                        inc ch              ; t
+    58                                      ; jnc forT
+    59 0000003B 80FD32                      cmp ch,50
+    60 0000003E 72C7                        jb forT
+    61 00000040 CD20                        int 0x20
+    62                                  
+    63                                      ; jmp top
+    64                                  
+    65                                  ; fx0:
+    66                                  ;     mov al,ch           ; t
+    67                                  ;     times 2 shr al,1    ; /=2
+    68                                  ;     and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+    69                                  ;     times 2 shl al,1    ; *=4
+    70                                  ;     mov bx,sin
+    71                                  ;     cs xlat                ; extract sin value
+    72                                  ;     ret
+    73                                  clear:
+    74 00000042 57                          push di
+    75 00000043 53                          push bx
+    76 00000044 51                          push cx
+    77 00000045 B80000                      mov ax,0
+    78 00000048 BB00F4                      mov bx,0xf400
+    79 0000004B 8EC3                        mov es,bx
+    80 0000004D B90014                      mov cx,10240/2
+    81 00000050 F3AB                        rep stosw
+    82 00000052 BB003C                      mov bx,0x3c00
+    83 00000055 8EC3                        mov es,bx
+    84 00000057 B90014                      mov cx,10240/2
+    85 0000005A F3AB                        rep stosw
+    86 0000005C 59                          pop cx
+    87 0000005D 5B                          pop bx
+    88 0000005E 5F                          pop di
+    89 0000005F C3                          ret
+    90                                  
+    91                                  draw_dot_color2:
+    92 00000060 BB00F4                      mov bx,0xf400
+    93 00000063 08C0                        or al,al
+    94 00000065 7903                        jns .dr
+    95 00000067 BB003C                      mov bx,0x3c00
+    96 0000006A E81C00                  .dr call draw_dot
+    97 0000006D C3                          ret
+    98                                  
+    99                                  draw_dot_color:
+   100 0000006E BB00F0                      mov bx,0xf000    ; red
+   101 00000071 E81500                      call draw_dot
+   102 00000074 08C0                        or al,al
+   103 00000076 7902                        jns .draw_blue_green  ; check sign bit for negative number
+   104 00000078 B000                        mov al,0         ; clear dot on blue and green channel
+   105                                  .draw_blue_green:
+   106 0000007A F6D8                        neg al
+   107 0000007C BB00F4                      mov bx,0xf400    ; blue
+   108 0000007F E80700                      call draw_dot
+   109 00000082 BB003C                      mov bx,0x3c00    ; green
+   110 00000085 E80100                      call draw_dot
+   111 00000088 C3                          ret
+   112                                  
+   113                                  draw_dot:
+   114 00000089 57                          push di
+   115 0000008A 50                          push ax
+   116 0000008B 51                          push cx
+   117 0000008C 88C4                        mov ah,al    
+   118 0000008E 08C0                        or al,al
+   119 00000090 7902                        jns .positive
+   120 00000092 F6D8                        neg al
+   121                                  .positive:
+   122 00000094 8EC3                        mov es,bx    ; vram
+   123 00000096 240F                        and al,15    ; limit to 15 (4 bits)
+   124 00000098 B108                        mov cl,8
+   125 0000009A F6E1                        mul cl    ; ax=al*8
+   126 0000009C 89C6                        mov si,ax
+   127 0000009E 81C6[C000]                  add si,img
+   128 000000A2 2EA5<rep 4h>                times 4 cs movsw
+   129 000000AA 81C73801                    add di,(4*cols)-8
+   130 000000AE 89C6                        mov si,ax
+   131 000000B0 81C6[4001]                  add si,img+128
+   132 000000B4 2EA5<rep 4h>                times 4 cs movsw
+   133 000000BC 59                          pop cx
+   134 000000BD 58                          pop ax
+   135 000000BE 5F                          pop di
+   136 000000BF C3                          ret
+   137                                  
+   138                                  ; table: db fx0
+   139                                  
+   140                                  ; sin:
+   141                                  ;     db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0e,0x0f,0x0f,0x0f
+   142                                  ;     db 0x0f,0x0f,0x0f,0x0f,0x0e,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x07,0x06,0x04,0x03,0x01
+   143                                  ;     db 0x00,0xff,0xfd,0xfc,0xfa,0xf9,0xf7,0xf6,0xf5,0xf4,0xf3,0xf2,0xf2,0xf1,0xf1,0xf1
+   144                                  ;     db 0xf1,0xf1,0xf1,0xf1,0xf2,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf9,0xfa,0xfc,0xfd,0xff
+   145                                  
+   146                                  img:
+   147 000000C0 000000000000000000-         db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
+   147 000000C9 00000000000080     
+   148 000000D0 00000001000000C000-         db 0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xc0,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xc0
+   148 000000D9 000001000000C0     
+   149 000000E0 00000003000080E000-         db 0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xe0,0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xe0
+   149 000000E9 000003000080E0     
+   150 000000F0 000003070000E0F000-         db 0x00,0x00,0x03,0x07,0x00,0x00,0xe0,0xf0,0x00,0x00,0x03,0x07,0x00,0x00,0xe0,0xf0
+   150 000000F9 0003070000E0F0     
+   151 00000100 0000070F0080F0F800-         db 0x00,0x00,0x07,0x0f,0x00,0x80,0xf0,0xf8,0x00,0x00,0x07,0x0f,0x00,0x80,0xf0,0xf8
+   151 00000109 00070F0080F0F8     
+   152 00000110 00030F1F00E0F8FC00-         db 0x00,0x03,0x0f,0x1f,0x00,0xe0,0xf8,0xfc,0x00,0x07,0x1f,0x1f,0x00,0xf0,0xfc,0xfc
+   152 00000119 071F1F00F0FCFC     
+   153 00000120 000F1F3F80F8FCFE00-         db 0x00,0x0f,0x1f,0x3f,0x80,0xf8,0xfc,0xfe,0x00,0x0f,0x3f,0x3f,0x80,0xf8,0xfe,0xfe
+   153 00000129 0F3F3F80F8FEFE     
+   154 00000130 071F3F7FF0FCFEFF07-         db 0x07,0x1f,0x3f,0x7f,0xf0,0xfc,0xfe,0xff,0x07,0x3f,0x7f,0x7f,0xf0,0xfe,0xff,0xff
+   154 00000139 3F7F7FF0FEFFFF     
+   155 00000140 000000000000000000-         db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+   155 00000149 00000000000000     
+   156 00000150 000000000000000000-         db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+   156 00000159 00000000000000     
+   157 00000160 000000008000000000-         db 0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00
+   157 00000169 00000080000000     
+   158 00000170 03000000E000000003-         db 0x03,0x00,0x00,0x00,0xe0,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0xe0,0x00,0x00,0x00
+   158 00000179 000000E0000000     
+   159 00000180 07000000F080000007-         db 0x07,0x00,0x00,0x00,0xf0,0x80,0x00,0x00,0x07,0x00,0x00,0x00,0xf0,0x80,0x00,0x00
+   159 00000189 000000F0800000     
+   160 00000190 0F030000F8E000001F-         db 0x0f,0x03,0x00,0x00,0xf8,0xe0,0x00,0x00,0x1f,0x07,0x00,0x00,0xfc,0xf0,0x00,0x00
+   160 00000199 070000FCF00000     
+   161 000001A0 1F0F0000FCF880003F-         db 0x1f,0x0f,0x00,0x00,0xfc,0xf8,0x80,0x00,0x3f,0x0f,0x00,0x00,0xfe,0xf8,0x80,0x00
+   161 000001A9 0F0000FEF88000     
+   162 000001B0 3F1F0700FEFCF0007F-         db 0x3f,0x1f,0x07,0x00,0xfe,0xfc,0xf0,0x00,0x7f,0x3f,0x07,0x00,0xff,0xfe,0xf0,0x00
+   162 000001B9 3F0700FFFEF000     
+   163                                  
+   164                                  ; clearScreen:
+   165                                  ;     cld
+   166                                  ;     mov ax,0x5555  ; bitmap pattern
+   167                                  ;     mov bp,0xf000  ; red + blue
+   168                                  ;     mov es,bp
+   169                                  ;     mov di,0
+   170                                  ;     mov cx,0x4000
+   171                                  ;     rep stosw
+   172                                  ;     mov bp,0x0c00  ; green
+   173                                  ;     mov es,bp
+   174                                  ;     mov di,0
+   175                                  ;     mov cx,0x2000
+   176                                  ;     rep stosw
+   177                                  ;     ret
+   178                                  
+   179                                  ; ; %include "lib.asm"
+   180                                  ; incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
+   181                                  

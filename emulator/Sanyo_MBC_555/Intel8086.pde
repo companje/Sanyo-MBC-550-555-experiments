@@ -63,7 +63,7 @@ public static class Intel8086 {
    * incorporate the carry flag in their operations and can be used to
    * perform multibyte (e.g., 32-bit, 64-bit) addition and subtraction.
    */
-  private static final int   CF     = 1 << 0;
+  public static final int   CF     = 1 << 0;
 
   /**
    * PF (parity flag)
@@ -73,7 +73,7 @@ public static class Intel8086 {
    * otherwise it is cleared. PF is provided for 8080/8085 compatibility; it
    * can also be used to check ASCII characters for correct parity.
    */
-  private static final int   PF     = 1 << 2;
+  public static final int   PF     = 1 << 2;
 
   /**
    * AF (auxiliary carry flag)
@@ -85,7 +85,7 @@ public static class Intel8086 {
    * for the decimal adjust instructions and ordinarily is not used for any
    * other purpose.
    */
-  private static final int   AF     = 1 << 4;
+  public static final int   AF     = 1 << 4;
 
   /**
    * ZF (zero flag)
@@ -94,7 +94,7 @@ public static class Intel8086 {
    * set; otherwise ZF is cleared. A conditional jump instruction can be used
    * to alter the flow of the program if the result is or is not zero.
    */
-  private static final int   ZF     = 1 << 6;
+  public static final int   ZF     = 1 << 6;
 
   /**
    * SF (sign flag)
@@ -108,7 +108,7 @@ public static class Intel8086 {
    * unsigned operations typically ignore SF since the high-order bit of the
    * result is interpreted as a digit rather than a sign.
    */
-  private static final int   SF     = 1 << 7;
+  public static final int   SF     = 1 << 7;
 
   /**
    * TF (trap flag)
@@ -118,7 +118,7 @@ public static class Intel8086 {
    * each instruction, allowing a program to be inspected as it executes
    * instruction by instruction.
    */
-  private static final int   TF     = 1 << 8;
+  public static final int   TF     = 1 << 8;
 
   /**
    * IF (interrupt-enable flag)
@@ -127,7 +127,7 @@ public static class Intel8086 {
    * requests. Clearing IF disables these interrupts. IF has no affect on
    * either non-maskable external or internally generated interrupts.
    */
-  private static final int   IF     = 1 << 9;
+  public static final int   IF     = 1 << 9;
 
   /**
    * DF (direction flag)
@@ -137,7 +137,7 @@ public static class Intel8086 {
    * to left". Clearing DF causes string instructions to auto-increment, or
    * to process strings from "left to right."
    */
-  private static final int   DF     = 1 << 10;
+  public static final int   DF     = 1 << 10;
 
   /**
    * OF (overflow flag)
@@ -149,26 +149,26 @@ public static class Intel8086 {
    * the INFO (interrupt on overflow) instruction. OF may be ignored when
    * performing unsigned arithmetic.
    */
-  private static final int   OF     = 1 << 11;
+  public static final int   OF     = 1 << 11;
 
   /** Instruction operates on byte data. */
-  private static final int   B      = 0b0;
+  public static final int   B      = 0b0;
   /** Instruction operates on word data. */
-  private static final int   W      = 0b1;
+  public static final int   W      = 0b1;
 
   /** Register AX is one of the instruction operands. */
-  private static final int   AX     = 0b000;
+  public static final int   AX     = 0b000;
   /** Register CX is one of the instruction operands. */
-  private static final int   CX     = 0b001;
+  public static final int   CX     = 0b001;
   /** Register DX is one of the instruction operands. */
-  private static final int   DX     = 0b010;
+  public static final int   DX     = 0b010;
   /** Register BX is one of the instruction operands. */
-  private static final int   BX     = 0b011;
+  public static final int   BX     = 0b011;
 
   /** Lookup table used for clipping results. */
-  private static final int[] MASK   = { 0xff, 0xffff }; //new int[]
+  public static final int[] MASK   = { 0xff, 0xffff }; //new int[]
   /** Lookup table used for setting the parity flag. */
-  private static final int[] PARITY = {
+  public static final int[] PARITY = {
     1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
     0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
     0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
@@ -187,9 +187,9 @@ public static class Intel8086 {
     1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1
   };
   /** Lookup table used for setting the sign and overflow flags. */
-  private static final int[] BITS   = new int[] { 8, 16 };
+  public static final int[] BITS   = new int[] { 8, 16 };
   /** Lookup table used for setting the overflow flag. */
-  private static final int[] SIGN   = new int[] { 0x80, 0x8000 };
+  public static final int[] SIGN   = new int[] { 0x80, 0x8000 };
 
   /**
    * Entry point. For now it executes a little test program.
@@ -220,7 +220,7 @@ public static class Intel8086 {
    *            the value
    * @return true if MSB is set, false if it is cleared
    */
-  private static boolean msb(final int w, final int x) {
+  public static boolean msb(final int w, final int x) {
     return (x & SIGN[w]) == SIGN[w];
   }
 
@@ -234,7 +234,7 @@ public static class Intel8086 {
    *            the number of positions
    * @return the new value
    */
-  private static int shift(final int x, final int n) {
+  public static int shift(final int x, final int n) {
     return n >= 0 ? x << n : x >>> -n;
   }
 
@@ -247,7 +247,7 @@ public static class Intel8086 {
    *            the value
    * @return the new value
    */
-  private static int signconv(final int w, final int x) {
+  public static int signconv(final int w, final int x) {
     return x << 32 - BITS[w] >> 32 - BITS[w];
   }
 
@@ -282,7 +282,7 @@ public static class Intel8086 {
    * AL - Byte Multiply, Byte Divide, Byte I/O, Translate, Decimal Arithmetic
    * AH - Byte Multiply, Byte Divide
    */
-  private int                ah, al;
+  public int                ah, al;
 
   /**
    * CX (count)
@@ -291,7 +291,7 @@ public static class Intel8086 {
    * CX - String Operations, Loops
    * CL - Variable Shift and Rotate
    */
-  private int                ch, cl;
+  public int                ch, cl;
 
   /**
    * DX (data)
@@ -299,7 +299,7 @@ public static class Intel8086 {
    * Implicit Use:
    * DX - Word Multiply, Word Divide, Indirect I/O
    */
-  private int                dh, dl;
+  public int                dh, dl;
 
   /**
    * BX (base)
@@ -307,7 +307,7 @@ public static class Intel8086 {
    * Implicit Use:
    * BX - Translate
    */
-  private int                bh, bl;
+  public int                bh, bl;
 
   /**
    * SP (stack pointer)
@@ -333,7 +333,7 @@ public static class Intel8086 {
    * erase them. The top of the stack changes only as the result of updating
    * the stack pointer.
    */
-  private int                sp;
+  public int                sp;
 
   /**
    * BP (base pointer)
@@ -344,7 +344,7 @@ public static class Intel8086 {
    * address data on the stack; BP can be sued, however, to access data in
    * any of the other currently addressable segments.
    */
-  private int                bp;
+  public int                bp;
 
   /**
    * SI (source index)
@@ -354,7 +354,7 @@ public static class Intel8086 {
    * segment, but another currently addressable segment may be specified. Its
    * offset is taken from the register SI, the source index register.
    */
-  private int                si;
+  public int                si;
 
   /**
    * DI (destination index)
@@ -364,7 +364,7 @@ public static class Intel8086 {
    * register. The string instructions automatically adjust SI and DI as they
    * process the string one byte or word at a time.
    */
-  private int                di;
+  public int                di;
 
   /*
      * Segment Registers
@@ -393,7 +393,7 @@ public static class Intel8086 {
    * The DS register points to the current data segment; it generally
    * contains program variables.
    */
-  private int                ds;
+  public int                ds;
 
   /**
    * SS (stack segment)
@@ -401,7 +401,7 @@ public static class Intel8086 {
    * The SS register points to the current stack segment, stack operations
    * are performed on locations in this segment.
    */
-  private int                ss;
+  public int                ss;
 
   /**
    * ES (extra segment)
@@ -409,14 +409,14 @@ public static class Intel8086 {
    * The ES register points to the current extra segment, which is also
    * typically used for data storage.
    */
-  private int                es;
+  public int                es;
 
   /**
    * OS (overridden segment)
    *
    * The OS register contains the overridden segment.
    */
-  private int                os;
+  public int                os;
 
   /**
    * IP (instruction pointer)
@@ -442,7 +442,7 @@ public static class Intel8086 {
    * depending of the state of these flags, that is, on the result of a prior
    * operation. Different instructions affect the status flags differently.
    */
-  private int                flags;
+  public int                flags;
 
   /**
    * Queue
@@ -474,7 +474,7 @@ public static class Intel8086 {
    * fetch already in progress is completed before executing the EU's bus
    * request).
    */
-  private final int[]        queue       = new int[6];
+  public final int[]        queue       = new int[6];
 
   /**
    * Memory
@@ -609,28 +609,28 @@ public static class Intel8086 {
    *
    * @see fr.neatmonster.ibmpc.Intel8237
    */
-  //public final Intel8237    dma         = new Intel8237();
+  ////public final Intel8237    dma         = new Intel8237();
 
-  /**
-   * Intel 8259 - Programmable Interrupt Controller
-   *
-   * @see fr.neatmonster.ibmpc.Intel8259
-   */
-  public final Intel8259    pic         = new Intel8259();
+  ///**
+  // * Intel 8259 - Programmable Interrupt Controller
+  // *
+  // * @see fr.neatmonster.ibmpc.Intel8259
+  // */
+  //public final Intel8259    pic         = new Intel8259();
 
-  /**
-   * Intel 8253 - Programmable Interval Timer
-   *
-   * @see fr.neatmonster.ibmpc.Intel8253
-   */
-  public final Intel8253    pit         = new Intel8253(pic);
+  ///**
+  // * Intel 8253 - Programmable Interval Timer
+  // *
+  // * @see fr.neatmonster.ibmpc.Intel8253
+  // */
+  //public final Intel8253    pit         = new Intel8253(pic);
 
-  /**
-   * Intel 8255 - Programmable Peripheral Interface
-   *
-   * @see fr.neatmonster.ibmpc.Intel8255
-   */
-  public final Intel8255    ppi         = new Intel8255(pic);
+  ///**
+  // * Intel 8255 - Programmable Peripheral Interface
+  // *
+  // * @see fr.neatmonster.ibmpc.Intel8255
+  // */
+  //public final Intel8255    ppi         = new Intel8255(pic);
 
   /**
    * Motorola 6845 - Cathode Ray Tube Controller
@@ -645,7 +645,7 @@ public static class Intel8086 {
    * @see fr.neatmonster.ibmpc.IBMCGA
    */
   //@SuppressWarnings("unused")
-  //private final IBMCGA       cga         = new IBMCGA(this, ppi, crtc);
+  //public final IBMCGA       cga         = new IBMCGA(this, ppi, crtc);
 
   /**
    * An array containing all peripherals.
@@ -653,7 +653,7 @@ public static class Intel8086 {
    * The CGA, technically a peripheral, interacts directly with the CPU in
    * this implementation and by doing so does not use the I/O space.
    */
-  public final Peripheral[] peripherals = new Peripheral[] { /*dma*/ pic, pit, ppi /*, crtc*/ };
+  //public final Peripheral[] peripherals = new Peripheral[] { /*dma*/ pic, pit, ppi /*, crtc*/ };
 
   /*
      * Typical 8086 Machine Instruction Format
@@ -662,20 +662,20 @@ public static class Intel8086 {
    * | OPCODE | D | W | MOD | REG | R/M | LOW DISP/DATA | HIGH DISP/DATA | LOW DATA | HIGH DATA |
    */
   /** Operation (Instruction) code */
-  private int                op;
+  public int                op;
   /** Direction is to register/Direction is from register */
-  private int                d;
+  public int                d;
   /** Word/Byte operation */
-  private int                w;
+  public int                w;
   /** Register mode/Memory mode with displacement length */
-  private int                mod;
+  public int                mod;
   /** Register operand/Extension of opcode */
-  private int                reg;
+  public int                reg;
   /** Register operand/Registers to use in EA calculation */
-  private int                rm;
+  public int                rm;
 
   /** Store Effective Address to void recalculating it. */
-  private int                ea;
+  public int                ea;
 
   /** Count clock cycles for a more accurate emulation. */
   public long               clocks;
@@ -691,7 +691,7 @@ public static class Intel8086 {
    *            the second operand
    * @return the result
    */
-  private int adc(final int w, final int dst, final int src) {
+  public int adc(final int w, final int dst, final int src) {
     final int carry = (flags & CF) == CF ? 1 : 0;
     final int res = dst + src + carry & MASK[w];
 
@@ -714,7 +714,7 @@ public static class Intel8086 {
    *            the second operand
    * @return the result
    */
-  private int add(final int w, final int dst, final int src) {
+  public int add(final int w, final int dst, final int src) {
     final int res = dst + src & MASK[w];
 
     setFlag(CF, res < dst);
@@ -731,7 +731,7 @@ public static class Intel8086 {
    * @param type
    *            the interrupt-type
    */
-  private void callInt(final int type) {
+  public void callInt(final int type) {
     // MS-DOS 1.25 loading, disabled for now.
     /*switch (type) {
      case 0x13: // Diskette I/O
@@ -787,7 +787,7 @@ public static class Intel8086 {
    *            the operand
    * @return the result
    */
-  private int dec(final int w, final int dst) {
+  public int dec(final int w, final int dst) {
     final int res = dst - 1 & MASK[w];
 
     setFlag(AF, ((res ^ dst ^ 1) & AF) > 0);
@@ -800,7 +800,7 @@ public static class Intel8086 {
   /**
    * Decodes the second byte of the instruction and increments IP accordingly.
    */
-  private void decode() {
+  public void decode() {
     mod = queue[1] >>> 6 & 0b11;
     reg = queue[1] >>> 3 & 0b111;
     rm  = queue[1]       & 0b111;
@@ -825,7 +825,7 @@ public static class Intel8086 {
    *            the offset
    * @return the value
    */
-  private int getAddr(final int seg, final int off) {
+  public int getAddr(final int seg, final int off) {
     return (seg << 4) + off;
   }
 
@@ -964,7 +964,7 @@ public static class Intel8086 {
    *            the register/memory field
    * @return the effective address
    */
-  private int getEA(final int mod, final int rm) {
+  public int getEA(final int mod, final int rm) {
     int disp = 0;
     if (mod == 0b01) {
       // 8-bit displacement follows
@@ -1028,7 +1028,7 @@ public static class Intel8086 {
    *            the flag to check
    * @return true if set, false if cleared
    */
-  private boolean getFlag(final int flag) {
+  public boolean getFlag(final int flag) {
     return (flags & flag) > 0;
   }
 
@@ -1080,7 +1080,7 @@ public static class Intel8086 {
    *            the register field
    * @return the value
    */
-  private int getReg(final int w, final int reg) {
+  public int getReg(final int w, final int reg) {
     if (w == B)
       // Byte data
       switch (reg) {
@@ -1143,7 +1143,7 @@ public static class Intel8086 {
    *            the register/memory field
    * @return the value
    */
-  private int getRM(final int w, final int mod, final int rm) {
+  public int getRM(final int w, final int mod, final int rm) {
     if (mod == 0b11)
       // Register-to-register mode
       return getReg(w, rm);
@@ -1162,7 +1162,7 @@ public static class Intel8086 {
    *            the register field
    * @return the value
    */
-  private int getSegReg(final int reg) {
+  public int getSegReg(final int reg) {
     switch (reg) {
     case 0b00: // ES
       return es;
@@ -1185,7 +1185,7 @@ public static class Intel8086 {
    *            the operand
    * @return the result
    */
-  private int inc(final int w, final int dst) {
+  public int inc(final int w, final int dst) {
     final int res = dst + 1 & MASK[w];
 
     setFlag(AF, ((res ^ dst ^ 1) & AF) > 0);
@@ -1231,7 +1231,7 @@ public static class Intel8086 {
    * @param res
    *            the result
    */
-  private void logic(final int w, final int res) {
+  public void logic(final int w, final int res) {
     setFlag(CF, false);
     setFlag(OF, false);
     setFlags(w, res);
@@ -1242,7 +1242,7 @@ public static class Intel8086 {
    *
    * @return the value
    */
-  private int pop() {
+  public int pop() {
     final int val = getMem(W, getAddr(ss, sp));
     sp = sp + 2 & 0xffff;
     return val;
@@ -1257,7 +1257,7 @@ public static class Intel8086 {
    *            the port
    * @return the value
    */
-  private int portIn(final int w, final int port) {
+  public int portIn(final int w, final int port) {
     //for (final Peripheral peripheral : peripherals)
     //  if (peripheral.isConnected(port))
     //    return peripheral.portIn(w, port);
@@ -1274,12 +1274,12 @@ public static class Intel8086 {
    * @param val
    *            the value
    */
-  private void portOut(final int w, final int port, final int val) {
-    for (final Peripheral peripheral : peripherals)
-      if (peripheral.isConnected(port)) {
-        peripheral.portOut(w, port, val);
-        return;
-      }
+  public void portOut(final int w, final int port, final int val) {
+    //for (final Peripheral peripheral : peripherals)
+    //  if (peripheral.isConnected(port)) {
+    //    peripheral.portOut(w, port, val);
+    //    return;
+    //  }
   }
 
   /**
@@ -1288,7 +1288,7 @@ public static class Intel8086 {
    * @param val
    *            the value
    */
-  private void push(final int val) {
+  public void push(final int val) {
     sp = sp - 2 & 0xffff;
     setMem(W, getAddr(ss, sp), val);
   }
@@ -1326,7 +1326,7 @@ public static class Intel8086 {
    *            the second operand
    * @return the result
    */
-  private int sbb(final int w, final int dst, final int src) {
+  public int sbb(final int w, final int dst, final int src) {
     final int carry = (flags & CF) == CF ? 1 : 0;
     final int res = dst - src - carry & MASK[w];
 
@@ -1346,7 +1346,7 @@ public static class Intel8086 {
    * @param set
    *            true to set, false to clear
    */
-  private void setFlag(final int flag, final boolean set) {
+  public void setFlag(final int flag, final boolean set) {
     if (set)
       flags |= flag;
     else
@@ -1361,7 +1361,7 @@ public static class Intel8086 {
    * @param res
    *            the result
    */
-  private void setFlags(final int w, final int res) {
+  public void setFlags(final int w, final int res) {
     setFlag(PF, PARITY[res & 0xff] > 0);
     setFlag(ZF, res == 0);
     setFlag(SF, (shift(res, 8 - BITS[w]) & SF) > 0);
@@ -1377,7 +1377,7 @@ public static class Intel8086 {
    * @param val
    *            the new value
    */
-  private void setMem(final int w, final int addr, final int val) {
+  public void setMem(final int w, final int addr, final int val) {
     // IBM BIOS and BASIC are ROM.
     //if (addr >= 0xf6000)   ///DIT WAS HET PROBLEEM in m'n blauwe kanaal!
     //  return;
@@ -1402,7 +1402,7 @@ public static class Intel8086 {
    * @param val
    *            the new value
    */
-  private void setReg(final int w, final int reg, final int val) {
+  public void setReg(final int w, final int reg, final int val) {
     if (w == B)
       // Byte data
       switch (reg) {
@@ -1485,7 +1485,7 @@ public static class Intel8086 {
    * @param val
    *            the new value
    */
-  private void setRM(final int w, final int mod, final int rm, final int val) {
+  public void setRM(final int w, final int mod, final int rm, final int val) {
     if (mod == 0b11)
       // Register-to-register mode
       setReg(w, rm, val);
@@ -1505,7 +1505,7 @@ public static class Intel8086 {
    * @param val
    *            the new value
    */
-  private void setSegReg(final int reg, final int val) {
+  public void setSegReg(final int reg, final int val) {
     switch (reg) {
     case 0b00: // ES
       es = val & 0xffff;
@@ -1533,7 +1533,7 @@ public static class Intel8086 {
    *            the second operand
    * @return the result
    */
-  private int sub(final int w, final int dst, final int src) {
+  public int sub(final int w, final int dst, final int src) {
     final int res = dst - src & MASK[w];
 
     setFlag(CF, dst < src);
@@ -1550,19 +1550,19 @@ public static class Intel8086 {
    * @return true if instructions remain, false otherwise
    */
   public boolean tick() {
-    if (halt) return false; 
+    //if (halt) return false; 
     
-    // Single-step mode.
-    if (getFlag(TF)) {
-      callInt(1);
-      clocks += 50;
-    }
+    //// Single-step mode.
+    //if (getFlag(TF)) {
+    //  callInt(1);
+    //  clocks += 50;
+    //}
 
-    // External maskable interrupts.
-    if (getFlag(IF) && pic.hasInt()) {
-      callInt(pic.nextInt());
-      clocks += 61;
-    }
+    //// External maskable interrupts.
+    //if (getFlag(IF) && pic.hasInt()) {
+    //  callInt(pic.nextInt());
+    //  clocks += 61;
+    //}
 
     os = ds;
     int rep = 0;
@@ -1663,7 +1663,7 @@ public static class Intel8086 {
       // Tick the Programmable Interval Timer.
       while (clocks > 3) {
         clocks -= 4;
-        pit.tick();
+        //pit.tick();
       }
 
       ea = -1; // Reset stored EA.

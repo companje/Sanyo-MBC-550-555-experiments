@@ -1,13 +1,14 @@
 build:
-	nasm tixy2.asm -o rick.com -l rick.lst
+	
+	nasm com-file-test.asm -o rick.com -l rick.lst
 
 	hdiutil attach /Volumes/FLASHFLOPPY/0001-mbc555-bootsector.img
 
 	cp rick.com /Volumes/SYSTEM
 
 	diskutil eject "/dev/disk5"
-
 	diskutil eject "/dev/disk4"
+
 	
 
 

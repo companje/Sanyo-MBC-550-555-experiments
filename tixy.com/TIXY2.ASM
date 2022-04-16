@@ -1,4 +1,7 @@
 	org 0x100
+
+    cols equ 80
+
 setup:
 	mov ax,0x0002
 	int 0x10
@@ -9,7 +12,7 @@ setup:
 draw:
 	mov dl,0	; i
 	mov bl,0	; y
-	mov di,9*320+80	; view top left
+	mov di,9*4*cols+cols	; view top left
 repeatY:
 	mov bh,0	; x
 repeatX:
