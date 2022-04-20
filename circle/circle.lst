@@ -1,130 +1,63 @@
-     1                                  cpu 8086
+     1                                  ; cpu 8086
      2                                  
-     3                                  ; org 0x100
-     4                                  ; r equ 99 
-     5                                  ; color equ 100  
-     6                                  ; rd equ r * r
-     7                                  
-     8                                  ; mov ax,13h 
-     9                                  ; int 10h
-    10                                  ; push 0a000h
-    11                                  ; pop ds
-    12                                  ; xor dx,dx
-    13                                  ; xor bp,bp
-    14                                  ; mov ax,r
-    15                                  ; mov bx,ax 
-    16                                  ; mov si, 1
-    17                                  ; mov di,(rd-r)/2-1 
-    18                                  ; lea cx,[bx+si]
-    19                                  
-    20                                  ; l1:
-    21                                  ; pusha
-    22                                  ; sub ax,r 
-    23                                  ; mov cl,4
-    24                                  ; l2: 
-    25                                  ; imul di,ax,320 
-    26                                  ; mov byte[di+bx],color
-    27                                  ; xchg ax,bx 
-    28                                  ; imul di,ax,320 
-    29                                  ; mov byte[di+bx],color
-    30                                  ; neg ax
-    31                                  ; add ax,r*2 
-    32                                  ; loop l2
-    33                                  ; popa
-    34                                  ; add bp,si 
-    35                                  ; inc si
-    36                                  ; lea dx,[bp+di-rd/2]
-    37                                  ; dec bx
-    38                                  ; cmp dx,ax 
-    39                                  ; ja l1
-    40                                  ; sub di,cx 
-    41                                  ; dec cx
-    42                                  ; inc ax 
-    43                                  ; cmp si,cx 
-    44                                  ; jna l1
-    45                                  ; int 16h
-    46                                  ; ret
-    47                                  
-    48                                  ; It is based on the fact that the square of X can be written as the sum
-    49                                  ; for i=0..x-1 of (2i+1), like this :
-    50                                  ; 1*1=1  = (2*0+1)
-    51                                  ; 2*2=4  = (2*0+1)+(2*1+1)
-    52                                  ; 3*3=9  = (2*0+1)+(2*1+1)+(2*2+1)
-    53                                  ; etc
-    54                                                      ; .MODEL    TINY
-    55                                                      ; .286
-    56                                                      ; .CODE
-    57                                                      ORG       100h
-    58 00000000 B81300                  Start:              mov       ax,13h
-    59 00000003 CD10                                        int       10h                 ;mode 13h
-    60 00000005 B800A0                                      mov ax,0a000h
-    61                                                      ; push      0a000h
-    62 00000008 50                                          push ax
-    63 00000009 07                                          pop       es                  ;es in video segment
-    64 0000000A BAA000                                      mov       dx,160              ;Xc
-    65 0000000D BF6400                                      mov       di,100              ;Yc
-    66 00000010 B005                                        mov       al,05h              ;Colour
-    67 00000012 BB1400                                      mov       bx,20               ;Radius
-    68 00000015 E80D00                                      call      Circle              ;Draw circle
-    69 00000018 B400                                        mov       ah,0
-    70 0000001A CD16                                        int       16h                 ;Wait for key
-    71 0000001C B80300                                      mov       ax,3
-    72 0000001F CD10                                        int       10h                 ;Mode 3
-    73 00000021 B44C                                        mov       ah,4ch
-    74 00000023 CD21                                        int       21h                 ;Terminate
-    75                                  ;*** Circle
-    76                                  ; dx= x coordinate center
-    77                                  ; di= y coordinate center
-    78                                  ; bx= radius
-    79                                  ; al= colour
-    80 00000025 BD0000                  Circle:             mov       bp,0                ;X coordinate
-    81 00000028 89DE                                        mov       si,bx               ;Y coordinate
-    82 0000002A E81100                  c00:                call      _8pixels            ;Set 8 pixels
-    83 0000002D 29EB                                        sub       bx,bp               ;D=D-X
-    84 0000002F 45                                          inc       bp                  ;X+1
-    85 00000030 29EB                                        sub       bx,bp               ;D=D-(2x+1)
-    86 00000032 7F05                                        jg        c01                 ;>> no step for Y
-    87 00000034 01F3                                        add       bx,si               ;D=D+Y
-    88 00000036 4E                                          dec       si                  ;Y-1
-    89 00000037 01F3                                        add       bx,si               ;D=D+(2Y-1)
-    90 00000039 39EE                    c01:                cmp       si,bp               ;Check X>Y
-    91 0000003B 73ED                                        jae       c00                 ;>> Need more pixels
-    92 0000003D C3                                          ret
-    93 0000003E E80000                  _8pixels:           call      _4pixels            ;4 pixels
-    94 00000041 87EE                    _4pixels:           xchg      bp,si               ;Swap x and y
-    95 00000043 E80000                                      call      _2pixels            ;2 pixels
-    96 00000046 F7DE                    _2pixels:           neg       si
-    97 00000048 57                                          push      di
-    98 00000049 01F7                                        add       di,si
-    99                                                      
-   100 0000004B 50                                          push ax
-   101 0000004C 51                                          push cx
-   102 0000004D 53                                          push bx
-   103 0000004E 89FB                                        mov bx,di
-   104 00000050 89F8                                        mov ax,di
-   105 00000052 B94001                                      mov cx, 320
-   106 00000055 F7E9                                        imul cx
-   107 00000057 89C7                                        mov di,ax
-   108 00000059 5B                                          pop bx
-   109 0000005A 59                                          pop cx
-   110 0000005B 58                                          pop ax
-   111 0000005C 01DF                                        add di,bx
-   112                                  
-   113                                  
-   114                                  
-   115                                                      ; imul di,320
-   116                                  
-   117                                                      ; push di
-   118                                                      ; mov di,320
-   119                                                      ; imul di
-   120                                                      ; pop di
-   121                                                      ; IMUL r16,i16
-   122                                  
-   123 0000005E 01D7                                        add       di,dx
-   124 00000060 268803                                      mov       es:[di+bp],al
-   125 00000063 29EF                                        sub       di,bp
-   126 00000065 AA                                          stosb
-   127 00000066 5F                                          pop       di
-   128 00000067 C3                                          ret
-   129                                                      ; END       Start
-   130                                                      
+     3                                  ; It is based on the fact that the square of X can be written as the sum
+     4                                  ; for i=0..x-1 of (2i+1), like this :
+     5                                  ; 1*1=1  = (2*0+1)
+     6                                  ; 2*2=4  = (2*0+1)+(2*1+1)
+     7                                  ; 3*3=9  = (2*0+1)+(2*1+1)+(2*2+1)
+     8                                  ; etc
+     9                                                      ; .MODEL    TINY
+    10                                                      ; .286
+    11                                                      ; .CODE
+    12                                                      ORG       100h
+    13 00000000 B81300                  Start:              mov       ax,13h
+    14 00000003 CD10                                        int       10h                 ;mode 13h
+    15 00000005 6800A0                                      push      0a000h
+    16 00000008 07                                          pop       es                  ;es in video segment
+    17                                                      
+    18                                  
+    19 00000009 BAA000                                      mov       dx,160              ;Xc
+    20 0000000C BF6400                                      mov       di,100              ;Yc
+    21 0000000F B005                                        mov       al,05h              ;Colour
+    22 00000011 BB0100                                      mov       bx,1               ;Radius
+    23 00000014 E80D00                                      call      Circle              ;Draw circle
+    24                                  
+    25 00000017 B400                                        mov       ah,0
+    26 00000019 CD16                                        int       16h                 ;Wait for key
+    27 0000001B B80300                                      mov       ax,3
+    28 0000001E CD10                                        int       10h                 ;Mode 3
+    29 00000020 B44C                                        mov       ah,4ch
+    30 00000022 CD21                                        int       21h                 ;Terminate
+    31                                  ;*** Circle
+    32                                  ; dx= x coordinate center
+    33                                  ; di= y coordinate center
+    34                                  ; bx= radius
+    35                                  ; al= colour
+    36 00000024 BD0000                  Circle:             mov       bp,0                ;X coordinate
+    37 00000027 89DE                                        mov       si,bx               ;Y coordinate
+    38 00000029 E81100                  c00:                call      _8pixels            ;Set 8 pixels
+    39 0000002C 29EB                                        sub       bx,bp               ;D=D-X
+    40 0000002E 45                                          inc       bp                  ;X+1
+    41 0000002F 29EB                                        sub       bx,bp               ;D=D-(2x+1)
+    42 00000031 7F05                                        jg        c01                 ;>> no step for Y
+    43 00000033 01F3                                        add       bx,si               ;D=D+Y
+    44 00000035 4E                                          dec       si                  ;Y-1
+    45 00000036 01F3                                        add       bx,si               ;D=D+(2Y-1)
+    46 00000038 39EE                    c01:                cmp       si,bp               ;Check X>Y
+    47 0000003A 73ED                                        jae       c00                 ;>> Need more pixels
+    48 0000003C C3                                          ret
+    49 0000003D E80000                  _8pixels:           call      _4pixels            ;4 pixels
+    50 00000040 87EE                    _4pixels:           xchg      bp,si               ;Swap x and y
+    51 00000042 E80000                                      call      _2pixels            ;2 pixels
+    52 00000045 F7DE                    _2pixels:           neg       si
+    53 00000047 57                                          push      di
+    54 00000048 01F7                                        add       di,si
+    55                                                     
+    56 0000004A 69FF4001                                    imul di,320
+    57 0000004E 01D7                                        add       di,dx
+    58 00000050 268803                                      mov       es:[di+bp],al
+    59 00000053 29EF                                        sub       di,bp
+    60 00000055 AA                                          stosb
+    61 00000056 5F                                          pop       di
+    62 00000057 C3                                          ret
+    63                                                      

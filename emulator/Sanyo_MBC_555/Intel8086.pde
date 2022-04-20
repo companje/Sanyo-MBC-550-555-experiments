@@ -48,9 +48,9 @@ import java.io.InputStream;
  * @author Alexandre ADAMSKI <alexandre.adamski@etu.enseeiht.fr>
  */
 public static class Intel8086 {
-  
+
   public boolean halt = false;
-  
+
   /**
    * CF (carry flag)
    *
@@ -1041,6 +1041,10 @@ public static class Intel8086 {
    */
   public int getMem(final int w) {
     final int addr = getAddr(cs, ip);
+    if (addr>=memory.length) {
+      println("illegal address", addr);
+      System.exit(1);
+    }
     int val = memory[addr];
     if (w == W)
       val |= memory[addr + 1] << 8;
@@ -1550,8 +1554,8 @@ public static class Intel8086 {
    * @return true if instructions remain, false otherwise
    */
   public boolean tick() {
-    //if (halt) return false; 
-    
+    if (halt) return false;
+
     //// Single-step mode.
     //if (getFlag(TF)) {
     //  callInt(1);
@@ -3984,6 +3988,7 @@ public static class Intel8086 {
          */
       case 0xf4: // HLT
         clocks += 2;
+        halt = true;
         return false;
 
         /*

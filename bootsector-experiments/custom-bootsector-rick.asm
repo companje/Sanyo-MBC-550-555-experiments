@@ -43,37 +43,222 @@ lines equ 200
 ;     db 3    ;9  Maximum Raster Address
 
 
-code:
+setup:
     call clearScreen
-    ; hlt
-    mov bl,10
-    jmp code
+
+draw:
+    mov bp,0xf000
+    mov es,bp
+    ; mov di,0
+    ; mov al,255
+    ; stosb
+
+    cld
+    mov di,0
+    push cs
+    pop ds
+    
+    mov si,img
+    ; add si,15
+    ; mov cx,10
+    ; rep movsw
+    ; mov al,255
+    ; stosb
+
+    movsw
+    movsw
+    add di,320-4
+    movsb
+    times 2 dec si
+    movsb
+    times 2 dec si
+    movsb
+    times 2 dec si
+    movsb
+    
+    ; times 2 dec si
+    ; movsb
+    ; or byte [es:di-320],0xff
+
+
+    ; movsb
+    ; std
+    ; sub si,16
+    ; add di,320-8
+    ; movsw
+    ; movsw
+    ; ; movsw
+    ; movsw
+    ; movsw
+
+    ; mov si,ax
+    ; add si,img+128
+    ; movsw
+    ; movsw
+    ; movsw
+    ; movsw
+
+    ; mov bp,0x0c00
+    ; mov di,9*4*cols+cols 
+    ; call dot
+
+    jmp draw
+
+img:
+    ; db 0x00,0x00,0x00,0x00,0x00  ; 0 leeg
+    ; db 0x00,0x00,0x00,0x00,0x01  ; 1 stipje
+    ; db 0x00,0x00,0x00,0x00,0x03  ; 2 minnetje
+    ; db 0x00,0x00,0x00,0x01,0x03  ; 3 plusje
+    ; db 0x00,0x00,0x00,0x03,0x07  ; 4 hoofdje
+    ; db 0x00,0x00,0x00,0x07,0x07  ; 5 blokje
+    ; db 0x00,0x00,0x01,0x07,0x0F  ; 6 sterretje
+    ; db 0x00,0x00,0x03,0x0F,0x0F  ; 7 rode kruis
+    ; db 0x00,0x00,0x07,0x0F,0x1F  ; 8 ..
+    ; db 0x00,0x01,0x0F,0x1F,0x1F  ; 9 ..
+    ; db 0x00,0x07,0x1F,0x1F,0x3F  ; 10 ..
+    ; db 0x00,0x0F,0x1F,0x3F,0x3F  ; 11 ..
+    db 0x01,0x1F,0x3F,0x7F,0x7F,0x01  ; 12 groot met puntje
+    ; db 0x07,0x1F,0x3F,0x7F,0x7F  ; 13 ..
+    ; db 0x0F,0x3F,0x7F,0xFF,0xFF  ; 14 ..
+    ; db 0x1F,0x7F,0xFF,0xFF,0xFF  ; 15 ..
+
+; setpix:
+;     32cols
+
+; dot:
+;     mov es,bp
+;     mov al,255
+;     stosb
+;     ret
+
+;     ; call drawchar
+    
+;     jmp draw
+
+;     mov ax,0x0c00
+;     mov es,ax
+;     xor bp,bp
+;     mov dh,0    ; t
+
+;     mov dl,0    ; i
+;     mov bl,0    ; y
+;     mov di,9*4*cols+cols    ; view top left
+; repeatY:
+;     mov bh,0    ; x
+; repeatX:
+;     ; push bp
+;     ; push bx
+;     ; xchg bx,bp
+;     ; mov bp,[bx+table]
+;     ; and bp,0xff
+;     ; or bp,0x100
+;     ; pop bx
+;     ; call bp
+;     ; pop bp
+
+
+    ;effect
+    ; mov al,bh
+    ; mul bl
+    ; add al,dh
+
+
+;     push bx
+;     cmp al,0
+;     jge white
+; gray:
+;     mov bx,0xf400
+;     mov es,bx
+;     neg al
+;     call drawchar
+;     mov bx,0x0c00
+;     mov es,bx
+;     mov al,0
+;     call drawchar
+;     jmp nextchar
+; white:
+;     mov bx,0x0c00
+;     mov es,bx
+;     call drawchar
+;     mov bx,0xf400
+;     mov es,bx
+;     call drawchar
+
+; nextchar:
+;     pop bx
+;     add di,8
+;     inc dl        ; i++
+;     inc bh        ; x++
+;     cmp bh,16
+;     jl repeatX
+;     add di,192+320
+;     inc bl        ; y++
+;     cmp bl,16
+;     jl repeatY
+
+
+; drawchar:
+;     push di
+;     push ax
+;     and al,15    ; limit to 4 lower bits [0..15]
+;     mov cl,8
+;     mul cl        ; ax=al*8
+
+;     mov si,ax
+;     add si,img
+;     movsw
+;     movsw
+;     movsw
+;     movsw
+;     add di,320-8
+;     mov si,ax
+;     add si,img+128
+;     movsw
+;     movsw
+;     movsw
+;     movsw
+; ;sub di,320-8
+;     pop ax
+;     pop di
+;     ret
+
+; draw:
+;     mov bp,0xf000  ; red
+;     mov di,0
+;     call dot
+
+;     mov bp,0x0c00  ; green
+;     mov di,0
+;     call dot
+
+;     mov bp,0xf400  ; blue
+;     mov di,0
+;     call dot
+
+;     jmp draw
+
+; dot:
+;     mov es,bp
+;     mov al,255
+;     stosb
+;     ret
 
 clearScreen:
     cld
-    ; mov ax,0x5555  ; bitmap pattern
-    ; mov ax,0x8080  ; bitmap pattern
-    ; mov bp,0xf000  ; red + blue
-    ; mov es,bp
-    ; mov di,0
-    ; mov cx,32000-100 ; 0x4000
-    ; rep stosb
 
-    mov al,0x55
+    mov al,0    ; pattern
     mov bp,0xf000  ; red
     mov es,bp
     mov di,0
     mov cx,cols*lines
     rep stosb
 
-    mov al,0x55
     mov bp,0x0c00  ; green
     mov es,bp
     mov di,0
     mov cx,cols*lines
     rep stosb
 
-    mov al,0x55
     mov bp,0xf400  ; blue
     mov es,bp
     mov di,0
@@ -81,6 +266,26 @@ clearScreen:
     rep stosb
 
     ret
+
+
+; img:
+;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,128
+;     db 0,0,0,1,  0,0,0,192,  0,0,0,1,  0,0,0,192
+;     db 0,0,0,3,  0,0,128,224,  0,0,0,3,  0,0,128,224
+;     db 0,0,3,7,  0,0,224,240,  0,0,3,7,  0,0,224,240
+;     db 0,0,7,15,  0,128,240,248,  0,0,7,15,  0,128,240,248
+;     db 0,3,15,31,  0,224,248,252,  0,7,31,31,  0,240,252,252
+;     db 0,15,31,63,  128,248,252,254,  0,15,63,63,  128,248,254,254
+;     db 7,31,63,127, 240,252,254,255, 7,63,127,127, 240,254,255,255
+    
+;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+;     db 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0
+;     db 0,0,0,0,  128,0,0,0,  0,0,0,0,  128,0,0,0
+;     db 3,0,0,0,  224,0,0,0,  3,0,0,0,  224,0,0,0
+;     db 7,0,0,0,  240,128,0,0,  7,0,0,0,  240,128,0,0
+;     db 15,3,0,0,  248,224,0,0,  31,7,0,0,  252,240,0,0
+;     db 31,15,0,0,  252,248,128,0,  63,15,0,0,  254,248,128,0
+;     db 63,31,7,0,  254,252,240,0,  127,63,7,0,  255,254,240,0
 
 
 ; code:  
@@ -202,6 +407,7 @@ clearScreen:
 ; sin:
 ;     db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0E,0x0F,0x0F,0x0F
 ;     db 0x0F,0x0F,0x0F,0x0F,0x0E,0x0E,0x0D,0x0C,0x0B,0x0A,0x09,0x07,0x06,0x04,0x03,0x01
+
 ;     db 0x00,0xFF,0xFD,0xFC,0xFA,0xF9,0xF7,0xF6,0xF5,0xF4,0xF3,0xF2,0xF2,0xF1,0xF1,0xF1
 ;     db 0xF1,0xF1,0xF1,0xF1,0xF2,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xF9,0xFA,0xFC,0xFD,0xFF
 

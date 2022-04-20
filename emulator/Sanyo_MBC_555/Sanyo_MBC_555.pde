@@ -19,8 +19,8 @@ String filename="0001-mbc555-bootsector.img";
 void setup() {
   file = new File(dataPath(filename));
 
-  smooth();
-  size(825, 550);
+  noSmooth();
+  size(800, 450);
   frameRate(60);
   textFont(loadFont("CourierNewPSMT-18.vlw"));
   surface.setLocation(855, 0);
@@ -38,6 +38,7 @@ void reload() {
   cpu.cs = 0x0038;
   cpu.ss = 0x0be4;
   cpu.sp = 0x0000;
+  cpu.halt = false;
 }
 
 //  //cpu.load(0xfc000, loadBytes("MBC-555.ROM"));
@@ -57,8 +58,8 @@ void draw() {
   for (int i=0; i<100 && cpu.tick(); i++);
 
   //cpu.tick();
+  pushMatrix();
 
-  //scale(1.5);
   //if (frameCount%30==0) reload();
 
   img.loadPixels();
@@ -68,19 +69,22 @@ void draw() {
       int r = (cpu.memory[0xf0000+i] & bit)>0 ? 255 : 0;
       int g = (cpu.memory[0x0c000+i] & bit)>0 ? 255 : 0;
       int b = (cpu.memory[0xf4000+i] & bit)>0 ? 255 : 0;
-      img.pixels[j] = color(r, g, b);
+      img.pixels[j] = color(r, g+i, b);
     }
   }
   img.updatePixels();
-  image(img, 0, 0, width, height);
+  float scale=4; 
+  float ratio=1.7;
+  image(img, 0, 0, width*scale*ratio, height*scale);
 
   //vlines
-  for (int y=0; y<height; y+=height/200.) {
-    stroke(0, 50);
-    line(0, y, width, y);
-  }
+  //for (int y=0; y<height; y+=height/200.) {
+  //  stroke(0, 50);
+  //  line(0, y, width, y);
+  //}
 
   noStroke();
+  translate(width-100, 0);
   int ystep=18;
   int y=5;
   fill(255);
@@ -100,12 +104,14 @@ void draw() {
   text("DI:"+hex(cpu.di, 4), 10, y+=ystep);
   text("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
 
-  //if (frameCount<20) {
-  //  saveImage();
-  //}
+  popMatrix();
+  if (frameCount<20) {
+    saveImage();
+  }
 }
 
 void mousePressed() {
+  saveImage();
   reload();
 }
 

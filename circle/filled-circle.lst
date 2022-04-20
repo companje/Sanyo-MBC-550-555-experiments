@@ -1,0 +1,147 @@
+     1                                  BITS 16
+     2                                  
+     3                                  ORG 100h
+     4                                  
+     5 00000000 6800A0                  push 0a000h           ;Video memory graphics segment
+     6 00000003 07                      pop es
+     7                                  
+     8 00000004 B81300                  mov ax, 0013h         ;320x200@8bpp
+     9 00000007 CD10                    int 10h
+    10                                  
+    11                                  
+    12 00000009 6A09                    push 09h              ;Blue
+    13 0000000B 689F00                  push 159              ;cX
+    14 0000000E 6A63                    push 99               ;cY
+    15 00000010 6A3C                    push 60               ;Radius
+    16 00000012 E80E00                  call drawFilledCircle
+    17                                  
+    18                                  ;Wait for a key
+    19 00000015 30E4                    xor ah, ah
+    20 00000017 CD16                    int 16h
+    21                                  
+    22                                  ;Restore text mode
+    23 00000019 B80300                  mov ax, 0003h
+    24 0000001C CD10                    int 10h
+    25                                  
+    26                                  ;Return
+    27 0000001E B8004C                  mov ax, 4c00h
+    28 00000021 CD21                    int 21h
+    29                                  
+    30                                  
+    31                                  ;Color
+    32                                  ;cX
+    33                                  ;cY
+    34                                  ;R
+    35                                  drawFilledCircle:
+    36 00000023 55                       push bp
+    37 00000024 89E5                     mov bp, sp
+    38                                  
+    39 00000026 83EC02                   sub sp, 02h
+    40                                  
+    41 00000029 8B4E04                   mov cx, WORD [bp+04h]   ;R
+    42                                  
+    43 0000002C 89C8                     mov ax, cx              
+    44 0000002E F7E0                     mul ax                  ;AX = R^2
+    45 00000030 8946FE                   mov WORD [bp-02h], ax   ;[bp-02h] = R^2
+    46                                  
+    47                                  
+    48                                  
+    49 00000033 8B4606                   mov ax, WORD [bp+06h]
+    50 00000036 29C8                     sub ax, cx              ;i = cY-R
+    51 00000038 8B5E08                   mov bx, WORD [bp+08h]
+    52 0000003B 29CB                     sub bx, cx              ;j = cX-R
+    53                                  
+    54 0000003D D1E1                     shl cx, 1
+    55 0000003F 89CA                     mov dx, cx              ;DX = Copy of 2R
+    56                                  
+    57                                  .advance_v:
+    58 00000041 51                       push cx
+    59 00000042 53                       push bx
+    60                                  
+    61 00000043 89D1                     mov cx,  dx
+    62                                  
+    63                                  .advance_h:
+    64                                    ;Save values
+    65 00000045 53                        push bx
+    66 00000046 50                        push ax
+    67 00000047 52                        push dx
+    68                                  
+    69                                    ;Compute (i-y) and (j-x)
+    70 00000048 2B4606                    sub ax, WORD [bp+06h]
+    71 0000004B 2B5E08                    sub bx, WORD [bp+08h]
+    72                                  
+    73 0000004E F7E0                      mul ax                  ;Compute (i-y)^2
+    74                                  
+    75 00000050 50                        push ax
+    76 00000051 89D8                      mov ax, bx             
+    77 00000053 F7E0                      mul ax
+    78 00000055 5B                        pop bx                  ;Compute (j-x)^2 in ax, (i-y)^2 is in bx now
+    79                                  
+    80 00000056 01D8                      add ax, bx              ;(j-x)^2 + (i-y)^2
+    81 00000058 3B46FE                    cmp ax, WORD [bp-02h]   ;;(j-x)^2 + (i-y)^2 <= R^2
+    82                                  
+    83                                    ;Restore values before jump
+    84 0000005B 5A                        pop dx
+    85 0000005C 58                        pop ax
+    86 0000005D 5B                        pop bx
+    87                                  
+    88 0000005E 7708                      ja .continue            ;Skip pixel if (j-x)^2 + (i-y)^2 > R^2
+    89                                  
+    90                                    ;Write pixel
+    91 00000060 FF760A                    push WORD [bp+0ah]
+    92 00000063 53                        push bx
+    93 00000064 50                        push ax
+    94 00000065 E80F00                    call writePx
+    95                                  
+    96                                  
+    97                                  .continue:
+    98                                  
+    99                                    ;Advance j
+   100 00000068 43                        inc bx
+   101 00000069 E2DA                     loop .advance_h
+   102                                  
+   103                                   ;Advance i
+   104 0000006B 40                       inc ax
+   105                                  
+   106                                  
+   107 0000006C 5B                       pop bx            ;Restore j
+   108 0000006D 59                       pop cx            ;Restore counter
+   109                                  
+   110 0000006E E2D1                    loop .advance_v
+   111                                  
+   112 00000070 83C402                   add sp, 02h
+   113                                  
+   114                                  
+   115 00000073 5D                       pop bp
+   116 00000074 C20800                   ret 08h
+   117                                  
+   118                                  
+   119                                  
+   120                                  ;Color
+   121                                  ;X
+   122                                  ;Y
+   123                                  writePx:
+   124 00000077 55                       push bp
+   125 00000078 89E5                     mov bp, sp
+   126                                  
+   127 0000007A 50                       push ax
+   128 0000007B 53                       push bx
+   129                                  
+   130 0000007C 8B5E04                   mov bx, WORD [bp+04h]
+   131 0000007F 89D8                     mov ax, bx
+   132 00000081 C1E306                   shl bx, 6
+   133 00000084 C1E008                   shl ax, 8
+   134 00000087 01C3                     add bx, ax       ;320 = 256 + 64
+   135                                  
+   136 00000089 035E06                   add bx, WORD [bp+06h]
+   137 0000008C 8B4608                   mov ax, WORD [bp+08h]
+   138                                  
+   139                                   ;TODO: Clip
+   140                                  
+   141 0000008F 268807                   mov BYTE [es:bx], al
+   142                                  
+   143 00000092 5B                       pop bx
+   144 00000093 58                       pop ax
+   145                                  
+   146 00000094 5D                       pop bp
+   147 00000095 C20600                   ret 06h
