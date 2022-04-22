@@ -2,6 +2,27 @@
 cpu 8086
 org 0x0
 
+; test al,2
+; or ah,128
+
+; start:
+
+; mov ax,31 ;al=0b00001111, ah=0
+; mov cl,8
+; bit:
+; mov bx,0x8001 ; bl=1, bh=128
+; shl bl,cl
+; test al,bl
+; jz cont
+; dec cx
+; shr bh,cl
+; or ah,bh
+; inc cx
+; cont: 
+; loop bit ;continue
+; xchg ah,al
+
+
 ;     jmp code
 
 ;     db 'Sanyo1.2'
@@ -67,7 +88,9 @@ draw:
 
     movsw
     movsw
+
     add di,320-4
+    dec si
     movsb
     times 2 dec si
     movsb
@@ -75,6 +98,19 @@ draw:
     movsb
     times 2 dec si
     movsb
+
+; flip from video mem
+
+
+
+    ; add di,320-4
+    ; movsb
+    ; times 2 dec si
+    ; movsb
+    ; times 2 dec si
+    ; movsb
+    ; times 2 dec si
+    ; movsb
     
     ; times 2 dec si
     ; movsb
@@ -104,6 +140,22 @@ draw:
 
     jmp draw
 
+flip_bits:
+    mov cl,8
+.bit: 
+    mov bx,0x8001 ; bl=1, bh=128
+    shl bl,cl
+    test al,bl
+    jz .cont
+    dec cx
+    shr bh,cl
+    or ah,bh
+    inc cx
+.cont:
+    loop .bit ;continue
+    mov al,ah
+    ret
+
 img:
     ; db 0x00,0x00,0x00,0x00,0x00  ; 0 leeg
     ; db 0x00,0x00,0x00,0x00,0x01  ; 1 stipje
@@ -117,10 +169,28 @@ img:
     ; db 0x00,0x01,0x0F,0x1F,0x1F  ; 9 ..
     ; db 0x00,0x07,0x1F,0x1F,0x3F  ; 10 ..
     ; db 0x00,0x0F,0x1F,0x3F,0x3F  ; 11 ..
-    db 0x01,0x1F,0x3F,0x7F,0x7F,0x01  ; 12 groot met puntje
+    ; db 0x01,0x1F,0x3F,0x7F,0x7F,0x01  ; 12 groot met puntje
     ; db 0x07,0x1F,0x3F,0x7F,0x7F  ; 13 ..
     ; db 0x0F,0x3F,0x7F,0xFF,0xFF  ; 14 ..
     ; db 0x1F,0x7F,0xFF,0xFF,0xFF  ; 15 ..
+
+; db 0, 0, 0, 0
+; db 0, 0, 0, 1         ;punt
+; db 0, 0, 0, 3         ;min
+; db 0, 0, 1, 3         ;plus
+; db 0, 0, 3, 7         ;hoed
+; db 0, 0, 7, 7         ;blok
+; db 0, 1, 7, 15        ;ster
+; db 0, 3, 15, 15       ;dikke plus
+; db 0, 15, 31, 63   
+; db 1, 31, 63, 63      ;tol
+db 7, 31, 31, 63      ;robothoofd
+; db 15, 31, 63, 63
+; db 15, 63, 63, 127
+; db 31, 63, 127, 127
+; db 31, 127, 255, 255
+; db 63, 127, 255, 255
+
 
 ; setpix:
 ;     32cols
