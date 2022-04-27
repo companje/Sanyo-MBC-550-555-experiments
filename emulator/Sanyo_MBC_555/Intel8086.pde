@@ -1039,11 +1039,12 @@ public static class Intel8086 {
    *            word/byte operation
    * @return the value
    */
-  public int getMem(final int w) {
+  public int getMem(final int w) throws Exception {
     final int addr = getAddr(cs, ip);
     if (addr>=memory.length) {
-      println("illegal address", addr);
-      System.exit(1);
+      throw new Exception("illegal address");
+      //println("illegal address", addr);
+      //System.exit(1);
     }
     int val = memory[addr];
     if (w == W)
@@ -1553,7 +1554,7 @@ public static class Intel8086 {
    *
    * @return true if instructions remain, false otherwise
    */
-  public boolean tick() {
+  public boolean tick() throws Exception {
     if (halt) return false;
 
     //// Single-step mode.

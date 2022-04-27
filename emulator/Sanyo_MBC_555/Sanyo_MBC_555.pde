@@ -55,7 +55,11 @@ void draw() {
     reload();
   };
 
-  for (int i=0; i<100 && cpu.tick(); i++);
+  try {
+    for (int i=0; i<100 && cpu.tick(); i++);
+  } catch (Exception e) {
+    println("exception"); 
+  }
 
   //cpu.tick();
   pushMatrix();
@@ -69,12 +73,12 @@ void draw() {
       int r = (cpu.memory[0xf0000+i] & bit)>0 ? 255 : 0;
       int g = (cpu.memory[0x0c000+i] & bit)>0 ? 255 : 0;
       int b = (cpu.memory[0xf4000+i] & bit)>0 ? 255 : 0;
-      img.pixels[j] = color(r, g+i, b);
+      img.pixels[j] = color(r, g, b);
     }
   }
   img.updatePixels();
-  float scale=4; 
-  float ratio=1.7;
+  float scale=1; 
+  float ratio=1; //1.7;
   image(img, 0, 0, width*scale*ratio, height*scale);
 
   //vlines
@@ -84,7 +88,7 @@ void draw() {
   //}
 
   noStroke();
-  translate(width-100, 0);
+  translate(width-100, 218);
   int ystep=18;
   int y=5;
   fill(255);
@@ -116,7 +120,7 @@ void mousePressed() {
 }
 
 void keyPressed() {
-  if (key==' ') cpu.tick();
+  //if (key==' ') cpu.tick();
   if (key=='r') reload();
 }
 //  saveImage();
