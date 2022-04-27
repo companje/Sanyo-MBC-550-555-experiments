@@ -13,7 +13,7 @@ draw:
     cld
     mov bp,0xf000   ;red
     mov es,bp
-    mov di,0
+    xor di,di
 
     push cs
     pop ds    ; mov ds,cs
@@ -29,7 +29,6 @@ x:
     add ax,img
     xchg ax,si
 
-
     movsw
     movsw
     add di,4
@@ -39,16 +38,18 @@ x:
     loop y
     
 
-; horizontal mirrored copy
-    mov di,4
-    xor si,si
+; horizontal mirrored copy in vram
+    xor si,si ; start at 1st col
+    mov di,4  ; start at 2nd col
 
+    mov bp,0xf000  ;source ds:si (red)
+    mov ds,bp
+    mov bp,0x0c00  ;dest es:di (green)
+    mov es,bp
+    
     mov cx,16*2*4
+
 hcopy:
-    mov bp,0x0c00  ;dest green
-    mov es,bp  ; dst with di
-    mov bp,0xf000  ;source red
-    mov ds,bp  ; src with si
 
     ; push cx
     ; mov cx,4
@@ -59,12 +60,12 @@ lines_in_row:
     push es
     push di
 
-    push cs
-    pop es    ; es=cs
+    push cs   ; es=cs
+    pop es    ; es=cs, needed for scasb, somehow cannot use inline cs
 
     mov di,lut
     repne scasb ; cmp al,es:di, inc di
-    es mov al,[di+8] ; mirror using lut
+    cs mov al,[di+8] ; mirror using lut
 
     pop di
     pop es
@@ -79,66 +80,7 @@ lines_in_row:
 
     loop hcopy
 
-
     hlt
-
-; copy mirrored    
-
-;row2
-;     mov bp,0x0c00  ;red
-;     mov es,bp
-;     mov di,320+4
-
-;     mov si,img
-;     mov cx,4*16
-; repX:
-;     lodsb
-
-;     push cx    ; somehow repne scasb destroys cx
-;     push es
-;     push di
-
-;     push cs
-;     pop es    ; es=cs
-
-;     mov di,lut
-
-;     repne scasb ; cmp al,es:di, inc di
-;     mov al,[di+8]
-    
-;     pop di
-;     pop es
-; pop cx
-    
-;     stosb
-
-
-;     ; add di,3*4
-;     loop repX
-
-
-;     jmp draw
-
-; flip_bits:     ; flip the bits of al
-  ;   push cx
-  ;   push bx
-  ;   mov cl,8
-  ;   mov ah,0
-  ; .bit: 
-  ;   mov bx,0x8001 ; bl=1, bh=128
-  ;   shr bh,cl
-  ;   shl bl,cl
-  ;   test al,bl
-  ;   jz .cont
-  ;   ; dec cx
-  ;   or ah,bh
-  ;   ; inc cx
-  ; .cont:
-  ;   loop .bit
-  ;   mov al,ah
-  ;   pop bx
-  ;   pop cx
-  ;   ret
 
 cls:
     mov ax,0x0c00
@@ -174,6 +116,3 @@ img:
 lut:
     db 0,1,3,7,15,31,63,127,255
     db 0,0,128,192,224,240,248,252,254
-
-
-; result: ;4*16 bytes

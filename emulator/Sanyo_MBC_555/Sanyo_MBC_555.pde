@@ -1,7 +1,3 @@
-//import java.util.*;
-//import java.io.*;
-//import java.nio.*;
-//import java.nio.file.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,7 +9,6 @@ PImage img;
 int cols=80;
 long timeStamp;
 File file;
-//FileTime creationTime;
 String filename="0001-mbc555-bootsector.img";
 
 void setup() {
@@ -29,6 +24,8 @@ void setup() {
 }
 
 void reload() {
+  frameCount = 1; //kan dit?
+
   timeStamp = file.lastModified();
   cpu.reset();
   for (int i=0; i<cpu.memory.length; i++) {
@@ -56,15 +53,12 @@ void draw() {
   };
 
   try {
-    for (int i=0; i<100 && cpu.tick(); i++);
+    for (int i=0; i<1000 && cpu.tick(); i++);
   } catch (Exception e) {
     println("exception"); 
   }
 
-  //cpu.tick();
   pushMatrix();
-
-  //if (frameCount%30==0) reload();
 
   img.loadPixels();
   for (int y=0, bit=0, j=0; y<img.height; y++) {
@@ -77,15 +71,19 @@ void draw() {
     }
   }
   img.updatePixels();
-  float scale=1; 
-  float ratio=1; //1.7;
-  image(img, 0, 0, width*scale*ratio, height*scale);
+  
+  pushMatrix();
+  float scale=2; //1.5; 
+  float ratio=1.2; //1.7;
+  scale(scale*ratio,scale);
+  image(img, 0, 0, width,height); //width*scale*ratio, height*scale);
 
-  //vlines
-  //for (int y=0; y<height; y+=height/200.) {
-  //  stroke(0, 50);
-  //  line(0, y, width, y);
-  //}
+  //vlines raster
+  for (int y=0; y<height; y+=height/200.) {
+    stroke(0, 150);
+    line(0, y+.5, width, y+.5);
+  }
+  popMatrix();
 
   noStroke();
   translate(width-100, 218);
@@ -109,6 +107,7 @@ void draw() {
   text("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
 
   popMatrix();
+  
   if (frameCount<20) {
     saveImage();
   }
@@ -120,12 +119,8 @@ void mousePressed() {
 }
 
 void keyPressed() {
-  //if (key==' ') cpu.tick();
   if (key=='r') reload();
 }
-//  saveImage();
-//  reload();
-//}
 
 void saveImage() {
   get().save("frames/"+(year()+nf(month(), 2)+nf(day(), 2)+"-"+nf(hour(), 2)+nf(minute(), 2)+nf(second(), 2)+"."+millis())+".jpg");
