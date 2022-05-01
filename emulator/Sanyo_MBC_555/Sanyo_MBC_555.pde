@@ -29,7 +29,7 @@ void reload() {
   timeStamp = file.lastModified();
   cpu.reset();
   for (int i=0; i<cpu.memory.length; i++) {
-    cpu.memory[i] = int(random(256));
+    cpu.memory[i] = 0; //int(random(256));
   }
   cpu.load(0x00380, loadBytes(filename));
   cpu.cs = 0x0038;
@@ -54,8 +54,9 @@ void draw() {
 
   try {
     for (int i=0; i<1000 && cpu.tick(); i++);
-  } catch (Exception e) {
-    println("exception"); 
+  }
+  catch (Exception e) {
+    println("exception");
   }
 
   pushMatrix();
@@ -71,12 +72,12 @@ void draw() {
     }
   }
   img.updatePixels();
-  
+
   pushMatrix();
-  float scale=2; //1.5; 
+  float scale=2; //1.5;
   float ratio=1.2; //1.7;
-  scale(scale*ratio,scale);
-  image(img, 0, 0, width,height); //width*scale*ratio, height*scale);
+  scale(scale*ratio, scale);
+  image(img, 0, 0, width, height); //width*scale*ratio, height*scale);
 
   //vlines raster
   for (int y=0; y<height; y+=height/200.) {
@@ -86,31 +87,46 @@ void draw() {
   popMatrix();
 
   noStroke();
-  translate(width-100, 218);
+  pushMatrix();
+  translate(width-100, 200);
   int ystep=18;
   int y=5;
-  fill(255);
-  rect(5, 5, 90, 12*ystep+6);
+  //fill(255);
+  //rect(5, 5, 90, 12*ystep+6);
   fill(0);
+  text2("AX:"+hex(cpu.al, 2)+""+hex(cpu.ah, 2), 10, y+=ystep);
+  text2("BX:"+hex(cpu.bl, 2)+""+hex(cpu.bh, 2), 10, y+=ystep);
+  text2("CX:"+hex(cpu.cl, 2)+""+hex(cpu.ch, 2), 10, y+=ystep);
+  text2("DX:"+hex(cpu.dl, 2)+""+hex(cpu.dh, 2), 10, y+=ystep);
+  text2("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
+  text2("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
+  text2("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
+  text2("ES:"+hex(cpu.es, 4), 10, y+=ystep);
+  text2("BP:"+hex(cpu.bp, 4), 10, y+=ystep);
+  text2("SI:"+hex(cpu.si, 4), 10, y+=ystep);
+  text2("DI:"+hex(cpu.di, 4), 10, y+=ystep);
+  text2("CS:"+hex(cpu.cs, 4), 10, y+=ystep);
+  text2("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
+  popMatrix();
 
-  text("AX:"+hex(cpu.al, 2)+""+hex(cpu.ah, 2), 10, y+=ystep);
-  text("BX:"+hex(cpu.bl, 2)+""+hex(cpu.bh, 2), 10, y+=ystep);
-  text("CX:"+hex(cpu.cl, 2)+""+hex(cpu.ch, 2), 10, y+=ystep);
-  text("DX:"+hex(cpu.dl, 2)+""+hex(cpu.dh, 2), 10, y+=ystep);
-  text("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
-  text("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
-  text("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
-  text("ES:"+hex(cpu.es, 4), 10, y+=ystep);
-  text("BP:"+hex(cpu.bp, 4), 10, y+=ystep);
-  text("SI:"+hex(cpu.si, 4), 10, y+=ystep);
-  text("DI:"+hex(cpu.di, 4), 10, y+=ystep);
-  text("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
+  for (int i=0; i<200; i++) {
+    //text2(hex(cpu.memory[0x00380+i],2),10+(i%16)*38,100+(i/16)*27);
+  }
+  
+  //rect(0,0,100,100);
 
   popMatrix();
-  
+
   if (frameCount<20) {
     saveImage();
   }
+}
+
+void text2(String s, float x, float y) {
+  fill(255);
+  rect(x-5,y-18,textWidth(s)+13,24);
+  fill(0);
+  text(s,x,y);  
 }
 
 void mousePressed() {
