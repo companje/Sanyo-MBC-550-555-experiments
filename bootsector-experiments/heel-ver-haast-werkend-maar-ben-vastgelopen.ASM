@@ -11,20 +11,21 @@ BLUE equ 0xf400
 setup:
     call cls
 
-    ; call render_chars
+    call render_chars
 
+    ; draw rendered chars
 
-    mov ax,RED
+    mov ax,GREEN
     push ax
     pop es
     push cs
     pop ds
 
-    ; mov si,img2
-    ; mov di,0
+    mov si,end
+    mov di,0
 
-    ; mov cx,16*16
-    ; rep movsb
+    mov cx,16*16
+    rep movsb
 
     hlt
 
