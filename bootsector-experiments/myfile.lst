@@ -3,176 +3,174 @@
      3                                  BLUE equ 0xf400
      4                                  
      5                                  setup:
-     6 00000000 E84E00                      call cls
-     7 00000003 E86200                      call render_chars
+     6 00000000 E85C00                      call cls
+     7 00000003 E87000                      call render_chars
      8                                  
      9 00000006 BF0000                      mov di,0
-    10                                  
-    11 00000009 B90F00                      mov cx,15
-    12                                  y:
-    13 0000000C 51                          push cx
-    14 0000000D B90F00                      mov cx,15
-    15                                  x:
-    16 00000010 89C8                        mov ax,cx
-    17                                  
-    18                                      ; mov bp,draw_char
-    19                                      
-    20 00000012 BD00F0                      mov bp,RED
-    21 00000015 E81900                      call draw_char
-    22                                  
-    23 00000018 BD000C                      mov bp,GREEN
-    24 0000001B E81300                      call draw_char
-    25                                  
-    26 0000001E BD00F4                      mov bp,BLUE
-    27 00000021 E80D00                      call draw_char
-    28                                  
-    29 00000024 83C708                      add di,8
-    30 00000027 E2E7                        loop x
-    31                                  
-    32 00000029 59                          pop cx
-    33 0000002A 81C70802                    add di,520
-    34 0000002E E2DC                        loop y
-    35                                  
-    36 00000030 F4                          hlt
+    10 00000009 B90F00                      mov cx,15
+    11                                  y:
+    12 0000000C 51                          push cx
+    13 0000000D B90F00                      mov cx,15
+    14                                  x:
+    15 00000010 89C8                        mov ax,cx
+    16                                  
+    17 00000012 2C07                        sub al,7
+    18                                  
+    19 00000014 3C00                        cmp al,0
+    20 00000016 9C                          pushf
+    21 00000017 7D02                        jge positive
+    22 00000019 F6D8                        neg al
+    23                                  positive:
+    24 0000001B BD00F0                      mov bp,RED
+    25 0000001E E81E00                      call draw_char
+    26 00000021 9D                          popf
+    27 00000022 7D02                        jge green_blue
+    28 00000024 30C0                        xor al,al ; if negative then color=red, so clear green and blue
+    29                                  green_blue:
+    30 00000026 BD000C                      mov bp,GREEN
+    31 00000029 E81300                      call draw_char
+    32 0000002C BD00F4                      mov bp,BLUE
+    33 0000002F E80D00                      call draw_char
+    34                                  
+    35 00000032 83C708                      add di,8
+    36 00000035 E2D9                        loop x
     37                                  
-    38                                  draw_char:                  ;es:di=vram (not increasing), al=char 0..15
-    39 00000031 50                          push ax
-    40 00000032 51                          push cx
-    41 00000033 57                          push di
-    42                                  
-    43 00000034 55                          push bp
-    44 00000035 07                          pop es                  ;es=bp
-    45 00000036 0E                          push cs
-    46 00000037 1F                          pop ds                  ;ds=cs
-    47                                  
-    48 00000038 B90400                      mov cx,4
-    49 0000003B 51                          push cx
-    50 0000003C 51                          push cx
-    51 0000003D D2E0                        shl al,cl               ;al*=16
-    52 0000003F 05[0301]                    add ax,data
-    53 00000042 96                          xchg si,ax
-    54                                  
-    55 00000043 59                          pop cx                  ;cx=4
-    56 00000044 F3A5                        rep movsw
-    57 00000046 81C73801                    add di,320-8
-    58 0000004A 59                          pop cx                  ;cx=4
-    59 0000004B F3A5                        rep movsw
+    38 00000037 59                          pop cx
+    39 00000038 81C70802                    add di,520
+    40 0000003C E2CE                        loop y
+    41                                  
+    42 0000003E F4                          hlt
+    43                                  
+    44                                  draw_char:                  ;es:di=vram (not increasing), al=char 0..15
+    45 0000003F 50                          push ax
+    46 00000040 51                          push cx
+    47 00000041 57                          push di
+    48                                  
+    49 00000042 55                          push bp
+    50 00000043 07                          pop es                  ;es=bp
+    51 00000044 0E                          push cs
+    52 00000045 1F                          pop ds                  ;ds=cs
+    53                                  
+    54 00000046 B90400                      mov cx,4
+    55 00000049 51                          push cx
+    56 0000004A 51                          push cx
+    57 0000004B D2E0                        shl al,cl               ;al*=16
+    58 0000004D 05[1501]                    add ax,data
+    59 00000050 96                          xchg si,ax
     60                                  
-    61 0000004D 5F                          pop di                    
-    62 0000004E 59                          pop cx                  
-    63 0000004F 58                          pop ax
-    64 00000050 C3                          ret
-    65                                  
-    66                                  cls:
-    67 00000051 B8000C                      mov ax,GREEN
-    68 00000054 B90040                      mov cx,0x4000                        ; =16k
-    69 00000057 31FF                        xor di,di
-    70 00000059 8EC0                        mov es,ax                            ; es=GREEN
-    71 0000005B F3AA                        rep stosb                        
-    72 0000005D B4F0                        mov ah,0xf0                          ; ax=RED
-    73 0000005F 8EC0                        mov es,ax                            ; red + blue 
-    74 00000061 31FF                        xor di,di
-    75 00000063 B580                        mov ch,0x80                          ; cx=32k
-    76 00000065 F3AA                        rep stosb
-    77 00000067 C3                          ret
-    78                                  
-    79                                  
-    80                                  %include "render_chars.ASM"
-    81                              <1> 
-    82                              <1> render_chars:
-    83 00000068 0E                  <1>     push cs
-    84 00000069 0E                  <1>     push cs
-    85 0000006A 1F                  <1>     pop ds              ; ds:si in code segment
-    86 0000006B 07                  <1>     pop es              ; es:di in code segment
-    87                              <1> 
-    88 0000006C BF[0301]            <1>     mov di,data          ; dest address of render data
-    89 0000006F BE[C300]            <1>     mov si,img
-    90 00000072 B700                <1>     mov bh,0
-    91                              <1> 
-    92                              <1> render16:
-    93 00000074 B400                <1>     mov ah,0
-    94 00000076 88F8                <1>     mov al,bh
-    95 00000078 B104                <1>     mov cl,4
-    96 0000007A F6E1                <1>     mul cl
-    97 0000007C 89C6                <1>     mov si,ax
-    98 0000007E 81C6[C300]          <1>     add si,img
-    99                              <1> 
-   100                              <1>     ; now draw from the location where rendered to
-   101                              <1>     ; call render_char   ; input cl=4
-   102                              <1> render_char:
-   103 00000082 AC                  <1>     lodsb                   ; use lodsb instead of movsb to keep a copy in al
-   104 00000083 AA                  <1>     stosb                   ; draw in left top nibble
-   105 00000084 53                  <1>     push bx                 ; save cur x and y
-   106 00000085 51                  <1>     push cx                 ; cur loop counter (4,3,2,1)
-   107 00000086 51                  <1>     push cx
-   108 00000087 5B                  <1>     pop bx                  ; bx = counter
-   109 00000088 D1E3                <1>     shl bx,1                ; bx *= 2
-   110 0000008A 53                  <1>     push bx                 ; save counter*2 for right bottom
-   111                              <1>     
-   112 0000008B 83FB02              <1>     cmp bx,2                ; skip top line of left bottom nibble
-   113 0000008E 7403                <1>     je .flip_bits
-   114 00000090 884101              <1>     mov [di+bx+8-7],al ; draw in left bottom starting at line 3 instead of 4
-   115                              <1> .flip_bits:                 ; flips all bits dropping highest bit
-   116 00000093 B108                <1>     mov cl,8                ; 8 bits to flip
-   117 00000095 B400                <1>     mov ah,0
-   118                              <1> .bit:
-   119 00000097 BB0180              <1>     mov bx,0x8001           ; bl=1, bh=128  bl doubles, bh halves
-   120 0000009A D2E3                <1>     shl bl,cl
-   121 0000009C 84D8                <1>     test al,bl
-   122 0000009E 7406                <1>     jz .next
-   123 000000A0 49                  <1>     dec cx
-   124 000000A1 D2EF                <1>     shr bh,cl
-   125 000000A3 08FC                <1>     or ah,bh
-   126 000000A5 41                  <1>     inc cx
-   127                              <1> .next:
-   128 000000A6 E2EF                <1>     loop .bit               ; loop 8 bits for flipping
-   129                              <1> 
-   130 000000A8 886503              <1>     mov [di+3],ah           ; draw in right top nibble
-   131 000000AB 5B                  <1>     pop bx                  ; bx = counter*2
-   132                              <1>     
-   133 000000AC 83FB02              <1>     cmp bx,2                ; skip top line of right bottom nibble
-   134 000000AF 7403                <1>     je .j2
-   135 000000B1 886105              <1>     mov [di+bx+8-3],ah ; draw in right bottom starting at line 3 instead of 4
-   136                              <1> .j2:
-   137 000000B4 59                  <1>     pop cx                  ; restore loop counter
-   138 000000B5 5B                  <1>     pop bx                  ; restore x and y
-   139                              <1> 
-   140 000000B6 E2CA                <1>     loop render_char
-   141                              <1> 
-   142                              <1>     ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-   143                              <1> 
-   144 000000B8 83C70C              <1>     add di,4*3          ; next col
-   145 000000BB FEC7                <1>     inc bh            ; x++
-   146 000000BD 80FF10              <1>     cmp bh,16
-   147 000000C0 7CB2                <1>     jl render16
-   148 000000C2 C3                  <1>     ret
-   149                              <1> 
-   150                              <1> img:
-   151 000000C3 00000000            <1>     db 0, 0, 0, 0                        ; empty
-   152 000000C7 00000001            <1>     db 0, 0, 0, 1                        ; dot
-   153 000000CB 00000003            <1>     db 0, 0, 0, 3                        ; minus
-   154 000000CF 00000103            <1>     db 0, 0, 1, 3                        ; plus
-   155 000000D3 00000307            <1>     db 0, 0, 3, 7                        ; hat
-   156 000000D7 00000707            <1>     db 0, 0, 7, 7                        ; block
-   157 000000DB 0001070F            <1>     db 0, 1, 7, 15                       ; star
-   158 000000DF 00030F0F            <1>     db 0, 3, 15, 15                      ; fat plus
-   159 000000E3 000F1F3F            <1>     db 0, 15, 31, 63                   
-   160 000000E7 011F3F3F            <1>     db 1, 31, 63, 63                     ; tol
-   161 000000EB 071F1F3F            <1>     db 7, 31, 31, 63                     ; robot head
-   162 000000EF 0F1F3F3F            <1>     db 15, 31, 63, 63
-   163 000000F3 0F3F3F7F            <1>     db 15, 63, 63, 127
-   164 000000F7 1F3F7F7F            <1>     db 31, 63, 127, 127
-   165 000000FB 1F7FFFFF            <1>     db 31, 127, 255, 255
-   166 000000FF 3F7FFFFF            <1>     db 63, 127, 255, 255
-   167                              <1> 
-   168                              <1>     %assign num $-render_char
-   169                              <1>     %warning render and img num bytes
-   169          ******************  <1>  warning: render and img 129 bytes [-w+user]
-   170                              <1> 
-    81                                  
-    82                                  %assign num $-$$
-    83                                  %warning total num
-    83          ******************       warning: total 259 [-w+user]
+    61 00000051 59                          pop cx                  ;cx=4
+    62 00000052 F3A5                        rep movsw
+    63 00000054 81C73801                    add di,320-8
+    64 00000058 59                          pop cx                  ;cx=4
+    65 00000059 F3A5                        rep movsw
+    66                                  
+    67 0000005B 5F                          pop di                    
+    68 0000005C 59                          pop cx                  
+    69 0000005D 58                          pop ax
+    70 0000005E C3                          ret
+    71                                  
+    72                                  cls:
+    73 0000005F B8000C                      mov ax,GREEN
+    74 00000062 B90040                      mov cx,0x4000                        ; =16k
+    75 00000065 31FF                        xor di,di
+    76 00000067 8EC0                        mov es,ax                            ; es=GREEN
+    77 00000069 F3AA                        rep stosb                        
+    78 0000006B B4F0                        mov ah,0xf0                          ; ax=RED
+    79 0000006D 8EC0                        mov es,ax                            ; red + blue 
+    80 0000006F 31FF                        xor di,di
+    81 00000071 B580                        mov ch,0x80                          ; cx=32k
+    82 00000073 F3AA                        rep stosb
+    83 00000075 C3                          ret
     84                                  
-    85                                  data:
-    86 00000103 00<rep 7D0h>                times 2000 db 0
+    85                                  
+    86                                  %include "render_chars.ASM"
+    87                              <1> 
+    88                              <1> render_chars:
+    89 00000076 0E                  <1>     push cs
+    90 00000077 0E                  <1>     push cs
+    91 00000078 1F                  <1>     pop ds                  ; ds:si in code segment
+    92 00000079 07                  <1>     pop es                  ; es:di in code segment
+    93 0000007A BF[1501]            <1>     mov di,data             ; dest address of render data
+    94 0000007D 30FF                <1>     xor bh,bh
+    95                              <1> .render_char:
+    96 0000007F 30E4                <1>     xor ah,ah
+    97 00000081 88F8                <1>     mov al,bh
+    98 00000083 B104                <1>     mov cl,4
+    99 00000085 F6E1                <1>     mul cl
+   100 00000087 89C6                <1>     mov si,ax
+   101 00000089 81C6[D500]          <1>     add si,img
+   102                              <1> .render_char_part:          ; input requirement at first time cl=4
+   103 0000008D AC                  <1>     lodsb                   ; use lodsb instead of movsb to keep a copy in al
+   104 0000008E AA                  <1>     stosb                   ; draw in left top nibble
+   105 0000008F 53                  <1>     push bx                 ; save cur x and y
+   106 00000090 51                  <1>     push cx                 ; cur loop counter (4,3,2,1)
+   107 00000091 51                  <1>     push cx
+   108 00000092 5B                  <1>     pop bx                  ; bx = counter
+   109 00000093 D1E3                <1>     shl bx,1                ; bx *= 2
+   110 00000095 53                  <1>     push bx                 ; save counter*2 for right bottom
+   111 00000096 83FB02              <1>     cmp bx,2                ; skip top line of left bottom nibble
+   112 00000099 7403                <1>     je .flip_bits
+   113 0000009B 884101              <1>     mov [di+bx+1],al        ; draw in left bottom starting at line 3 instead of 4
+   114                              <1> .flip_bits:                 ; flips all bits dropping highest bit
+   115 0000009E B108                <1>     mov cl,8                ; 8 bits to flip
+   116 000000A0 30E4                <1>     xor ah,ah
+   117                              <1> .flip_bit:
+   118 000000A2 BB0180              <1>     mov bx,0x8001           ; bl=1, bh=128  bl doubles, bh halves
+   119 000000A5 D2E3                <1>     shl bl,cl
+   120 000000A7 84D8                <1>     test al,bl
+   121 000000A9 7406                <1>     jz .next_bit
+   122 000000AB 49                  <1>     dec cx
+   123 000000AC D2EF                <1>     shr bh,cl
+   124 000000AE 08FC                <1>     or ah,bh
+   125 000000B0 41                  <1>     inc cx
+   126                              <1> .next_bit:
+   127 000000B1 E2EF                <1>     loop .flip_bit          ; loop 8 bits for flipping
+   128 000000B3 886503              <1>     mov [di+3],ah           ; draw in right top nibble
+   129 000000B6 5B                  <1>     pop bx                  ; bx = counter*2
+   130 000000B7 83FB02              <1>     cmp bx,2                ; skip top line of right bottom nibble
+   131 000000BA 7403                <1>     je .flip_done
+   132 000000BC 886105              <1>     mov [di+bx+5],ah        ; draw in right bottom starting at line 3 instead of 4
+   133                              <1> .flip_done:
+   134 000000BF 59                  <1>     pop cx                  ; restore loop counter
+   135 000000C0 5B                  <1>     pop bx                  ; restore x and y
+   136 000000C1 E2CA                <1>     loop .render_char_part
+   137                              <1> .clear_bottom_line:
+   138 000000C3 83C707              <1>     add di,7
+   139 000000C6 30C0                <1>     xor al,al
+   140 000000C8 AA                  <1>     stosb                   ; right bottom
+   141 000000C9 83C703              <1>     add di,3
+   142 000000CC AA                  <1>     stosb                   ; left bottom
+   143                              <1> .next_char:
+   144 000000CD FEC7                <1>     inc bh                  ; next char
+   145 000000CF 80FF10              <1>     cmp bh,16
+   146 000000D2 7CAB                <1>     jl .render_char
+   147 000000D4 C3                  <1>     ret
+   148                              <1> 
+   149                              <1> img:
+   150 000000D5 00000000            <1>     db 0, 0, 0, 0                        ; empty
+   151 000000D9 00000001            <1>     db 0, 0, 0, 1                        ; dot
+   152 000000DD 00000003            <1>     db 0, 0, 0, 3                        ; minus
+   153 000000E1 00000103            <1>     db 0, 0, 1, 3                        ; plus
+   154 000000E5 00000307            <1>     db 0, 0, 3, 7                        ; hat
+   155 000000E9 00000707            <1>     db 0, 0, 7, 7                        ; block
+   156 000000ED 0001070F            <1>     db 0, 1, 7, 15                       ; star
+   157 000000F1 00030F0F            <1>     db 0, 3, 15, 15                      ; fat plus
+   158 000000F5 000F1F3F            <1>     db 0, 15, 31, 63                   
+   159 000000F9 011F3F3F            <1>     db 1, 31, 63, 63                     ; spindle
+   160 000000FD 071F1F3F            <1>     db 7, 31, 31, 63                     ; robot head
+   161 00000101 0F1F3F3F            <1>     db 15, 31, 63, 63
+   162 00000105 0F3F3F7F            <1>     db 15, 63, 63, 127
+   163 00000109 1F3F7F7F            <1>     db 31, 63, 127, 127
+   164 0000010D 1F7FFFFF            <1>     db 31, 127, 255, 255
+   165 00000111 3F7FFFFF            <1>     db 63, 127, 255, 255
+   166                              <1> 
+   167                              <1>     %assign num $-render_chars
+   168                              <1>     %warning render and img num bytes
+   168          ******************  <1>  warning: render and img 159 bytes [-w+user]
+   169                              <1> 
+    87                                  
+    88                                  %assign num $-$$
+    89                                  %warning total num
+    89          ******************       warning: total 277 [-w+user]
+    90                                  
+    91                                  data:
