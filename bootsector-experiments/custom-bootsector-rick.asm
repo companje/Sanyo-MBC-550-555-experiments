@@ -32,6 +32,11 @@ RED equ 0xf000
 GREEN equ 0x0c00
 BLUE equ 0xf400
 top equ 9*320+10*8
+effect_timeout equ 100
+num_effects equ fx0-fx_table
+start_effect equ 0 ; num_effects-1
+
+
 
 %define t dh
 %define i dl
@@ -55,6 +60,8 @@ setup:
     ; 97 bytes by mirroring the left-top nibble
     call render_chars_once
 
+    mov bp,start_effect     ; start with effect nr.
+
     xor dx,dx               ; t=i=0 (clear time and index)
 draw:
     mov di,top              ; left top corner to center tixy
@@ -65,10 +72,20 @@ dot:
     div cl                  ; calculate x and y from i
     xchg ax,bx              ; bh=x, bl=y
 
-    call fx1
+    push bp
+    push bx
+    xchg bx,bp
+    mov bp,[bx+fx_table]
+    and bp,0xff
+    ; or bp,0x100
+    pop bx
+    call bp
+    pop bp
 
+    ; call fx1
 
 draw_char_color:
+    push bp
     cmp al,0
     pushf
     jge .red
@@ -84,6 +101,7 @@ draw_char_color:
     call draw_char
     mov bp,BLUE
     call draw_char
+    pop bp                  ; restore bp (used for effect function)
   .next:  
     inc i                   ; i++
     add di,8         
@@ -93,10 +111,18 @@ draw_char_color:
     cmp y,15
     jl dot                  ; next line
     inc t
-    jmp draw                ; next frame
+    cmp t,effect_timeout
+    jl draw                 ; next frame
+    inc bp                  ; inc effect
+    xor t,t                 ; reset time
+    cmp bp,num_effects
+    jl draw                 ; next effect
+    mov bp,start_effect     ; reset effect
+    xor t,t                 ; reset time
+    jmp draw
 
 fx_table: 
-    db fx0,fx1
+    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7,fx8
 
 fx0:
     mov al,x   
@@ -106,6 +132,49 @@ fx1:
     mov al,x
     mul y
     add al,t
+    ret
+fx2:
+    push bx
+    mov al,t           ; t
+    times 2 shr al,1    ; /=2
+    and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
+    times 2 shl al,1    ; *=4
+    mov bx,sin
+    xlat                ; extract sin value
+    pop bx
+    ret
+fx3:
+    mov al,i
+    times 4 shr al,1
+    ret
+fx4:
+    mov al,y
+    sub al,7
+    ret
+fx5:
+    mov al,y
+    sub al,3
+    add al,t
+    ret
+fx6: ;y-t*4
+    mov al,y
+    sub al,x
+    ret
+fx7:
+    mov al,y
+    sub al,6
+    xchg ah,al
+    mov al,x
+    sub al,6
+    mul ah
+    ret
+fx8: ;x and y
+    mov al,x
+    and al,y
+    test al,2
+    je .done
+    neg al
+ .done:
     ret
 
 draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destroys cx
@@ -216,8 +285,17 @@ render_chars_once:
     db 31,127,255,255                 ;
     db 63,127,255,255                 ; largest dot
 
+sin:
+    db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0e,0x0f,0x0f,0x0f
+    db 0x0f,0x0f,0x0f,0x0f,0x0e,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x07,0x06,0x04,0x03,0x01
+    db 0x00,0xff,0xfd,0xfc,0xfa,0xf9,0xf7,0xf6,0xf5,0xf4,0xf3,0xf2,0xf2,0xf1,0xf1,0xf1
+    db 0xf1,0xf1,0xf1,0xf1,0xf2,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf9,0xfa,0xfc,0xfd,0xff
+
 %assign num $-render_chars_once
 %warning render and img num bytes
+
+; %assign num_eff fx0-fx_table
+; %warning num_eff
 
 %assign num $-$$
 %warning total num
