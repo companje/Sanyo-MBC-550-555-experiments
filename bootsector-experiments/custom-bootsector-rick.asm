@@ -31,8 +31,9 @@ cpu 8086
 RED equ 0xf000
 GREEN equ 0x0c00
 BLUE equ 0xf400
-top equ 9*320+10*8
-effect_timeout equ 20
+COLS equ 72
+TOP equ 9*4*COLS+10*8
+effect_timeout equ 255 ; unsigned
 num_effects equ fx0-fx_table
 start_effect equ 0 ; num_effects-1
 
@@ -44,32 +45,69 @@ start_effect equ 0 ; num_effects-1
     jmp setup
 
     db 'Sanyo1.2'
-    db 0x00,0x02,0x02,0x01,0x00,0x02,0x70,0x00,
-    db 0xd0,0x02,0xfd,0x02,0x00,0x09,0x00,0x02,
-    db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00,0xff,
-    db '       Sanyo MBC-550/555        ',0x00
+    dw 512     ; Number of bytes per sector
+    db 2       ; Number of sectors per cluster
+    db 1       ; Number of FAT copies
+    dw 512     ; Number of root directory entries
+    db 112     ; Total number of sectors in the filesystem
+    db 0       ; Media descriptor type
+    dw 512     ; Number of sectors per FAT
+    dw 765     ; ? Number of sectors per track
+    dw 2304    ; ? Number of heads  
+    dw 512     ; Number of hidden sectors
 
-fx_table: 
-    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7,fx8
+fx_table:
+    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7,fx8,fx9
+
+sin_table: ;31 bytes   input ..-15..15
+    db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
+sin_table_half:
+    db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0
+
+    ; some how we need 42 bytes after the FAT12 table... not sure why yet
+    ; fx_table and sin_table fit here. then fill up the rest.
+    %assign num 42-($-fx_table) 
+    times num db 0
 
 fx0:
-    mov al,x   
-    add al,t
+    ; doordat er 'and' gebruikt wordt ipv modulo herhaalt het patroon zich elke 16 dots
+; inc i
+    mov al,i
+    ; add al,t
+    ; sub al,128   ; van -128..128
+
+    hlt
+
+  .check:
+    cmp al,15
+    jg .sub16
+    cmp al,-15
+    jl .add16
+    hlt
     ret
+
+  .sub16:
+    sub al,16
+    jmp .check
+  .add16:
+    add al,16
+    jmp .check
+
+
+
 fx1:
     mov al,x
     mul y
     add al,t
     ret
 fx2:
-    mov al,i
     ; push bx
-    ; mov al,t           ; t
-    ; times 2 shr al,1    ; /=2
-    ; and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
-    ; times 2 shl al,1    ; *=4
-    ; mov bx,sin
-    ; xlat                ; extract sin value
+    ; mov al,x
+    ; shl al,1
+    ; add al,t
+    ; and al,31
+    ; mov bx,sin_table
+    ; xlat 
     ; pop bx
     ret
 fx3:
@@ -105,20 +143,49 @@ fx8: ;x and y
     neg al
   .done:
     ret
-    
+fx9:
+    in al,0x22
+    ret
+
+hardware:
+;8259A interrupt controller
+    dw 0x0013, 0x02f8, 0x020f, 0x0296
+;      \ICW1/  \ICW2/  \ICW4/  \mask/
+;Timer init code
+    dw 0x2634, 0x20bf, 0x2021 ;channel 0 (clock)
+    dw 0x2674, 0x2200, 0x2200 ;channel 1 (2nd stage clock)
+    dw 0x26b6, 0x245d, 0x2400 ;channel 2 (add-in serial rate)
+;End hardware init
+    dw 0 ;end list
+
 setup:
+    mov si,hardware
+    push cs
+    pop ds
+    ;now process hardware init
+.portloop:
+    xor dx,dx
+    lodsw
+    test ax,ax
+    jz .portdone
+    xchg ah,dl
+    out dx,al
+    jmp short .portloop
+.portdone:
+
+
     ;set video chip from 72 to 80 columns
-    mov si,profile25x80
-    mov bx,0
-    cld
-.lp:
-    mov al,bl
-    out 0x30,al            ;CRTC address port
-    mov al,[cs: bx+si+0]
-    out 0x32,al            ;CRTC data port
-    inc bx
-    cmp bl,10
-    jl .lp
+;     mov si,profile25x80
+;     mov bx,0
+;     cld
+; .lp:
+;     mov al,bl
+;     out 0x30,al            ;CRTC address port
+;     mov al,[cs: bx+si+0]
+;     out 0x32,al            ;CRTC data port
+;     inc bx
+;     cmp bl,10
+;     jl .lp
     
     ;clear the screen
     mov ax,GREEN
@@ -134,20 +201,25 @@ setup:
 
     ; generate 16x8 bitmap data for 16 sizes of dots.
     ; because the dots are symmetric we can save at least
-    ; 97 bytes by mirroring the left-top nibble
+    ; 97 bytes by mirroring the left-top corner
     call render_chars_once
 
-    mov bp,0                ; start with effect nr.
+    mov bp,start_effect                ; start with effect nr.
 
     xor dx,dx               ; t=i=0 (clear time and index)
 draw:
-    mov di,top              ; left top corner to center tixy
+    mov di,TOP              ; left top corner to center tixy
 dot:
+    push dx
     mov al,i                ; al=index
     xor ah,ah               ; ah=0
     mov cl,16
     div cl                  ; calculate x and y from i
     xchg ax,bx              ; bh=x, bl=y
+    pop dx
+
+    xor ah,ah               ; ah=0  ; tijdelijk, mag later weg
+    hlt 
 
     push bp
     push bx
@@ -181,12 +253,16 @@ draw_char_color:
     add di,8         
     cmp x,15
     jl dot                  ; next col
-    add di,512       
+    add di,4*COLS       
+    add di,160
     cmp y,15
     jl dot                  ; next line
+
+    ; hlt
+
     inc t
     cmp t,effect_timeout
-    jl draw                 ; next frame
+    jb draw                 ; next frame
     inc bp                  ; inc effect
     xor t,t                 ; reset time
     cmp bp,8
@@ -218,7 +294,7 @@ draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destro
 
     pop cx                  ;cx=4
     rep movsw
-    add di,320-8
+    add di,4*COLS-8
     pop cx                  ;cx=4
     rep movsw
 
@@ -226,17 +302,17 @@ draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destro
     pop ax
     ret
 
-profile25x80:
-    db 112  ;0  Horizontal Total
-    db 80   ;1  Horizontal Displayed
-    db 88   ;2  Horizontal Sync Position
-    db 0x4a ;3  Horizontal and Vertical Sync Widths
-    db 65   ;4  Vertical Total
-    db 0    ;5  Vertical Total Adjust
-    db 50   ;6  Vertical Displayed
-    db 56   ;7  Vertical Sync position
-    db 0    ;8  Interlace and Skew
-    db 3    ;9  Maximum Raster Address
+; profile25x80:
+;     db 112  ;0  Horizontal Total
+;     db 80   ;1  Horizontal Displayed
+;     db 88   ;2  Horizontal Sync Position
+;     db 0x4a ;3  Horizontal and Vertical Sync Widths
+;     db 65   ;4  Vertical Total
+;     db 0    ;5  Vertical Total Adjust
+;     db 50   ;6  Vertical Displayed
+;     db 56   ;7  Vertical Sync position
+;     db 0    ;8  Interlace and Skew
+;     db 3    ;9  Maximum Raster Address
 
 render_chars_once:
     push cs

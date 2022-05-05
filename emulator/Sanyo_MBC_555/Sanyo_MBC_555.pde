@@ -5,8 +5,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
 Intel8086 cpu = new Intel8086();
+PApplet app=this;
 PImage img;
-int cols=80;
+int cols=72;
 long timeStamp;
 File file;
 String filename="0001-mbc555-bootsector.img";
@@ -29,7 +30,7 @@ void reload() {
   timeStamp = file.lastModified();
   cpu.reset();
   for (int i=0; i<cpu.memory.length; i++) {
-    cpu.memory[i] = 0; //int(random(256));
+    cpu.memory[i] = int(random(256));
   }
   cpu.load(0x00380, loadBytes(filename));
   cpu.cs = 0x0038;
@@ -53,7 +54,7 @@ void draw() {
   };
 
   try {
-    for (int i=0; i<1000 && cpu.tick(); i++);
+    for (int i=0; i<5000 && cpu.tick(); i++);
   }
   catch (Exception e) {
     println("exception");
@@ -74,17 +75,19 @@ void draw() {
   img.updatePixels();
 
   pushMatrix();
-  float scale=2; //1.5;
-  float ratio=1.2; //1.7;
+  float scale=1; //1.3; //2; //1.5;
+  float ratio=1; //1.2; //1.7;
   scale(scale*ratio, scale);
-  image(img, 0, 0, width, height); //width*scale*ratio, height*scale);
-
-  //vlines raster
-  for (int y=0; y<height; y+=height/200.) {
-    stroke(0, 150);
-    line(0, y+.5, width, y+.5);
-  }
+  image(img, 0, 0, width, height); //width*scale*ratio, height*scale); 
   popMatrix();
+  
+  //vlines raster
+  //for (int y=0; y<height; y+=height/200.) {
+  //  stroke(0, 150);
+  //  float yy=y+.5;
+  //  //strokeWeight(1.5);
+  //  line(0, yy, width, yy);
+  //}
 
   noStroke();
   pushMatrix();
@@ -130,8 +133,9 @@ void text2(String s, float x, float y) {
 }
 
 void mousePressed() {
-  saveImage();
-  reload();
+  //saveImage();
+  //reload();
+  cpu.halt = false; //resume
 }
 
 void keyPressed() {

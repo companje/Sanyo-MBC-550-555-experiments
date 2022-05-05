@@ -47,7 +47,7 @@ import java.io.InputStream;
  *
  * @author Alexandre ADAMSKI <alexandre.adamski@etu.enseeiht.fr>
  */
-public static class Intel8086 {
+public class Intel8086 {
 
   public boolean halt = false;
 
@@ -166,9 +166,9 @@ public static class Intel8086 {
   public static final int   BX     = 0b011;
 
   /** Lookup table used for clipping results. */
-  public static final int[] MASK   = { 0xff, 0xffff }; //new int[]
+  public final int[] MASK   = { 0xff, 0xffff }; //new int[]
   /** Lookup table used for setting the parity flag. */
-  public static final int[] PARITY = {
+  public final int[] PARITY = {
     1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
     0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
     0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0,
@@ -187,9 +187,9 @@ public static class Intel8086 {
     1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1
   };
   /** Lookup table used for setting the sign and overflow flags. */
-  public static final int[] BITS   = new int[] { 8, 16 };
+  public final int[] BITS   = new int[] { 8, 16 };
   /** Lookup table used for setting the overflow flag. */
-  public static final int[] SIGN   = new int[] { 0x80, 0x8000 };
+  public final int[] SIGN   = new int[] { 0x80, 0x8000 };
 
   /**
    * Entry point. For now it executes a little test program.
@@ -220,7 +220,7 @@ public static class Intel8086 {
    *            the value
    * @return true if MSB is set, false if it is cleared
    */
-  public static boolean msb(final int w, final int x) {
+  public boolean msb(final int w, final int x) {
     return (x & SIGN[w]) == SIGN[w];
   }
 
@@ -234,7 +234,7 @@ public static class Intel8086 {
    *            the number of positions
    * @return the new value
    */
-  public static int shift(final int x, final int n) {
+  public int shift(final int x, final int n) {
     return n >= 0 ? x << n : x >>> -n;
   }
 
@@ -247,7 +247,7 @@ public static class Intel8086 {
    *            the value
    * @return the new value
    */
-  public static int signconv(final int w, final int x) {
+  public int signconv(final int w, final int x) {
     return x << 32 - BITS[w] >> 32 - BITS[w];
   }
 
@@ -1263,6 +1263,9 @@ public static class Intel8086 {
    * @return the value
    */
   public int portIn(final int w, final int port) {
+    if (port==0x22) {
+      return int(millis());
+    }
     //for (final Peripheral peripheral : peripherals)
     //  if (peripheral.isConnected(port))
     //    return peripheral.portIn(w, port);
