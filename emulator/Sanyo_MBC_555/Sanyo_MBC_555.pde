@@ -16,10 +16,12 @@ void setup() {
   file = new File(dataPath(filename));
 
   noSmooth();
-  size(800, 450);
+  //size(1152, 800);
+  size(576, 400);
+
   frameRate(60);
   textFont(loadFont("CourierNewPSMT-18.vlw"));
-  surface.setLocation(855, 0);
+  surface.setLocation(755, 0);
   img = createImage(cols*8, 200, RGB); //72*8=576
   reload();
 }
@@ -57,7 +59,7 @@ void draw() {
     for (int i=0; i<5000 && cpu.tick(); i++);
   }
   catch (Exception e) {
-    println("exception");
+    println("exception",e);
   }
 
   pushMatrix();
@@ -75,9 +77,10 @@ void draw() {
   img.updatePixels();
 
   pushMatrix();
-  float scale=1; //1.3; //2; //1.5;
+  float hscale=1; //1.3; //2; //1.5;
+  float vscale=1; //1.3; //2; //1.5;
   float ratio=1; //1.2; //1.7;
-  scale(scale*ratio, scale);
+  scale(hscale, vscale);
   image(img, 0, 0, width, height); //width*scale*ratio, height*scale); 
   popMatrix();
   
@@ -91,16 +94,16 @@ void draw() {
 
   noStroke();
   pushMatrix();
-  translate(width-100, 200);
+  translate(width-100, height-250);
   int ystep=18;
   int y=5;
   //fill(255);
   //rect(5, 5, 90, 12*ystep+6);
   fill(0);
-  text2("AX:"+hex(cpu.al, 2)+""+hex(cpu.ah, 2), 10, y+=ystep);
-  text2("BX:"+hex(cpu.bl, 2)+""+hex(cpu.bh, 2), 10, y+=ystep);
-  text2("CX:"+hex(cpu.cl, 2)+""+hex(cpu.ch, 2), 10, y+=ystep);
-  text2("DX:"+hex(cpu.dl, 2)+""+hex(cpu.dh, 2), 10, y+=ystep);
+  text2("AX:"+hex(cpu.ah, 2)+""+hex(cpu.al, 2), 10, y+=ystep);
+  text2("BX:"+hex(cpu.bh, 2)+""+hex(cpu.bl, 2), 10, y+=ystep);
+  text2("CX:"+hex(cpu.ch, 2)+""+hex(cpu.cl, 2), 10, y+=ystep);
+  text2("DX:"+hex(cpu.dh, 2)+""+hex(cpu.dl, 2), 10, y+=ystep);
   text2("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
   text2("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
   text2("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
@@ -140,6 +143,7 @@ void mousePressed() {
 
 void keyPressed() {
   if (key=='r') reload();
+  if (key==' ') cpu.halt=!cpu.halt;
 }
 
 void saveImage() {

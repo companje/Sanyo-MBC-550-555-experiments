@@ -769,13 +769,13 @@ public class Intel8086 {
      }
      return;
      }*/
-    push(flags);
-    setFlag(IF, false);
-    setFlag(TF, false);
-    push(cs);
-    push(ip);
-    ip = getMem(0b1, type * 4);
-    cs = getMem(0b1, type * 4 + 2);
+    //push(flags);
+    //setFlag(IF, false);
+    //setFlag(TF, false);
+    //push(cs);
+    //push(ip);
+    //ip = getMem(0b1, type * 4);
+    //cs = getMem(0b1, type * 4 + 2);
   }
 
   /**
@@ -3836,6 +3836,17 @@ public class Intel8086 {
         // Type 3
       case 0xcc: // INT 3
         // Type Specified
+        println("int 3",di);
+
+        //clocks += 52;
+        //break;
+        
+        ////println("cl:",cl);
+        
+        //halt = true;
+        //return false;
+        
+        
       case 0xcd: // INT IMMED8
         callInt(op == 0xcc ? 3 : getMem(B));
         clocks += op == 0xcc ? 52 : 51;
@@ -3993,6 +4004,9 @@ public class Intel8086 {
       case 0xf4: // HLT
         clocks += 2;
         halt = true;
+        if (al>127) println((al&127)-128);
+        else println(al,binary(al,8));
+        
         return false;
 
         /*

@@ -31,11 +31,18 @@ cpu 8086
 RED equ 0xf000
 GREEN equ 0x0c00
 BLUE equ 0xf400
+
+bRED equ 0xf0
+bGREEN equ 0x0c
+bBLUE equ 0xf4
+
 COLS equ 72
 TOP equ 9*4*COLS+10*8
-effect_timeout equ 255 ; unsigned
-num_effects equ fx0-fx_table
-start_effect equ 0 ; num_effects-1
+effect_timeout equ 30 ; unsigned
+; num_effects equ 1 ; fx0-fx_table
+; start_effect equ 0 ; num_effects-1
+; data equ 5000
+isqrt_table equ 1000
 
 %define t dh
 %define i dl
@@ -44,7 +51,12 @@ start_effect equ 0 ; num_effects-1
 
     jmp setup
 
-    db 'Sanyo1.2'
+fx_table:
+    db fx0,fx1,fx2;
+    %assign num 8-($-fx_table) 
+    times num db 0x20
+
+    ; db 'Sanyo1.2'
     dw 512     ; Number of bytes per sector
     db 2       ; Number of sectors per cluster
     db 1       ; Number of FAT copies
@@ -53,54 +65,131 @@ start_effect equ 0 ; num_effects-1
     db 0       ; Media descriptor type
     dw 512     ; Number of sectors per FAT
     dw 765     ; ? Number of sectors per track
-    dw 2304    ; ? Number of heads  
-    dw 512     ; Number of hidden sectors
-
-fx_table:
-    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7,fx8,fx9
+    ; db 0       ; ? Number of heads   (now first byte of sine table)
+    ; db 9     ; ? Number of heads  
+    ; dw 512     ; Number of hidden sectors
 
 sin_table: ;31 bytes   input ..-15..15
     db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
-sin_table_half:
-    db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0
+    db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  ; generating with code would take a same of amount of bytes
 
-    ; some how we need 42 bytes after the FAT12 table... not sure why yet
-    ; fx_table and sin_table fit here. then fill up the rest.
-    %assign num 42-($-fx_table) 
-    times num db 0
-
-fx0:
-    ; doordat er 'and' gebruikt wordt ipv modulo herhaalt het patroon zich elke 16 dots
-; inc i
+fx2:
+    push bx
     mov al,i
-    ; add al,t
-    ; sub al,128   ; van -128..128
-
-    hlt
-
-  .check:
-    cmp al,15
-    jg .sub16
-    cmp al,-15
-    jl .add16
-    hlt
+    add al,t
+    mov bx,data
+    xlat
+    pop bx
     ret
 
-  .sub16:
-    sub al,16
-    jmp .check
-  .add16:
-    add al,16
-    jmp .check
+fx1: ; nice diagonal effect!
+    mov al,y
+    sub al,x
+    mov cl,-8
+    mul cl
+    call limit
+    add al,t
+    ret
 
-
-
-fx1:
+fx0: ; rings!
+    mov al,i    ; index in sqrt table of x*x+y*y... hmm.. table should contain sqrt(i)
+    push bx
+    mov bx,isqrt_table
+    xlat
+    pop bx
+    ; times 2 shl al,1
+    sub al,t
+    call sin
+    ret
+fx3:
     mov al,x
     mul y
     add al,t
     ret
-fx2:
+    
+
+; fx0: ;[1, 0, -1][i%3]
+;    mov al,i
+;    mov cl,3
+;    div cl
+;    xchg ah,al
+;    dec al
+;    mov cl,15
+;    mul cl
+
+; fx0: ; nice diagonal effect!
+;     mov al,y
+;     sub al,x
+;     mov cl,-8
+;     mul cl
+;     call limit
+;     add al,t
+;     ret
+
+; fx0: ;ook mooi
+;     mov al,x
+;     mov cl,y
+;     mul cl
+;     add al,i
+;     add al,t
+;     call sin
+;     ret
+
+; fx0: ; wave
+;     mov al,x
+;     shr al,1
+;     call sin
+;     xchg cl,al
+
+;     mov al,x
+;     sub al,t
+;     call sin
+    
+;     xchg cl,al
+;     sub al,cl
+;     sub al,y
+
+;     ret
+
+; fx0: ; mooi
+;     mov al,x
+;     sub al,8
+;     mov cl,y
+;     sub cl,8
+;     mul cl
+;     xchg al,cl
+;     mov al,t
+;     call sin
+;     xchg al,cl
+;     sub al,cl
+;     ret
+
+; fx0: ; curtains
+;     mov al,x
+;     call sin
+;     xchg al,cl
+;     mov al,t
+;     call sin
+;     add cl,al
+;     xchg al,cl
+;     ; add al,t
+;     ret
+
+; fx0: ; X mooi
+;     mov al,x
+;     call sin
+;     xchg al,cl
+;     mov al,y
+;     sub al,15
+;     call sin
+;     add cl,al
+;     mov al,t
+;     call sin
+;     div cl
+;     ret
+
+
+; fx2:
     ; push bx
     ; mov al,x
     ; shl al,1
@@ -110,82 +199,127 @@ fx2:
     ; xlat 
     ; pop bx
     ret
-fx3:
-    mov al,i
-    times 4 shr al,1
-    ret
-fx4:
-    mov al,y
-    sub al,7
-    ret
-fx5:
-    mov al,y
-    sub al,3
-    add al,t
-    ret
-fx6: ;y-t*4
-    mov al,y
-    sub al,x
-    ret
-fx7:
-    mov al,y
-    sub al,6
-    xchg ah,al
-    mov al,x
-    sub al,6
-    mul ah
-    ret
-fx8: ;x and y
-    mov al,x
-    and al,y
-    test al,2
-    je .done
-    neg al
-  .done:
-    ret
-fx9:
-    in al,0x22
+; fx2:
+;     mov al,i
+;     times 4 shr al,1
+;     ret
+; fx3:
+;     mov al,y
+;     sub al,7
+;     ret
+; fx5:
+;     mov al,y
+;     sub al,3
+;     add al,t
+;     ret
+; fx6: ;y-t*4
+;     mov al,y
+;     sub al,x
+;     ret
+; fx7:
+;     mov al,y
+;     sub al,6
+;     xchg ah,al
+;     mov al,x
+;     sub al,6
+;     mul ah
+;     ret
+; fx8: ;x and y
+;     mov al,x
+;     and al,y
+;     test al,2
+;     je .done
+;     neg al
+;   .done:
+;     ret
+; fx9:
+;     in al,0x22
+;     ret
+
+; fx10:
+;     mov al,x
+;     sub al,y
+;     mov cl,t
+;     mul cl
+;     call sin  
+;     ret
+
+sin:
+    call wrap
+    push bx
+    add al,15
+    mov bx,sin_table
+    xlat 
+    pop bx
     ret
 
-hardware:
-;8259A interrupt controller
-    dw 0x0013, 0x02f8, 0x020f, 0x0296
-;      \ICW1/  \ICW2/  \ICW4/  \mask/
-;Timer init code
-    dw 0x2634, 0x20bf, 0x2021 ;channel 0 (clock)
-    dw 0x2674, 0x2200, 0x2200 ;channel 1 (2nd stage clock)
-    dw 0x26b6, 0x245d, 0x2400 ;channel 2 (add-in serial rate)
-;End hardware init
-    dw 0 ;end list
+wrap:
+    cmp al,15
+    jg .sub16
+    cmp al,-15
+    jl .add16
+    ret
+  .sub16:
+    sub al,31
+    jmp wrap
+  .add16:
+    add al,31
+    jmp wrap
+
+limit:
+    ; kan korter met 'and al,15' nadat neg check is geweest
+    cmp al,15
+    jg .pos16
+    cmp al,-15
+    jnl .ret ;.neg16
+    mov al,-15
+    ret
+  .pos16:
+    mov al,15
+  .ret:
+    ret
+
+calc_isqrt_xxyy:
+    push dx
+    push di
+    mov di,isqrt_table
+    add di,dx
+    mov al,x
+    inc al
+    mul al             ; x*x
+    xchg ax,cx
+    mov al,y
+    inc al
+    mul al             ; y*y
+    add ax,cx          ; + 
+    ; call isqrt
+
+  .isqrt:
+    ; unsigned int L = 0;
+    ; while( (L + 1) * (L + 1) <= y )
+    ;     L = L + 1;
+    ; return L;
+    xchg cx,ax ; cx=y
+    xor ax,ax ; ax=L=0
+  .loop:
+    inc ax
+    ; push dx
+    push ax
+    mul ax
+    cmp ax,cx
+    pop ax
+    ; pop dx
+    jl .loop
+    dec ax
+  .end_isqrt:
+
+    ;store al
+    mov [di],al
+    pop di
+    pop dx
+    ret
 
 setup:
-    mov si,hardware
-    push cs
-    pop ds
-    ;now process hardware init
-.portloop:
-    xor dx,dx
-    lodsw
-    test ax,ax
-    jz .portdone
-    xchg ah,dl
-    out dx,al
-    jmp short .portloop
-.portdone:
-
-
-    ;set video chip from 72 to 80 columns
-;     mov si,profile25x80
-;     mov bx,0
-;     cld
-; .lp:
-;     mov al,bl
-;     out 0x30,al            ;CRTC address port
-;     mov al,[cs: bx+si+0]
-;     out 0x32,al            ;CRTC data port
-;     inc bx
-;     cmp bl,10
-;     jl .lp
     
     ;clear the screen
     mov ax,GREEN
@@ -199,14 +333,25 @@ setup:
     mov ch,0x80             ; cx=32k
     rep stosb               ; clear blue and green channel
 
+    
+    ;set ds and es segments to cs
+    push cs
+    pop ds                  ; ds:si in code segment
+    push cs
+    pop es                  ; es:di in code segment
+
     ; generate 16x8 bitmap data for 16 sizes of dots.
     ; because the dots are symmetric we can save at least
     ; 97 bytes by mirroring the left-top corner
-    call render_chars_once
+    call generate_chars
 
-    mov bp,start_effect                ; start with effect nr.
+    ; call generate_isqrt_table
+
+    ; mov bp,start_effect                ; start with effect nr.
+    xor bp,bp
 
     xor dx,dx               ; t=i=0 (clear time and index)
+
 draw:
     mov di,TOP              ; left top corner to center tixy
 dot:
@@ -218,9 +363,12 @@ dot:
     xchg ax,bx              ; bh=x, bl=y
     pop dx
 
-    xor ah,ah               ; ah=0  ; tijdelijk, mag later weg
-    hlt 
-
+    ;on the first frame calc sqrt table
+    or t,t
+    jnz .cont
+    call calc_isqrt_xxyy
+  .cont:
+   
     push bp
     push bx
     xchg bx,bp
@@ -231,23 +379,23 @@ dot:
     pop bp
 
 draw_char_color:
-    push bp
+    ; push bp
     cmp al,0
     pushf
     jge .red
     neg al
   .red:
-    mov bp,RED
+    mov cx,RED  ; this also clears cl
     call draw_char
     popf
     jge .green_blue
     xor al,al               ; if negative then just red so clear (al=0) green and blue
   .green_blue:
-    mov bp,GREEN
+    mov ch,bGREEN
     call draw_char
-    mov bp,BLUE
+    mov ch,bBLUE
     call draw_char
-    pop bp                  ; restore bp (used for effect function)
+    ; pop bp                  ; restore bp (used for effect function)
   .next:  
     inc i                   ; i++
     add di,8         
@@ -257,27 +405,24 @@ draw_char_color:
     add di,160
     cmp y,15
     jl dot                  ; next line
-
-    ; hlt
-
     inc t
     cmp t,effect_timeout
     jb draw                 ; next frame
     inc bp                  ; inc effect
     xor t,t                 ; reset time
-    cmp bp,8
+    cmp bp,3
     jl draw                 ; next effect
-    mov bp,0                ; reset effect
-    xor t,t                 ; reset time
-    xor i,i
+    xor bp,bp                ; reset effect
+    ; xor t,t                 ; reset time
+    ; xor i,i
     jmp draw
 
 draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destroys cx
     push ax
     push di
 
-    push bp
-    pop es                  ; es=bp
+    push cx
+    pop es                  ; es=bp (color channel now cx)
     push cs
     pop ds                  ;ds=cs
 
@@ -302,23 +447,7 @@ draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destro
     pop ax
     ret
 
-; profile25x80:
-;     db 112  ;0  Horizontal Total
-;     db 80   ;1  Horizontal Displayed
-;     db 88   ;2  Horizontal Sync Position
-;     db 0x4a ;3  Horizontal and Vertical Sync Widths
-;     db 65   ;4  Vertical Total
-;     db 0    ;5  Vertical Total Adjust
-;     db 50   ;6  Vertical Displayed
-;     db 56   ;7  Vertical Sync position
-;     db 0    ;8  Interlace and Skew
-;     db 3    ;9  Maximum Raster Address
-
-render_chars_once:
-    push cs
-    pop ds                  ; ds:si in code segment
-    push cs
-    pop es                  ; es:di in code segment
+generate_chars:
     mov di,data             ; dest address of render data
     xor bh,bh
   .render_char:
@@ -327,7 +456,7 @@ render_chars_once:
     mov cl,4                ; cl is also used below
     mul cl
     mov si,ax
-    add si,.img
+    add si,img
   .render_char_part:          ; input requirement at first time cl=4
     lodsb                   ; use lodsb instead of movsb to keep a copy in al
     stosb                   ; draw in left top nibble
@@ -374,36 +503,31 @@ render_chars_once:
     cmp bh,16
     jl .render_char
     ret
-  .img:
-    db 0,0,0,0                        ; empty
-    db 0,0,0,1                        ; dot
-    db 0,0,0,3                        ; minus
-    db 0,0,1,3                        ; plus
-    db 0,0,3,7                        ; hat
-    db 0,0,7,7                        ; block
-    db 0,1,7,15                       ; star
-    db 0,3,15,15                      ; fat plus
-    db 0,15,31,63                     ;
-    db 1,31,63,63                     ; spindle
-    db 7,31,31,63                     ; robot head
-    db 15,31,63,63                    ;
-    db 15,63,63,127                   ;
-    db 31,63,127,127                  ;
-    db 31,127,255,255                 ;
-    db 63,127,255,255                 ; largest dot
 
-%assign num $-render_chars_once
+img:
+    db 0,0,0,0
+    db 0,0,0,1
+    db 0,0,0,3
+    db 0,0,1,3
+    db 0,0,3,7
+    db 0,0,7,15
+    db 0,3,15,31
+    db 0,7,31,63
+    db 1,15,63,63
+    db 3,31,63,63
+    db 7,31,63,127
+    db 7,31,127,127
+    db 7,63,127,127
+    db 15,63,127,127
+    db 15,63,127,255
+    db 31,127,255,255
+
+%assign num $-generate_chars
 %warning render and img num bytes
-
-; sin:
-;     db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0e,0x0f,0x0f,0x0f
-;     db 0x0f,0x0f,0x0f,0x0f,0x0e,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x07,0x06,0x04,0x03,0x01
-;     db 0x00,0xff,0xfd,0xfc,0xfa,0xf9,0xf7,0xf6,0xf5,0xf4,0xf3,0xf2,0xf2,0xf1,0xf1,0xf1
-;     db 0xf1,0xf1,0xf1,0xf1,0xf2,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf9,0xfa,0xfc,0xfd,0xff
-
 
 %assign num $-$$
 %warning total num
+
 
 data:                                 ; destination for 128 bytes rendered bitmap data
 
