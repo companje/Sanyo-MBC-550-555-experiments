@@ -39,9 +39,6 @@ bBLUE equ 0xf4
 COLS equ 72
 TOP equ 9*4*COLS+10*8
 effect_timeout equ 30 ; unsigned
-; num_effects equ 1 ; fx0-fx_table
-; start_effect equ 0 ; num_effects-1
-; data equ 5000
 isqrt_table equ 1000
 
 %define t dh
@@ -52,7 +49,7 @@ isqrt_table equ 1000
     jmp setup
 
 fx_table:
-    db fx0,fx1,fx2;
+    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7   ; max 8 (for a mountable diskimage)
     %assign num 8-($-fx_table) 
     times num db 0x20
 
@@ -73,7 +70,33 @@ sin_table: ;31 bytes   input ..-15..15
     db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
     db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  ; generating with code would take a same of amount of bytes
 
+fx0:
+    mov al,x
+    ret
+
+fx1:
+    mov al,y
+    sub al,7
+    ret
+
 fx2:
+    mov al,y
+    ; sub al,3
+    add al,t
+    ret
+
+fx3: ;y-t*4
+    mov al,y
+    sub al,x
+    ret
+
+fx4:
+    mov al,x
+    mul y
+    add al,t
+    ret
+
+fx5:
     push bx
     mov al,i
     add al,t
@@ -82,7 +105,7 @@ fx2:
     pop bx
     ret
 
-fx1: ; nice diagonal effect!
+fx6: ; nice diagonal effect!
     mov al,y
     sub al,x
     mov cl,-8
@@ -91,7 +114,7 @@ fx1: ; nice diagonal effect!
     add al,t
     ret
 
-fx0: ; rings!
+fx7: ; rings!
     mov al,i    ; index in sqrt table of x*x+y*y... hmm.. table should contain sqrt(i)
     push bx
     mov bx,isqrt_table
@@ -101,12 +124,23 @@ fx0: ; rings!
     sub al,t
     call sin
     ret
-fx3:
-    mov al,x
-    mul y
-    add al,t
-    ret
-    
+
+; fx8:
+;     mov al,y
+;     ret
+
+; fx0: ; X mooi
+;     mov al,x
+;     call sin
+;     xchg al,cl
+;     mov al,y
+;     sub al,15
+;     call sin
+;     add cl,al
+;     mov al,t
+;     call sin
+;     div cl
+;     ret
 
 ; fx0: ;[1, 0, -1][i%3]
 ;    mov al,i
@@ -117,15 +151,6 @@ fx3:
 ;    mov cl,15
 ;    mul cl
 
-; fx0: ; nice diagonal effect!
-;     mov al,y
-;     sub al,x
-;     mov cl,-8
-;     mul cl
-;     call limit
-;     add al,t
-;     ret
-
 ; fx0: ;ook mooi
 ;     mov al,x
 ;     mov cl,y
@@ -134,6 +159,7 @@ fx3:
 ;     add al,t
 ;     call sin
 ;     ret
+
 
 ; fx0: ; wave
 ;     mov al,x
@@ -175,18 +201,7 @@ fx3:
 ;     ; add al,t
 ;     ret
 
-; fx0: ; X mooi
-;     mov al,x
-;     call sin
-;     xchg al,cl
-;     mov al,y
-;     sub al,15
-;     call sin
-;     add cl,al
-;     mov al,t
-;     call sin
-;     div cl
-;     ret
+
 
 
 ; fx2:
@@ -202,19 +217,6 @@ fx3:
 ; fx2:
 ;     mov al,i
 ;     times 4 shr al,1
-;     ret
-; fx3:
-;     mov al,y
-;     sub al,7
-;     ret
-; fx5:
-;     mov al,y
-;     sub al,3
-;     add al,t
-;     ret
-; fx6: ;y-t*4
-;     mov al,y
-;     sub al,x
 ;     ret
 ; fx7:
 ;     mov al,y
@@ -322,18 +324,18 @@ calc_isqrt_xxyy:
 setup:
     
     ;clear the screen
-    mov ax,GREEN
-    mov cx,0x4000           ; 16k
-    xor di,di               ; di=0
-    mov es,ax               ; es=GREEN
-    rep stosb               ; clear red channel     
-    mov ah,0xf0             ; ax=RED
-    mov es,ax               ; red + blue 
-    xor di,di               ; di=0
-    mov ch,0x80             ; cx=32k
-    rep stosb               ; clear blue and green channel
+    ; mov ax,GREEN
+    ; mov cx,0x4000           ; 16k
+    ; xor di,di               ; di=0
+    ; mov es,ax               ; es=GREEN
+    ; rep stosb               ; clear red channel     
+    ; mov ah,0xf0             ; ax=RED
+    ; mov es,ax               ; red + blue 
+    ; xor di,di               ; di=0
+    ; mov ch,0x80             ; cx=32k
+    ; rep stosb               ; clear blue and green channel
 
-    
+
     ;set ds and es segments to cs
     push cs
     pop ds                  ; ds:si in code segment
@@ -410,7 +412,7 @@ draw_char_color:
     jb draw                 ; next frame
     inc bp                  ; inc effect
     xor t,t                 ; reset time
-    cmp bp,3
+    cmp bp,8
     jl draw                 ; next effect
     xor bp,bp                ; reset effect
     ; xor t,t                 ; reset time

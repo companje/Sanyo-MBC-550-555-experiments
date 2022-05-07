@@ -1209,6 +1209,12 @@ public class Intel8086 {
    *            the file path
    * @throws IOException
    */
+   
+   public void load_max(int addr, byte bin[], int maxBytes) {
+     for (int i = 0; i < min(bin.length,maxBytes); i++)
+      memory[addr + i] = bin[i] & 0xff;
+   }
+  
   public void load(int addr, byte bin[]) { // throws IOException {
     for (int i = 0; i < bin.length; i++)
       memory[addr + i] = bin[i] & 0xff;

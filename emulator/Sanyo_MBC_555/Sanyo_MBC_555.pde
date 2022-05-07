@@ -32,9 +32,9 @@ void reload() {
   timeStamp = file.lastModified();
   cpu.reset();
   for (int i=0; i<cpu.memory.length; i++) {
-    cpu.memory[i] = int(random(256));
+    cpu.memory[i] = 0; //int(random(256));
   }
-  cpu.load(0x00380, loadBytes(filename));
+  cpu.load_max(0x00380, loadBytes(filename), 1024); //more than bootsector to test code
   cpu.cs = 0x0038;
   cpu.ss = 0x0be4;
   cpu.sp = 0x0000;
