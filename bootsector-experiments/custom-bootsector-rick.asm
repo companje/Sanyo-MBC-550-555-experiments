@@ -49,7 +49,7 @@ isqrt_table equ 1000
     jmp setup
 
 fx_table:
-    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7   ; max 8 (for a mountable diskimage)
+    db fx4,fx0,fx1,fx2,fx3,fx5,fx6,fx7   ; max 8 (for a mountable diskimage)
     %assign num 8-($-fx_table) 
     times num db 0x20
 
@@ -62,9 +62,9 @@ fx_table:
     db 0       ; Media descriptor type
     dw 512     ; Number of sectors per FAT
     dw 765     ; ? Number of sectors per track
-    ; db 0       ; ? Number of heads   (now first byte of sine table)
+    ; db 0     ; ? Number of heads   (now first byte of sine table)
     ; db 9     ; ? Number of heads  
-    ; dw 512     ; Number of hidden sectors
+    ; dw 512   ; Number of hidden sectors
 
 sin_table: ;31 bytes   input ..-15..15
     db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
@@ -81,7 +81,7 @@ fx1:
 
 fx2:
     mov al,y
-    ; sub al,3
+    sub al,15
     add al,t
     ret
 
@@ -92,8 +92,11 @@ fx3: ;y-t*4
 
 fx4:
     mov al,x
-    mul y
+    add al,y
+    ; mul y
+    ; add al,64
     add al,t
+    call sin
     ret
 
 fx5:
@@ -124,127 +127,6 @@ fx7: ; rings!
     sub al,t
     call sin
     ret
-
-; fx8:
-;     mov al,y
-;     ret
-
-; fx0: ; X mooi
-;     mov al,x
-;     call sin
-;     xchg al,cl
-;     mov al,y
-;     sub al,15
-;     call sin
-;     add cl,al
-;     mov al,t
-;     call sin
-;     div cl
-;     ret
-
-; fx0: ;[1, 0, -1][i%3]
-;    mov al,i
-;    mov cl,3
-;    div cl
-;    xchg ah,al
-;    dec al
-;    mov cl,15
-;    mul cl
-
-; fx0: ;ook mooi
-;     mov al,x
-;     mov cl,y
-;     mul cl
-;     add al,i
-;     add al,t
-;     call sin
-;     ret
-
-
-; fx0: ; wave
-;     mov al,x
-;     shr al,1
-;     call sin
-;     xchg cl,al
-
-;     mov al,x
-;     sub al,t
-;     call sin
-    
-;     xchg cl,al
-;     sub al,cl
-;     sub al,y
-
-;     ret
-
-; fx0: ; mooi
-;     mov al,x
-;     sub al,8
-;     mov cl,y
-;     sub cl,8
-;     mul cl
-;     xchg al,cl
-;     mov al,t
-;     call sin
-;     xchg al,cl
-;     sub al,cl
-;     ret
-
-; fx0: ; curtains
-;     mov al,x
-;     call sin
-;     xchg al,cl
-;     mov al,t
-;     call sin
-;     add cl,al
-;     xchg al,cl
-;     ; add al,t
-;     ret
-
-
-
-
-; fx2:
-    ; push bx
-    ; mov al,x
-    ; shl al,1
-    ; add al,t
-    ; and al,31
-    ; mov bx,sin_table
-    ; xlat 
-    ; pop bx
-    ret
-; fx2:
-;     mov al,i
-;     times 4 shr al,1
-;     ret
-; fx7:
-;     mov al,y
-;     sub al,6
-;     xchg ah,al
-;     mov al,x
-;     sub al,6
-;     mul ah
-;     ret
-; fx8: ;x and y
-;     mov al,x
-;     and al,y
-;     test al,2
-;     je .done
-;     neg al
-;   .done:
-;     ret
-; fx9:
-;     in al,0x22
-;     ret
-
-; fx10:
-;     mov al,x
-;     sub al,y
-;     mov cl,t
-;     mul cl
-;     call sin  
-;     ret
 
 sin:
     call wrap
@@ -533,4 +415,125 @@ img:
 
 data:                                 ; destination for 128 bytes rendered bitmap data
 
-incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
+times 368640-num db 0
+
+; incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
+
+
+; fx8:
+;     mov al,y
+;     ret
+
+; fx0: ; X mooi
+;     mov al,x
+;     call sin
+;     xchg al,cl
+;     mov al,y
+;     sub al,15
+;     call sin
+;     add cl,al
+;     mov al,t
+;     call sin
+;     div cl
+;     ret
+
+; fx0: ;[1, 0, -1][i%3]
+;    mov al,i
+;    mov cl,3
+;    div cl
+;    xchg ah,al
+;    dec al
+;    mov cl,15
+;    mul cl
+
+; fx0: ;ook mooi
+;     mov al,x
+;     mov cl,y
+;     mul cl
+;     add al,i
+;     add al,t
+;     call sin
+;     ret
+
+
+; fx0: ; wave
+;     mov al,x
+;     shr al,1
+;     call sin
+;     xchg cl,al
+
+;     mov al,x
+;     sub al,t
+;     call sin
+    
+;     xchg cl,al
+;     sub al,cl
+;     sub al,y
+
+;     ret
+
+; fx0: ; mooi
+;     mov al,x
+;     sub al,8
+;     mov cl,y
+;     sub cl,8
+;     mul cl
+;     xchg al,cl
+;     mov al,t
+;     call sin
+;     xchg al,cl
+;     sub al,cl
+;     ret
+
+; fx0: ; curtains
+;     mov al,x
+;     call sin
+;     xchg al,cl
+;     mov al,t
+;     call sin
+;     add cl,al
+;     xchg al,cl
+;     ; add al,t
+;     ret
+
+; fx2:
+    ; push bx
+    ; mov al,x
+    ; shl al,1
+    ; add al,t
+    ; and al,31
+    ; mov bx,sin_table
+    ; xlat 
+    ; pop bx
+    ; ret
+; fx2:
+;     mov al,i
+;     times 4 shr al,1
+;     ret
+; fx7:
+;     mov al,y
+;     sub al,6
+;     xchg ah,al
+;     mov al,x
+;     sub al,6
+;     mul ah
+;     ret
+; fx8: ;x and y
+;     mov al,x
+;     and al,y
+;     test al,2
+;     je .done
+;     neg al
+;   .done:
+;     ret
+; fx9:
+;     in al,0x22
+;     ret
+
+; fx10:
+;     mov al,x
+;     sub al,y
+;     mov cl,t
+;     mul cl
+;     call sin  
+;     ret
