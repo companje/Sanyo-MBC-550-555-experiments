@@ -1,5 +1,5 @@
-# TIXYBOOT.ASM 
-tixyboot.asm by Rick Companje, 2021-2022, MIT licence.
+# TIXY.BOOT
+tixy.boot by Rick Companje, 2021-2022, MIT licence.
 
 A tribute to Martin Kleppe's beautiful https://tixy.land as well as a tribute to the Sanyo MBC-550/555 PC (1984) which forced me to be creative with code since 1994.
 
@@ -26,7 +26,7 @@ result:
 
 <img src="doc/screengrab.gif">
 
-**Note: this code will only work on a Sanyo MBC-550/555!**
+**Note: this code is written for a Sanyo MBC-550/555 PC!**
 
 See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixyboot.asm/tixyboot.asm">full source code</a>.
 
