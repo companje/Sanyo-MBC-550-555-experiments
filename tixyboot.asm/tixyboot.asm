@@ -114,10 +114,10 @@ fx5: ; bitmap_data[i+t]
     pop bx
     ret
 
-fx6: ; ((y-x)*-8)+t
+fx6: ; -8*(y-x)+t
+    mov cl,-8
     mov al,y
     sub al,x
-    mov cl,-8
     mul cl
     call limit
     add al,t

@@ -2,8 +2,8 @@ build:
 	nasm tixyboot.asm -o tixyboot.img -l tixyboot.lst
 	cp tixyboot.img /Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555/data/tixyboot.img
 	
-# 	cp tixyboot.img /Volumes/FLASHFLOPPY/0001-tixyboot.img
-# 	hdiutil unmount /Volumes/FLASHFLOPPY -force
+	cp tixyboot.img /Volumes/FLASHFLOPPY/0001-tixyboot.img
+	hdiutil unmount /Volumes/FLASHFLOPPY -force
 
 # 	hdiutil attach 0001-mbc555-bootsector.img
 # 	hdiutil unmount /Volumes/SYSTEM -force

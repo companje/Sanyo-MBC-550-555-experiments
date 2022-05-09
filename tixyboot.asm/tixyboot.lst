@@ -22,7 +22,7 @@
     22                                  ; Add your own visuals by adding your own functions to the fx_table.
     23                                  ;
     24                                  ; t = time  0..255
-    25                                  ; i = index 0.255
+    25                                  ; i = index 0..255
     26                                  ; x = x-pos 0..15
     27                                  ; y = y-pos 0..15
     28                                  ;
@@ -38,7 +38,7 @@
     38                                  GREEN equ 0x0c
     39                                  BLUE  equ 0xf4
     40                                  
-    41                                  effect_timeout equ 30      ; every 30 frames another effect
+    41                                  effect_timeout equ 50      ; every 30 frames another effect
     42                                  isqrt_table    equ 1000    ; available location in code segment
     43                                  
     44                                  ; using dx and bx registers as t,i,x,y variables
@@ -117,10 +117,10 @@
    114 0000005B 5B                          pop bx
    115 0000005C C3                          ret
    116                                  
-   117                                  fx6: ; ((y-x)*-8)+t
-   118 0000005D 88D8                        mov al,y
-   119 0000005F 28F8                        sub al,x
-   120 00000061 B1F8                        mov cl,-8
+   117                                  fx6: ; -8*(y-x)+t
+   118 0000005D B1F8                        mov cl,-8
+   119 0000005F 88D8                        mov al,y
+   120 00000061 28F8                        sub al,x
    121 00000063 F6E1                        mul cl
    122 00000065 E82E00                      call limit
    123 00000068 00F0                        add al,t
@@ -271,7 +271,7 @@
    268 00000126 80FB0F                      cmp y,15
    269 00000129 7CAF                        jl .dot                  ; next line
    270 0000012B FEC6                        inc t
-   271 0000012D 80FE1E                      cmp t,effect_timeout
+   271 0000012D 80FE32                      cmp t,effect_timeout
    272 00000130 72A5                        jb draw                 ; next frame
    273 00000132 45                          inc bp                  ; inc effect
    274 00000133 30F6                        xor t,t                 ; reset time
@@ -398,5 +398,5 @@
    394          ******************       warning: total 507 [-w+user]
    395                                  
    396                                  bitmap_data:                          ; destination for 128 bytes rendered bitmap data
-   397                                  
-   398 000001FB 00<rep 59E05h>          times 368640-num db  0                 ; fill up with zeros until file size=360k
+   397                                      
+   398 000001FB 00<rep 59E05h>          times 368640-num db 0                 ; fill up with zeros until file size=360k
