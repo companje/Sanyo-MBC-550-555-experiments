@@ -394,5 +394,5 @@ img:
 %warning total num
 
 bitmap_data:                          ; destination for 128 bytes rendered bitmap data
-
-times 368640-num db  0                 ; fill up with zeros until file size=360k
+    
+times 368640-num db 0                 ; fill up with zeros until file size=360k
