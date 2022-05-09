@@ -9,7 +9,7 @@ The Sanyo has no display mode 13 (not even with the original RAM BIOS). It uses 
 
 To run this code write the compiled code to the bootsector of a Sanyo MBC-55x floppy or use an emulator like the one written in Processing/Java in this repo.
 
-<img src="doc/sanyo-mbc-555-tixy.jpg">
+<img src="doc/sanyo-mbc-555-tixy.jpg" width="600">
 
 Add your own visuals by adding your own functions to the fx_table.
 
@@ -24,7 +24,7 @@ result:
   al<0 red, al>0 white
 ```
 
-<img src="doc/screengrab.gif" width="600">
+<img src="doc/screengrab.gif">
 
 **Note: this code will only work on a Sanyo MBC-550/555!**
 
