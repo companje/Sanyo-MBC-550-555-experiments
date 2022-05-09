@@ -11,8 +11,6 @@ To run this code write the compiled code to the bootsector of a Sanyo MBC-55x fl
 
 <img src="doc/sanyo-mbc-555-tixy.jpg" width="600">
 
-Add your own visuals by adding your own functions to the fx_table.
-
 ```
 t = time  0..255
 i = index 0..255
