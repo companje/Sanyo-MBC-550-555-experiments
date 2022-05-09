@@ -10,7 +10,8 @@ PImage img;
 int cols=72;
 long timeStamp;
 File file;
-String filename="0001-mbc555-bootsector.img";
+String filename="/Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555/data/tixyboot.img";
+//String filename="/Users/rick/Sanyo/Sanyo-MBC-550-555-repo/bootsector-experiments/tixyboot.img";
 
 void setup() {
   file = new File(dataPath(filename));
