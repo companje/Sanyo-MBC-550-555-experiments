@@ -8,7 +8,7 @@
 ; floppy takes over. This means that we don't have any BIOS
 ; functions when running our own code from the bootsector. 
 ;
-; The Sanyo has no display mode 13 (even with the original
+; The Sanyo has no display mode 13 (not even with the original
 ; RAM BIOS). It uses a 6845 video chip with three bitmapped 
 ; graphics planes and is organized as 50 rows by 72 (or 80) columns.
 ; One column consists of 4 bytes. Then the next column starts.
@@ -38,7 +38,7 @@ RED   equ 0xf0
 GREEN equ 0x0c
 BLUE  equ 0xf4
 
-effect_timeout equ 30      ; every 30 frames another effect
+effect_timeout equ 50      ; every 30 frames another effect
 isqrt_table    equ 1000    ; available location in code segment
 
 ; using dx and bx registers as t,i,x,y variables
@@ -198,7 +198,6 @@ calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
     ret
 
 setup:                      ; starting point of code
-
     ;no need to clear the screen. ROM BIOS does this already.
 
     ;set ds and es segments to cs
@@ -218,7 +217,7 @@ setup:                      ; starting point of code
 
 draw:
     mov di,TOP              ; left top corner to center tixy
-dot:
+  .dot:
     push dx
     mov al,i                ; al=index
     xor ah,ah               ; ah=0
@@ -230,44 +229,44 @@ dot:
     ;on the first frame calc sqrt table for every i
     ;reusing the i,x,y loop here. this saves some bytes.
     or t,t
-    jnz .cont
+    jnz .call_effect
     call calc_isqrt_xx_yy
-  .cont:
-   
-    push bp
-    push bx
-    xchg bx,bp
-    mov bp,[bx+fx_table]
-    and bp,0xff             ; effect function needs to fit in one byte to save 8 bytes
-    pop bx
-    call bp                 ; call the effect function
-    pop bp
+  
+  .call_effect:
+    push bp                   ; bp contains current effect number
+    mov bp, [fx_table + bp]   ; overwrite bp with address of effect
+    and bp,0xff               ; reduce address to single byte
+    call bp                   ; call effect, al contains result
+    pop bp                    ; restore effect number
 
-draw_char_color:
+  .draw_char_color:
     cmp al,0
     pushf
     jge .red
     neg al
+
   .red:
-    mov cx,RED << 8              ; ch=0xf0, cl=0
+    mov cx,RED << 8         ; ch=0xf0, cl=0
     call draw_char
     popf
     jge .green_blue
     xor al,al               ; if negative then just red so clear (al=0) green and blue
+
   .green_blue:
     mov ch,GREEN
     call draw_char
     mov ch,BLUE
     call draw_char
+
   .next:  
     inc i                   ; i++
     add di,8         
     cmp x,15
-    jl dot                  ; next col
+    jl .dot                  ; next col
     add di,4*COLS       
     add di,160
     cmp y,15
-    jl dot                  ; next line
+    jl .dot                  ; next line
     inc t
     cmp t,effect_timeout
     jb draw                 ; next frame
@@ -311,6 +310,7 @@ draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destro
 generate_chars:
     mov di,bitmap_data      ; dest address of render data
     xor bh,bh
+  
   .render_char:
     xor ah,ah
     mov al,bh
@@ -318,6 +318,7 @@ generate_chars:
     mul cl
     mov si,ax
     add si,img
+  
   .render_char_part:        ; input requirement at first time cl=4
     lodsb                   ; use lodsb instead of movsb to keep a copy in al
     stosb                   ; draw in left top nibble
@@ -334,6 +335,7 @@ generate_chars:
   .flip_bits:                 ; flips all bits dropping highest bit
     mov cl,8                ; 8 bits to flip
     xor ah,ah
+  
   .flip_bit:
     mov bx,0x8001           ; bl=1, bh=128  bl doubles, bh halves
     shl bl,cl
@@ -343,6 +345,7 @@ generate_chars:
     shr bh,cl
     or ah,bh
     inc cx
+
   .next_bit:
     loop .flip_bit          ; loop 8 bits for flipping
     mov [di+3],ah           ; draw in right top nibble
@@ -350,16 +353,19 @@ generate_chars:
     cmp bx,2                ; skip top line of right bottom nibble
     je .flip_done
     mov [di+bx+5],ah        ; draw in right bottom starting at line 3 instead of 4
+
   .flip_done:
     pop cx                  ; restore loop counter
     pop bx                  ; restore x and y
     loop .render_char_part
+
   .clear_bottom_line:
     add di,7
     xor al,al
     stosb                   ; right bottom
     add di,3
     stosb                   ; left bottom
+
   .next_char:
     inc bh                  ; next char
     cmp bh,16

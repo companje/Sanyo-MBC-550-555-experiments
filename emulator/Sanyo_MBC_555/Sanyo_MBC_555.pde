@@ -101,19 +101,19 @@ void draw() {
   //fill(255);
   //rect(5, 5, 90, 12*ystep+6);
   fill(0);
-  text2("AX:"+hex(cpu.ah, 2)+""+hex(cpu.al, 2), 10, y+=ystep);
-  text2("BX:"+hex(cpu.bh, 2)+""+hex(cpu.bl, 2), 10, y+=ystep);
-  text2("CX:"+hex(cpu.ch, 2)+""+hex(cpu.cl, 2), 10, y+=ystep);
-  text2("DX:"+hex(cpu.dh, 2)+""+hex(cpu.dl, 2), 10, y+=ystep);
-  text2("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
-  text2("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
-  text2("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
-  text2("ES:"+hex(cpu.es, 4), 10, y+=ystep);
-  text2("BP:"+hex(cpu.bp, 4), 10, y+=ystep);
-  text2("SI:"+hex(cpu.si, 4), 10, y+=ystep);
-  text2("DI:"+hex(cpu.di, 4), 10, y+=ystep);
-  text2("CS:"+hex(cpu.cs, 4), 10, y+=ystep);
-  text2("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
+  //text2("AX:"+hex(cpu.ah, 2)+""+hex(cpu.al, 2), 10, y+=ystep);
+  //text2("BX:"+hex(cpu.bh, 2)+""+hex(cpu.bl, 2), 10, y+=ystep);
+  //text2("CX:"+hex(cpu.ch, 2)+""+hex(cpu.cl, 2), 10, y+=ystep);
+  //text2("DX:"+hex(cpu.dh, 2)+""+hex(cpu.dl, 2), 10, y+=ystep);
+  //text2("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
+  //text2("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
+  //text2("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
+  //text2("ES:"+hex(cpu.es, 4), 10, y+=ystep);
+  //text2("BP:"+hex(cpu.bp, 4), 10, y+=ystep);
+  //text2("SI:"+hex(cpu.si, 4), 10, y+=ystep);
+  //text2("DI:"+hex(cpu.di, 4), 10, y+=ystep);
+  //text2("CS:"+hex(cpu.cs, 4), 10, y+=ystep);
+  //text2("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
   popMatrix();
 
   for (int i=0; i<200; i++) {
@@ -127,6 +127,8 @@ void draw() {
   if (frameCount<20) {
     saveImage();
   }
+  
+  saveFrame("demo-frames/"+frameCount+".png");
 }
 
 void text2(String s, float x, float y) {
