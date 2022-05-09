@@ -23,3 +23,86 @@ result:
 ```
 
 <img src="screengrab.gif">
+
+**Note: this code will only work on a Sanyo MBC-550/555!**
+
+See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixyboot.asm/tixyboot.asm">full source code</a>.
+
+```asm
+; ...
+
+; using dx and bx registers as t,i,x,y variables
+%define t dh
+%define i dl
+%define x bh
+%define y bl
+
+jmp setup
+
+fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
+    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7 
+
+; ...
+
+fx0: ; x
+    mov al,x
+    ret
+
+fx1: ; y-7
+    mov al,y
+    sub al,7
+    ret
+
+fx2: ; y+t
+    mov al,y
+    add al,t
+    ret
+
+fx3: ; y-t
+    mov al,y
+    sub al,x
+    ret
+
+fx4: ; sin(x+y+t)
+    mov al,x
+    add al,y
+    add al,t
+    call sin
+    ret
+
+fx5: ; bitmap_data[i+t]
+    push bx
+    mov al,i
+    add al,t
+    mov bx,bitmap_data
+    xlat
+    pop bx
+    ret
+
+fx6: ; -8*(y-x)+t
+    mov cl,-8
+    mov al,y
+    sub al,x
+    mul cl
+    call limit
+    add al,t
+    ret
+
+fx7: ; sin(sqrt(x^2+y^2))-t)
+    mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
+    push bx
+    mov bx,isqrt_table
+    xlat
+    pop bx
+    sub al,t
+    call sin
+    ret
+
+; ...
+
+setup:
+; ...
+
+draw:
+; ...
+
