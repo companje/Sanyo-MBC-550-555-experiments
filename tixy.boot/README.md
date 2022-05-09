@@ -26,7 +26,7 @@ result:
 
 **Note: this code is written for a Sanyo MBC-550/555 PC!**
 
-See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixyboot.asm/tixyboot.asm">full source code</a>.
+See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixy.boot/tixyboot.asm">tixyboot.asm</a> for the full source code.
 
 ```asm
 ; ...
@@ -105,4 +105,6 @@ setup:
 
 draw:
 ; ...
+```
 
+See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixy.boot/tixyboot.asm">tixyboot.asm</a> for the full source code.
