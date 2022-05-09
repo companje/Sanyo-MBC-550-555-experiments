@@ -22,7 +22,7 @@
 ; Add your own visuals by adding your own functions to the fx_table.
 ;
 ; t = time  0..255
-; i = index 0.255
+; i = index 0..255
 ; x = x-pos 0..15
 ; y = y-pos 0..15
 ;
