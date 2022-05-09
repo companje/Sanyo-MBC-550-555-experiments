@@ -50,9 +50,8 @@ isqrt_table    equ 1000    ; available location in code segment
 jmp setup
 
 ; some parts of FAT12 table is included here to be able to mount the binary 
-; as a diskimage on Mac. This seems also to be needed for FlashFloppy to
-; recognize the diskimage. The Sanyo does not need the regular bootsector 
-; signature 0x55 0xAA
+; as a diskimage on Mac. This seems also to be needed for FlashFloppy to recognize
+; the diskimage. The Sanyo does not need the regular bootsector signature 0x55 0xAA
 
 fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
     db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7 
