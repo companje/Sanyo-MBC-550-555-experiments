@@ -24,7 +24,7 @@ result:
   al<0 red, al>0 white
 ```
 
-<img src="doc/screengrab.gif">
+<img src="doc/screengrab.gif" width="600">
 
 **Note: this code will only work on a Sanyo MBC-550/555!**
 
