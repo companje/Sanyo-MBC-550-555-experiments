@@ -1,5 +1,6 @@
 # TIXY.BOOT
 tixy.boot by Rick Companje, 2021-2022, MIT licence.
+512 bytes bootsector code for 8086
 
 A tribute to Martin Kleppe's beautiful https://tixy.land as well as a tribute to the Sanyo MBC-550/555 PC (1984) which forced me to be creative with code since 1994.
 
@@ -10,8 +11,6 @@ The Sanyo has no display mode 13 (not even with the original RAM BIOS). It uses 
 To run this code write the compiled code to the bootsector of a Sanyo MBC-55x floppy or use an emulator like the one written in Processing/Java in this repo.
 
 <img src="doc/sanyo-mbc-555-tixy.jpg" width="600">
-
-Add your own visuals by adding your own functions to the fx_table.
 
 ```
 t = time  0..255
@@ -28,7 +27,7 @@ result:
 
 **Note: this code is written for a Sanyo MBC-550/555 PC!**
 
-See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixyboot.asm/tixyboot.asm">full source code</a>.
+See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixy.boot/tixyboot.asm">tixyboot.asm</a> for the full source code.
 
 ```asm
 ; ...
@@ -107,4 +106,6 @@ setup:
 
 draw:
 ; ...
+```
 
+See <a href="https://github.com/companje/Sanyo-MBC-550-555-experiments/blob/main/tixy.boot/tixyboot.asm">tixyboot.asm</a> for the full source code.
