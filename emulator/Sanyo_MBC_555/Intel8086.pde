@@ -21,7 +21,7 @@ import java.io.InputStream;
  * The EU is responsible for the execution of all instructions, for providing
  * data and addresses to the BIU, and for manipulating the general registers
  * and the flag register. Except for a few control pins, the EU is completely
- * isolated from the "outside world." The BIU is responsible for executing all
+ * isolated fronm the "outside world." The BIU is responsible for executing all
  * external bus cycles and consists of the segment and communication registers,
  * the instruction pointer and the instruction object code queue. The BIU
  * combines segment and offset values in its dedicated adder to derive 20-bit
@@ -599,7 +599,7 @@ public class Intel8086 {
    * should not use these areas for any other purpose. Doing so may make
    * these systems incompatible with future Intel products.
    */
-  public final int[]      memory      = new int[0x100000];
+  public final int[]      memory      = new int[0x200000]; ///HACK was 0x100000=1048576
 
   /*
      * External Components
@@ -1209,12 +1209,12 @@ public class Intel8086 {
    *            the file path
    * @throws IOException
    */
-   
-   public void load_max(int addr, byte bin[], int maxBytes) {
-     for (int i = 0; i < min(bin.length,maxBytes); i++)
+
+  public void load_max(int addr, byte bin[], int maxBytes) {
+    for (int i = 0; i < min(bin.length, maxBytes); i++)
       memory[addr + i] = bin[i] & 0xff;
-   }
-  
+  }
+
   public void load(int addr, byte bin[]) { // throws IOException {
     for (int i = 0; i < bin.length; i++)
       memory[addr + i] = bin[i] & 0xff;
@@ -3842,17 +3842,24 @@ public class Intel8086 {
         // Type 3
       case 0xcc: // INT 3
         // Type Specified
-        println("int 3",di);
+        //print(dl);
+        //if (int3_counter>0 && (int3_counter%72)==0) println();
+println("bp",bp);
+        if (dl!=0) println(int3_counter, dl);
+        int3_counter++;
+
+
+        //if (si>0 && si%(72*4)==0) println();
 
         //clocks += 52;
         //break;
-        
+
         ////println("cl:",cl);
-        
+
         //halt = true;
         //return false;
-        
-        
+
+
       case 0xcd: // INT IMMED8
         callInt(op == 0xcc ? 3 : getMem(B));
         clocks += op == 0xcc ? 52 : 51;
@@ -4010,9 +4017,9 @@ public class Intel8086 {
       case 0xf4: // HLT
         clocks += 2;
         halt = true;
-        if (al>127) println((al&127)-128);
-        else println(al,binary(al,8));
-        
+        //if (al>127) println((al&127)-128);
+        //else println(al,binary(al,8));
+
         return false;
 
         /*

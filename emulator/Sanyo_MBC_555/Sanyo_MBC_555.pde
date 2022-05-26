@@ -4,20 +4,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
+int int3_counter = 0;
 Intel8086 cpu = new Intel8086();
 PApplet app=this;
 PImage img;
 int cols=72;
 long timeStamp;
 File file;
-String filename="/Users/rick/Sanyo/Sanyo-MBC-550-555-repo/emulator/Sanyo_MBC_555/data/tixyboot.img";
-//String filename="/Users/rick/Sanyo/Sanyo-MBC-550-555-repo/bootsector-experiments/tixyboot.img";
+String filename="game-of-life.img";
 
 void setup() {
   file = new File(dataPath(filename));
 
   noSmooth();
-  //size(1152, 800);
   size(576, 400);
 
   frameRate(60);
@@ -28,27 +27,20 @@ void setup() {
 }
 
 void reload() {
-  frameCount = 1; //kan dit?
+  int3_counter = 0;
+  frameCount = 1; //ok?
 
   timeStamp = file.lastModified();
   cpu.reset();
   for (int i=0; i<cpu.memory.length; i++) {
     cpu.memory[i] = 0; //int(random(256));
   }
-  cpu.load_max(0x00380, loadBytes(filename), 1024); //more than bootsector to test code
+  cpu.load(0x00380, loadBytes(filename)); //more than bootsector to test code
   cpu.cs = 0x0038;
   cpu.ss = 0x0be4;
   cpu.sp = 0x0000;
   cpu.halt = false;
 }
-
-//  //cpu.load(0xfc000, loadBytes("MBC-555.ROM"));
-//  //jmp naar: 0xFE00*16+0x1E00
-//  cpu.load(0x00380, loadBytes("0001-mbc555-bootsector.img"));
-//  cpu.cs = 0x0038;
-//  cpu.halt = false;
-//  //thread("tick");
-//}
 
 void draw() {
   if (frameCount%10==0 && file.lastModified()!=timeStamp) {
@@ -57,7 +49,7 @@ void draw() {
   };
 
   try {
-    for (int i=0; i<5000 && cpu.tick(); i++);
+    for (int i=0; i<100000 && cpu.tick(); i++);
   }
   catch (Exception e) {
     println("exception",e);
@@ -81,6 +73,7 @@ void draw() {
   float hscale=1; //1.3; //2; //1.5;
   float vscale=1; //1.3; //2; //1.5;
   float ratio=1; //1.2; //1.7;
+  scale(3);
   scale(hscale, vscale);
   image(img, 0, 0, width, height); //width*scale*ratio, height*scale); 
   popMatrix();
@@ -98,37 +91,27 @@ void draw() {
   translate(width-100, height-250);
   int ystep=18;
   int y=5;
-  //fill(255);
-  //rect(5, 5, 90, 12*ystep+6);
   fill(0);
-  //text2("AX:"+hex(cpu.ah, 2)+""+hex(cpu.al, 2), 10, y+=ystep);
-  //text2("BX:"+hex(cpu.bh, 2)+""+hex(cpu.bl, 2), 10, y+=ystep);
-  //text2("CX:"+hex(cpu.ch, 2)+""+hex(cpu.cl, 2), 10, y+=ystep);
-  //text2("DX:"+hex(cpu.dh, 2)+""+hex(cpu.dl, 2), 10, y+=ystep);
-  //text2("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
-  //text2("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
-  //text2("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
-  //text2("ES:"+hex(cpu.es, 4), 10, y+=ystep);
-  //text2("BP:"+hex(cpu.bp, 4), 10, y+=ystep);
-  //text2("SI:"+hex(cpu.si, 4), 10, y+=ystep);
-  //text2("DI:"+hex(cpu.di, 4), 10, y+=ystep);
-  //text2("CS:"+hex(cpu.cs, 4), 10, y+=ystep);
-  //text2("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
+  text2("AX:"+hex(cpu.ah, 2)+""+hex(cpu.al, 2), 10, y+=ystep);
+  text2("BX:"+hex(cpu.bh, 2)+""+hex(cpu.bl, 2), 10, y+=ystep);
+  text2("CX:"+hex(cpu.ch, 2)+""+hex(cpu.cl, 2), 10, y+=ystep);
+  text2("DX:"+hex(cpu.dh, 2)+""+hex(cpu.dl, 2), 10, y+=ystep);
+  text2("SS:"+hex(cpu.ss, 4), 10, y+=ystep);
+  text2("SP:"+hex(cpu.sp, 4), 10, y+=ystep);
+  text2("DS:"+hex(cpu.ds, 4), 10, y+=ystep);
+  text2("ES:"+hex(cpu.es, 4), 10, y+=ystep);
+  text2("BP:"+hex(cpu.bp, 4), 10, y+=ystep);
+  text2("SI:"+hex(cpu.si, 4), 10, y+=ystep);
+  text2("DI:"+hex(cpu.di, 4), 10, y+=ystep);
+  text2("CS:"+hex(cpu.cs, 4), 10, y+=ystep);
+  text2("IP:"+hex(cpu.ip, 4), 10, y+=ystep);
   popMatrix();
-
-  for (int i=0; i<200; i++) {
-    //text2(hex(cpu.memory[0x00380+i],2),10+(i%16)*38,100+(i/16)*27);
-  }
-  
-  //rect(0,0,100,100);
 
   popMatrix();
 
-  if (frameCount<20) {
-    saveImage();
-  }
-  
-  saveFrame("demo-frames/"+frameCount+".png");
+  //if (frameCount<20) {
+  //  saveImage();
+  //}
 }
 
 void text2(String s, float x, float y) {
@@ -139,8 +122,6 @@ void text2(String s, float x, float y) {
 }
 
 void mousePressed() {
-  //saveImage();
-  //reload();
   cpu.halt = false; //resume
 }
 
