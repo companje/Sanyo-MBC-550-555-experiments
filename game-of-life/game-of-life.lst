@@ -1,0 +1,188 @@
+     1                                  org 0
+     2                                  cpu 8086
+     3                                  
+     4                                  H equ 50      ; 50x4 lines = 200px
+     5                                  W equ 72    ; =COLS
+     6                                  WH equ W*H
+     7                                  RED   equ 0xf000
+     8                                  GREEN equ 0x1c00  ;; 1=0x0c00 2=0x1c00, 3=0x2c00, 4=0x3c00 ????
+     9                                  BLUE  equ 0xf400
+    10                                  
+    11 00000000 EB18                    jmp setup
+    12                                  
+    13 00000002 53616E796F312E32            db 'Sanyo1.2'
+    14 0000000A 0002                        dw 512     ; Number of bytes per sector
+    15 0000000C 02                          db 2       ; Number of sectors per cluster
+    16 0000000D 01                          db 1       ; Number of FAT copies
+    17 0000000E 0002                        dw 512     ; Number of root directory entries
+    18 00000010 70                          db 112     ; Total number of sectors in the filesystem
+    19 00000011 00                          db 0       ; Media descriptor type
+    20 00000012 0002                        dw 512     ; Number of sectors per FAT
+    21 00000014 FD02                        dw 765     ; ? Number of sectors per track
+    22 00000016 00                          db 0     ; ? Number of heads   (now first byte of sine table)
+    23 00000017 09                          db 9     ; ? Number of heads  
+    24 00000018 0002                        dw 512   ; Number of hidden sectors
+    25                                  
+    26                                  
+    27                                  setup:
+    28 0000001A B8001C                      mov ax,GREEN
+    29 0000001D 50                          push ax
+    30                                      ; push ax
+    31 0000001E 07                          pop es
+    32                                      
+    33 0000001F B005                        mov al,5
+    34 00000021 E610                        out 0x10,al
+    35                                  
+    36                                      ; call initCells
+    37                                  
+    38                                      ; mov al,255
+    39                                      ; mov di,5*W*4 + 10*4
+    40                                      ; times 4 stosb
+    41                                      ; times 4 stosb
+    42                                      ; mov di,4*W*4 + 10*4
+    43                                      ; times 4 stosb
+    44                                  
+    45                                      ; push cs
+    46                                      ; pop ds
+    47                                  
+    48 00000023 31FF                        xor di,di
+    49                                      ; mov si,0
+    50 00000025 B9201C                      mov cx,WH*2
+    51 00000028 01C8                    .1: add ax,cx
+    52 0000002A AB                          stosw
+    53 0000002B E2FB                        loop .1
+    54                                  
+    55                                      ; pop ds
+    56                                      
+    57                                  
+    58                                  
+    59                                  nextgen:
+    60                                  ;calculate next generation
+    61 0000002D 31F6                        xor si,si
+    62                                  .calc_cells:
+    63                                      ; call countNeighbours
+    64                                      ; int3
+    65                                  
+    66                                  .countNeighbours: ; input si, returns dl
+    67 0000002F B200                        mov dl,0    ; n
+    68 00000031 BB0000                      mov bx,0    ; bx 8..0  i<len(nb)
+    69 00000034 2E8BAF[9A00]            .1: mov bp,[cs:nb+bx]
+    70 00000039 268A02                      mov al,[es:si+bp]   ; read value of neighbouring pixel
+    71 0000003C A880                        test al,128
+    72 0000003E 7402                        jz .2
+    73 00000040 FEC2                        inc dl
+    74                                      ; int3
+    75 00000042 43                      .2: inc bx
+    76 00000043 43                          inc bx
+    77 00000044 83FB10                      cmp bx,16
+    78 00000047 75EB                        jne .1
+    79                                  ;------
+    80                                  
+    81                                  
+    82 00000049 B000                        mov al,0
+    83                                  
+    84 0000004B 80FA02                      cmp dl,2 
+    85 0000004E 7407                        je .j32  
+    86 00000050 80FA03                      cmp dl,3
+    87 00000053 7504                        jne .set      ; not 2 and not 3 neighbours
+    88 00000055 0420                    .j64: add al,32   ; 3 neighbours
+    89 00000057 0420                    .j32: add al,32   ; 2 neighbours
+    90                                  .set: 
+    91                                  
+    92                                      ; mov al,dl
+    93                                      ; mov cl,64
+    94                                      ; mul cl
+    95                                  
+    96 00000059 263004                      xor [es:si],al
+    97 0000005C 83C604                      add si,4
+    98 0000005F 81FE4038                    cmp si,WH*4
+    99 00000063 7CCA                        jl .calc_cells
+   100                                  
+   101                                  ; hlt
+   102                                  
+   103                                  ;redraw cells
+   104                                      ; mov cx,4*WH
+   105                                      ; xor si,si
+   106 00000065 31FF                        xor di,di
+   107                                  .redraw_cells:
+   108 00000067 268A05                      mov al,[es:di]
+   109 0000006A A880                        test al,128    ; alive?
+   110 0000006C 740C                        jz .dead
+   111                                  .alive:
+   112 0000006E A840                        test al,64
+   113 00000070 740C                        jz .survive
+   114 00000072 A820                        test al,32
+   115 00000074 7408                        jz .survive
+   116                                  .die:
+   117                                  .stay_dead:
+   118 00000076 30C0                        xor al,al
+   119 00000078 EB06                        jmp .copy
+   120                                  .dead:
+   121 0000007A A840                        test al,64
+   122 0000007C 74F8                        jz .stay_dead
+   123                                  .birth:
+   124                                  .survive:
+   125 0000007E B0FF                        mov al,255
+   126                                  .copy:
+   127                                  
+   128 00000080 268805                      mov [es:di+0],al
+   129 00000083 26884501                    mov [es:di+1],al
+   130 00000087 26884502                    mov [es:di+2],al
+   131 0000008B 26884503                    mov [es:di+3],al
+   132 0000008F 83C704                      add di,4
+   133                                  
+   134                                      
+   135 00000092 81FF4038                    cmp di,WH*4
+   136 00000096 7CCF                        jl .redraw_cells
+   137                                  
+   138                                  
+   139 00000098 EB93                        jmp nextgen
+   140                                  
+   141                                      
+   142                                  
+   143                                  
+   144                                  
+   145                                      ; ret
+   146                                  
+   147                                      ;checkme
+   148 0000009A FCFF0400E0FE2001DC-     nb: dw -4,4,-W*4,W*4,-W*4-4,-W*4+4,W*4-4,W*4+4
+   148 000000A3 FEE4FE1C012401     
+   149                                  
+   150                                  ;nb: db -1,1,-W,W,-W-1,-W+1,W-1,W+1
+   151                                      
+   152                                  
+   153                                  ; initCells:
+   154                                  ;     xor di,di
+   155                                  ;     mov cx,WH   
+   156                                  ;     mov bp,4
+   157                                  ;     mov bx,10000  ; probability (signed)
+   158                                  ; .1: mov ax,25173  ; LCG Multiplier
+   159                                  ;     mul bp        ; DX:AX = LCG multiplier * seed
+   160                                  ;     add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
+   161                                  ;     mov bp,ax     ; Update seed = return value
+   162                                  ;     cmp ax,bx
+   163                                  ;     mov ax,255
+   164                                  ;     jg .2
+   165                                  ;     xor ax,ax
+   166                                  ; .2: push cx
+   167                                  ;     mov cx,4
+   168                                  ;     rep stosb
+   169                                  ;     pop cx
+   170                                  ;     loop .1
+   171                                  ;     ret
+   172                                   
+   173                                  
+   174                                  
+   175                                  data:
+   176                                  
+   177                                  
+   178                                  
+   179                                  
+   180                                  
+   181                                  
+   182                                  
+   183                                  
+   184                                  ; rnd: db 0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,0,0,255,0,0,255,0,0,0,0,255,0,0,255,255,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,0,0,255,0,0,0,0,0,255,255,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,255,255,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,255,255,255,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,255,0,255,0,0,0,255,0,0,255,0,255,0,255,0,0,0,255,0,0,255,0,255,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,255,0,0,255,0,0,255,0,0,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,0,255,0,255,255,0,0,0,0,0,255,0,0,0,255,255,255,0,255,0,0,0,0,0,0,0,0,0,0,0,255,0,255,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,255,0,0,0,255,0,0,255,0,0,0,0,255,0,255,0,0,0,255,0,0,255,0,0,0,0,0,0,0,255,0,0,255,255,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,255,0,0,255,0,...
+   185                                  
+   186 000000AA 00<rep 59F56h>          times 368640-($-$$) db 0   ;fill up floppy
+   187                                  

@@ -6,6 +6,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 int int3_counter = 0;
 Intel8086 cpu = new Intel8086();
+int greenOffset = 0x0c000;
 PApplet app=this;
 PImage img;
 int cols=72;
@@ -62,7 +63,7 @@ void draw() {
     for (int x=0; x<img.width; x++, bit=128>>(x%8), j++) {
       int i=int(y/4)*(img.width/2)+(y%4)+int(x/8)*4;
       int r = (cpu.memory[0xf0000+i] & bit)>0 ? 255 : 0;
-      int g = (cpu.memory[0x0c000+i] & bit)>0 ? 255 : 0;
+      int g = (cpu.memory[greenOffset+i] & bit)>0 ? 255 : 0;
       int b = (cpu.memory[0xf4000+i] & bit)>0 ? 255 : 0;
       img.pixels[j] = color(r, g, b);
     }
@@ -73,7 +74,7 @@ void draw() {
   float hscale=1; //1.3; //2; //1.5;
   float vscale=1; //1.3; //2; //1.5;
   float ratio=1; //1.2; //1.7;
-  scale(3);
+  //scale(3);
   scale(hscale, vscale);
   image(img, 0, 0, width, height); //width*scale*ratio, height*scale); 
   popMatrix();

@@ -1,0 +1,3 @@
+# Game of Life in the bootsector of a Sanyo MBC-555
+
+let's go...

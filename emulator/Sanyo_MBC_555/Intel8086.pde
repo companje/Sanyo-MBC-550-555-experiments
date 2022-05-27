@@ -550,7 +550,7 @@ public class Intel8086 {
    * address.
    *
    * Programs deal with logical, rather than physical addresses and allow
-   * code to be developed without prior knowledge of where the code is to be
+   * code to be developed with prior knowledge of where the code is to be
    * located in memory and facilitate dynamic management of memory resources.
    * A logical address consists of a segment base value and an offset value.
    * For any given memory location, the segment base value locate the first
@@ -1289,6 +1289,13 @@ public class Intel8086 {
    *            the value
    */
   public void portOut(final int w, final int port, final int val) {
+    if (port==0x10) {
+      if (val==4) greenOffset=0x0C000;
+      if (val==5) greenOffset=0x1C000;
+      if (val==6) greenOffset=0x2C000;
+      if (val==7) greenOffset=0x3C000;
+    }
+    
     //for (final Peripheral peripheral : peripherals)
     //  if (peripheral.isConnected(port)) {
     //    peripheral.portOut(w, port, val);
@@ -3844,8 +3851,9 @@ public class Intel8086 {
         // Type Specified
         //print(dl);
         //if (int3_counter>0 && (int3_counter%72)==0) println();
-println("bp",bp);
-        if (dl!=0) println(int3_counter, dl);
+//println("bp",((bp&(1<<15))-128);
+//);
+        if (dl!=0) println(int3_counter, si, dl);
         int3_counter++;
 
 
