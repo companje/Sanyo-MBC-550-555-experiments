@@ -1,6 +1,7 @@
+; https://codegolf.stackexchange.com/a/204279
+
 org 100h
-; lds sp,[si]
-db 24
+lds sp,[si]
 X: db 32
 mov bl,7                    ; O: 3 iterations
 or [si],al                  ; O: Add in new cell

@@ -1,18 +1,17 @@
      1                                  org 100h
-     2                                  ; lds sp,[si]
-     3 00000000 18                      db 24
-     4 00000001 20                      X: db 32
-     5 00000002 B307                    mov bl,7                    ; O: 3 iterations
-     6 00000004 0804                    or [si],al                  ; O: Add in new cell
-     7 00000006 A7                      cmpsw
-     8 00000007 C02D05                  shr byte [di],5             ; O: Shift previous value 
-     9 0000000A 91                      C: xchg cx,ax
-    10 0000000B 02415E                  add al,[di+bx+94]           ; O: Add in this column
-    11 0000000E 0240FC                  add al,[si+bx-4]
-    12 00000011 02809C00                add al,[si+bx+156]
-    13 00000015 4B                      dec bx                      ; O: Loop back
-    14 00000016 75F2                    jnz C
-    15 00000018 8A04                    mov al,[si]                 ; O: 3 = birth, 4 = stay (tricky): 
-    16 0000001A F9                      stc                         ; O: 1.00?0000x --> 0.0x100?00 (rcr 3) 
-    17 0000001B D2D8                    rcr al,cl                   ; O:          +---> 0.00x100?0 (rcr 4) 
-    18 0000001D EBE1                    jmp short X-1
+     2 00000000 C524                    lds sp,[si]
+     3 00000002 20                      X: db 32
+     4 00000003 B307                    mov bl,7                    ; O: 3 iterations
+     5 00000005 0804                    or [si],al                  ; O: Add in new cell
+     6 00000007 A7                      cmpsw
+     7 00000008 C02D05                  shr byte [di],5             ; O: Shift previous value 
+     8 0000000B 91                      C: xchg cx,ax
+     9 0000000C 02415E                  add al,[di+bx+94]           ; O: Add in this column
+    10 0000000F 0240FC                  add al,[si+bx-4]
+    11 00000012 02809C00                add al,[si+bx+156]
+    12 00000016 4B                      dec bx                      ; O: Loop back
+    13 00000017 75F2                    jnz C
+    14 00000019 8A04                    mov al,[si]                 ; O: 3 = birth, 4 = stay (tricky): 
+    15 0000001B F9                      stc                         ; O: 1.00?0000x --> 0.0x100?00 (rcr 3) 
+    16 0000001C D2D8                    rcr al,cl                   ; O:          +---> 0.00x100?0 (rcr 4) 
+    17 0000001E EBE1                    jmp short X-1
