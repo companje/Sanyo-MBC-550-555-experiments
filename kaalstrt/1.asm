@@ -1,37 +1,3 @@
-; tixyboot.asm by Rick Companje, 2021-2022, MIT licence
-; a tribute to Martin Kleppe's beautiful https://tixy.land
-; as well as a tribute to the Sanyo MBC-550/555 PC (1984)
-; which forced me to be creative with code since 1994.
-;
-; The Sanyo MBC-55x has a very limited ROM BIOS. After some 
-; hardware setup by the ROM BIOS a RAM BIOS loaded from
-; floppy takes over. This means that we don't have any BIOS
-; functions when running our own code from the bootsector. 
-;
-; The Sanyo has no display mode 13 (not even with the original
-; RAM BIOS). It uses a 6845 video chip with three bitmapped 
-; graphics planes and is organized as 50 rows by 72 (or 80) columns.
-; One column consists of 4 bytes. Then the next column starts.
-; After 72 columns a new row starts. A bitmap of 16x8 pixels 
-; is made up of 2 columns on row 1 and 2 columns on row 2...
-;
-; To run this code write the compiled code to the bootsector of a
-; Sanyo MBC-55x floppy or use an emulator like the one written
-; in Processing/Java in this repo.
-;
-; Add your own visuals by adding your own functions to the fx_table.
-;
-; t = time  0..255
-; i = index 0..255
-; x = x-pos 0..15
-; y = y-pos 0..15
-;
-; result: al -15..15 (size and color)
-;         al<0 red, al>0 white
-
-org 0
-cpu 8086
-
 COLS  equ 72
 TOP   equ 9*4*COLS+20*4    ; row=9,col=20
 RED   equ 0xf0
@@ -47,90 +13,32 @@ isqrt_table    equ 1000    ; available location in code segment
 %define x bh
 %define y bl
 
-jmp setup
+; fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
+;     db fx0,fx1,fx2,fx3
 
-; some parts of FAT12 table is included here to be able to mount the binary 
-; as a diskimage on Mac. This seems also to be needed for FlashFloppy to recognize
-; the diskimage. The Sanyo does not need the regular bootsector signature 0x55 0xAA
-
-fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
-    ; db ,
-    db fx0,fx1,fx2,fx3 ;,fx4,fx5,fx6,fx7 
-    %assign num 8-($-fx_table) 
-    times num db 0x20
-
-    ; db 'Sanyo1.2'
-    dw 512     ; Number of bytes per sector
-    db 2       ; Number of sectors per cluster
-    db 1       ; Number of FAT copies
-    dw 512     ; Number of root directory entries
-    db 112     ; Total number of sectors in the filesystem
-    db 0       ; Media descriptor type
-    dw 512     ; Number of sectors per FAT
-    dw 765     ; ? Number of sectors per track
-    ; db 0     ; ? Number of heads   (now first byte of sine table)
-    ; db 9     ; ? Number of heads  
-    ; dw 512   ; Number of hidden sectors
-    ; the the last 4 bytes of the FAT12 table are overwritten by the sine table
-
-sin_table: ;31 bytes, (input -15..15 index=0..31)
-    db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
-    db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
+; sin_table: ;31 bytes, (input -15..15 index=0..31)
+;     db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
+;     db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
     ; tried to mirror the second line of the sine table with code 
     ; but would take a same of amount of bytes
 
-fx0: ; x
-    mov al,x
-    ret
-
-fx1: ; y-7
-    mov al,y
-    sub al,7
-    ret
-
-fx2: ; y+t
-    mov al,y
-    add al,t
-    ret
-
-fx3: ; y-t
-    mov al,y
-    sub al,x
-    ret
-
-; fx4: ; sin(x+y+t)
+; fx0: ; x
 ;     mov al,x
-;     add al,y
-;     add al,t
-;     call sin
 ;     ret
 
-fx5: ; bitmap_data[i+t]
-    push bx
-    mov al,i
-    add al,t
-    mov bx,bitmap_data
-    xlat
-    pop bx
-    ret
+; fx1: ; y-7
+;     mov al,y
+;     sub al,7
+;     ret
 
-; fx6: ; -8*(y-x)+t
-;     mov cl,-8
+; fx2: ; y+t
+;     mov al,y
+;     add al,t
+;     ret
+
+; fx3: ; y-t
 ;     mov al,y
 ;     sub al,x
-;     mul cl
-;     call limit
-;     add al,t
-;     ret
-
-; fx7: ; sin(sqrt(x^2+y^2))-t)
-;     mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
-;     push bx
-;     mov bx,isqrt_table
-;     xlat
-;     pop bx
-;     sub al,t
-;     call sin
 ;     ret
 
 ; sin: ; sine function
@@ -197,18 +105,9 @@ fx5: ; bitmap_data[i+t]
 ;     pop dx
 ;     ret
 
-setup:                      ; starting point of code
-    ;no need to clear the screen. ROM BIOS does this already.
+setup:
 
-    mov ax,GREEN << 8
-    push ax
-    pop es
-    mov di,0
-    mov cx,0x4000
-    mov al,255
-    rep stosb
-
-    hlt
+  ;no need to clear the screen. ROM BIOS does this already.
 
     ;set ds and es segments to cs
     push cs
@@ -248,18 +147,18 @@ draw:
   ;   and bp,0xff               ; reduce address to single byte
   ;   call bp                   ; call effect, al contains result
   ;   pop bp                    ; restore effect number
-    mov al,15
+   mov al,15
 
-  ; .draw_char_color:
-  ;   cmp al,0
-  ;   pushf
-  ;   jge .red
-  ;   neg al
+  .draw_char_color:
+    cmp al,0
+    pushf
+    jge .red
+    neg al
 
   .red:
     mov cx,RED << 8         ; ch=0xf0, cl=0
     call draw_char
-    ; popf
+    popf
     jge .green_blue
     xor al,al               ; if negative then just red so clear (al=0) green and blue
 
@@ -401,9 +300,8 @@ img:
     db 15,63,127,255
     db 31,127,255,255
 
-%assign num $-$$
-%warning total num
+; %assign num $-$$
+; %warning total num
 
 bitmap_data:                          ; destination for 128 bytes rendered bitmap data
-    
-times 368640-num db 0                 ; fill up with zeros until file size=360k
+

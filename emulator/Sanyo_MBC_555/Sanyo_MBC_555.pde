@@ -18,7 +18,7 @@ void setup() {
   file = new File(dataPath(filename));
 
   noSmooth();
-  size(576, 400);
+  size(576, 400,P3D);
 
   frameRate(60);
   textFont(loadFont("CourierNewPSMT-18.vlw"));
@@ -36,7 +36,7 @@ void reload() {
   for (int i=0; i<cpu.memory.length; i++) {
     cpu.memory[i] = 0; //int(random(256));
   }
-  cpu.load(0x00380, loadBytes(filename)); //more than bootsector to test code
+  cpu.load_max(0x00380, loadBytes(filename), 512); //more than bootsector to test code
   cpu.cs = 0x0038;
   cpu.ss = 0x0be4;
   cpu.sp = 0x0000;
@@ -50,7 +50,7 @@ void draw() {
   };
 
   try {
-    for (int i=0; i<100000 && cpu.tick(); i++);
+    for (int i=0; i<10000 && cpu.tick(); i++);
   }
   catch (Exception e) {
     println("exception",e);
@@ -110,9 +110,9 @@ void draw() {
 
   popMatrix();
 
-  //if (frameCount<20) {
-  //  saveImage();
-  //}
+  if (frameCount<20) {
+    saveImage();
+  }
 }
 
 void text2(String s, float x, float y) {

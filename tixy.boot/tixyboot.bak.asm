@@ -54,10 +54,9 @@ jmp setup
 ; the diskimage. The Sanyo does not need the regular bootsector signature 0x55 0xAA
 
 fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
-    ; db ,
-    db fx0,fx1,fx2,fx3 ;,fx4,fx5,fx6,fx7 
-    %assign num 8-($-fx_table) 
-    times num db 0x20
+    db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7 
+    ; %assign num 8-($-fx_table) 
+    ; times num db 0x20
 
     ; db 'Sanyo1.2'
     dw 512     ; Number of bytes per sector
@@ -98,12 +97,12 @@ fx3: ; y-t
     sub al,x
     ret
 
-; fx4: ; sin(x+y+t)
-;     mov al,x
-;     add al,y
-;     add al,t
-;     call sin
-;     ret
+fx4: ; sin(x+y+t)
+    mov al,x
+    add al,y
+    add al,t
+    call sin
+    ret
 
 fx5: ; bitmap_data[i+t]
     push bx
@@ -114,101 +113,91 @@ fx5: ; bitmap_data[i+t]
     pop bx
     ret
 
-; fx6: ; -8*(y-x)+t
-;     mov cl,-8
-;     mov al,y
-;     sub al,x
-;     mul cl
-;     call limit
-;     add al,t
-;     ret
+fx6: ; -8*(y-x)+t
+    mov cl,-8
+    mov al,y
+    sub al,x
+    mul cl
+    call limit
+    add al,t
+    ret
 
-; fx7: ; sin(sqrt(x^2+y^2))-t)
-;     mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
-;     push bx
-;     mov bx,isqrt_table
-;     xlat
-;     pop bx
-;     sub al,t
-;     call sin
-;     ret
+fx7: ; sin(sqrt(x^2+y^2))-t)
+    mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
+    push bx
+    mov bx,isqrt_table
+    xlat
+    pop bx
+    sub al,t
+    call sin
+    ret
 
-; sin: ; sine function
-;     call wrap
-;     push bx
-;     add al,15 ; sin(-15) = sin_table[0]
-;     mov bx,sin_table
-;     xlat 
-;     pop bx
-;     ret
+sin: ; sine function
+    call wrap
+    push bx
+    add al,15 ; sin(-15) = sin_table[0]
+    mov bx,sin_table
+    xlat 
+    pop bx
+    ret
 
-; wrap: ; while (al>15) al-=15; while (al<-15) al+=15
-;     cmp al,15
-;     jg .sub16
-;     cmp al,-15
-;     jl .add16
-;     ret
-;   .sub16:
-;     sub al,31
-;     jmp wrap
-;   .add16:
-;     add al,31
-;     jmp wrap
+wrap: ; while (al>15) al-=15; while (al<-15) al+=15
+    cmp al,15
+    jg .sub16
+    cmp al,-15
+    jl .add16
+    ret
+  .sub16:
+    sub al,31
+    jmp wrap
+  .add16:
+    add al,31
+    jmp wrap
 
-; limit: ; if (al>15) al=15; else if (al<-15) al=-15;
-;     cmp al,15
-;     jg .pos16
-;     cmp al,-15
-;     jnl .ret
-;     mov al,-15
-;     ret
-;   .pos16:
-;     mov al,15
-;   .ret:
-;     ret
+limit: ; if (al>15) al=15; else if (al<-15) al=-15;
+    cmp al,15
+    jg .pos16
+    cmp al,-15
+    jnl .ret
+    mov al,-15
+    ret
+  .pos16:
+    mov al,15
+  .ret:
+    ret
 
-; calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
-;     push dx
-;     push di
-;     mov di,isqrt_table      ; di=isqrt_table[0]
-;     add di,dx               ; di+=i
-;     mov al,x
-;     inc al
-;     mul al                  ; x*x
-;     xchg ax,cx
-;     mov al,y
-;     inc al
-;     mul al                  ; y*y
-;     add ax,cx               ; + 
-;   .isqrt:  ; while((L+1)^2<=y) L++; return L
-;     xchg cx,ax              ; cx=y
-;     xor ax,ax               ; ax=L=0
-;   .loop:
-;     inc ax
-;     push ax
-;     mul ax
-;     cmp ax,cx
-;     pop ax
-;     jl .loop
-;     dec ax
-;   .end_isqrt:
-;     mov [di],al             ; store al
-;     pop di
-;     pop dx
-;     ret
+calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
+    push dx
+    push di
+    mov di,isqrt_table      ; di=isqrt_table[0]
+    add di,dx               ; di+=i
+    mov al,x
+    inc al
+    mul al                  ; x*x
+    xchg ax,cx
+    mov al,y
+    inc al
+    mul al                  ; y*y
+    add ax,cx               ; + 
+  .isqrt:  ; while((L+1)^2<=y) L++; return L
+    xchg cx,ax              ; cx=y
+    xor ax,ax               ; ax=L=0
+  .loop:
+    inc ax
+    push ax
+    mul ax
+    cmp ax,cx
+    pop ax
+    jl .loop
+    dec ax
+  .end_isqrt:
+    mov [di],al             ; store al
+    pop di
+    pop dx
+    ret
 
 setup:                      ; starting point of code
     ;no need to clear the screen. ROM BIOS does this already.
-
-    mov ax,GREEN << 8
-    push ax
-    pop es
-    mov di,0
-    mov cx,0x4000
-    mov al,255
-    rep stosb
-
-    hlt
 
     ;set ds and es segments to cs
     push cs
@@ -238,28 +227,27 @@ draw:
 
     ;on the first frame calc sqrt table for every i
     ;reusing the i,x,y loop here. this saves some bytes.
-    ; or t,t
-    ; jnz .call_effect
-    ; call calc_isqrt_xx_yy
+    or t,t
+    jnz .call_effect
+    call calc_isqrt_xx_yy
   
-  ; .call_effect:
-  ;   push bp                   ; bp contains current effect number
-  ;   mov bp, [fx_table + bp]   ; overwrite bp with address of effect
-  ;   and bp,0xff               ; reduce address to single byte
-  ;   call bp                   ; call effect, al contains result
-  ;   pop bp                    ; restore effect number
-    mov al,15
+  .call_effect:
+    push bp                   ; bp contains current effect number
+    mov bp, [fx_table + bp]   ; overwrite bp with address of effect
+    and bp,0xff               ; reduce address to single byte
+    call bp                   ; call effect, al contains result
+    pop bp                    ; restore effect number
 
-  ; .draw_char_color:
-  ;   cmp al,0
-  ;   pushf
-  ;   jge .red
-  ;   neg al
+  .draw_char_color:
+    cmp al,0
+    pushf
+    jge .red
+    neg al
 
   .red:
     mov cx,RED << 8         ; ch=0xf0, cl=0
     call draw_char
-    ; popf
+    popf
     jge .green_blue
     xor al,al               ; if negative then just red so clear (al=0) green and blue
 
@@ -283,7 +271,7 @@ draw:
     jb draw                 ; next frame
     inc bp                  ; inc effect
     xor t,t                 ; reset time
-    cmp bp,3
+    cmp bp,8
     jl draw                 ; next effect
     xor bp,bp               ; reset effect
     jmp draw
