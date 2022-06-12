@@ -18,8 +18,6 @@ void init() {
 }
 
 void setDot(int x, int y, boolean c) {
-  x+=COLS % COLS;
-  y+=ROWS % ROWS;
   setDot(y*COLS+x, c);
 }
 
@@ -29,8 +27,6 @@ void setDot(int i, boolean c) {
 }
 
 boolean getDot(int x, int y) {
-  x+=COLS % COLS;
-  y+=ROWS % ROWS;
   return mem[DS + (y*COLS+x)*4]!=0;
 }
 
@@ -40,7 +36,7 @@ int countNeighbours(int x, int y) {
   for (int[] b : nb) {
     int xx = (x+b[0]+COLS) % COLS;
     int yy = (y+b[1]+ROWS) % ROWS;
-    if (getDot(xx, yy)) n++;
+    if (getDot(xx,yy)) n++;
   }
   return n;
 }

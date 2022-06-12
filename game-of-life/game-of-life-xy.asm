@@ -3,12 +3,12 @@ cpu 8086
 
 ROWS equ 50      ; 50x4 lines = 200px
 COLS equ 72    ; =COLS
-WH equ ROWS*COLS
+; WH equ W*H
 ; RED   equ 0xf000
 ; GREEN_1 equ 0x1c00  ;; 4=0x0c00 5=0x1c00, 6=0x2c00, 7=0x3c00 ????
 
-; x equ 30
-; y equ 20
+x equ 30
+y equ 20
 
 ; BLUE  equ 0xf400
 
@@ -34,253 +34,52 @@ setup:
 
     mov ax,0x1c00 ; vram green page2 segment
     push ax
-    pop ds        ; ds=0x0c00
+    pop ds        ; es=0x0c00
 
-
-cellX equ 0
-cellY equ 0
-cellI equ 4*(cellY*COLS+cellX)
-
-    ; call initCells
-    ; mov al,255
-    ; mov di,cellI
-    ; times 4 stosb
-
-    call swap ; swap ds,es for double buffering
-
-    ; mov al,4        ; 0x0c00
-    ; out 0x10,al
-
-    mov si,cellI
-    lodsb
-    push ax   ; alive state on stack
-    ; call countNeighbours
-
-    mov bx,9 ;y
-    mov ax,9 ;x
-    call setDot
-
-    mov al,5        ; 0x0c00
-    out 0x10,al
-
-    hlt
-
-getIndex: ;ax=(ax*COLS+bx)*4  Input: ax=y, bx=x, Output: ax=index
-    mov cx,COLS
-    mul cx
-    add ax,bx
-    shl ax,1
-    shl ax,1
-    ret
-
-setDot: 
+.setDot:          ; set x,y=255  
+    mov bx,x      ; bx=xpos
+    mov ax,y      ; ax=ypos
     call getIndex
-    xchg ax,di
+    xchg di,ax    ; di=index
     mov ax,0xffff
-    stosw
-    stosw
-    ret
+    times 2 stosw ; es:di = ax ax 4 bytes    
 
-getDot: ;Input: ax=y, bx=x, Output: al=result
-    call getIndex
-    xchg ax,si
-    lodsb
-    and al,1 ; only keep lowest bit
-    ret
+nextgen:
 
-countNeighbours: ;Input: ax=y, bx=x
-    mov bx,9
-.1:
-    ; mov al,cl
-    ; mov cl,3
-    ; div 
-    
-    
-    int3
-
-    loop .1
-    ret
-
-;     xchg cx,ax
-; .1: push cx
-
-    
-  
-
-
-; init:
-;     mov cx,10
-;     lodsw
-
-  ; for (int i=0; i<shape.length; i+=2)
-  ;   setDot(shape[i], shape[i+1], true);
-    ; ret
-    ; shape: db 10, 0, 11, 0, 12, 0, 10, 1, 11, 2
-
-
-
-    ; ik heb nu x en y...
-    ; en nu... hoe kan ik in zo weinig mogelijk
-    ; bytes m'n borders wrappen?
-
-    ; x>0 ? si-2 : si+4*COLS ??
-    ; y>0 ? si-COLS ?????????/
-
-;     hlt
-
-; countNeighbours: ; input si, returns dl
-;     push si
-;     pop ax       ; ax=si
-;     shr ax,1     ; /=2
-;     shr ax,1     ; /=2
-;     mov bl,COLS
-;     div bl       ; ax/=bl  ah=x al=y
-
-
-;     mov dl,0    ; n
-;     mov bx,0    ; bx 8..0  i<len(nb)
-; .1: mov cx,[cs:nb+bx]
-
-;     ; add al,cl  ;y
-;     ; add ah,cl  ;x
-
-
-;     mov bh,0
-;     mov bl,al
-;     xchg ah,al
-;     cbw
-;     mov cx,COLS  ; ax=y*COLS
-;     mul cx
-
-;     add ax,bx    ; ax+=x
-
-;     shl ax,1
-;     shl ax,1     ; ax*=4
-
-
-
-;     mov di,ax
-
-;     mov ax,0xf000
-;     push ax
-;     pop es
-
-;     mov ax,0xffff
-;     stosw
-;     stosw
-
-;     hlt
-
-
-;wrapping y
-;     add al,cl  ;y
-    
-;     jns .4
-;     add al,ROWS
-; .4: cmp al,ROWS
-;     jl .5
-;     sub al,ROWS
-; .5: 
-;     xchg ah,al    ;swap ah,al to save bytes
-; ;wrapping x
-;     add al,ch   ; x
-;     jns .2
-;     hlt
-;     add al,COLS
-; .2: cmp al,COLS
-;     jl .3
-;     sub al,COLS
-; .3: 
-
-
-
-; hlt
-
-
-    ; mov di,ax
-
-    ; mov ax,0xf000
-    ; push ax
-    ; pop es
-
-    ; mov ax,0xffff
-    ; stosw
-    ; stosw
-
-    ; hlt
-
-; add ax,bx
-    ; xchg bx,ax ; bx=y,x
-    ; add bx,bp  ; y,x+=b,p
-
-; hlt
-
-;     mov ax,[es:si+bp]   ; read value of neighbouring pixel
-;     test al,128
-;     jz .6
-;     inc dl
-;     ; int3
-; .6: inc bx
-;     inc bx
-;     cmp bx,16
-;     jne .1
-;------
-
-; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
-nb: dw -1,1,-COLS,COLS,-COLS-1,-COLS+1,COLS-1,COLS+1
-
-    ; pop ax
-
-    ; 
-
-
-    hlt
-
-; .setDot:          ; set x,y=255  
-;     mov bx,x      ; bx=xpos
-;     mov ax,y      ; ax=ypos
-;     call getIndex
-;     xchg di,ax    ; di=index
-;     mov ax,0xffff
-;     times 2 stosw ; es:di = ax ax 4 bytes    
-
-; nextgen:
-
-swap: ;es,ds
+.swap_buf: ;es,ds
     push ds
     push es
     pop ds
     pop es
+
+.getDot:  ; =alive? 255 if is x,y is alive
+    mov bx,x      ; bx=xpos
+    mov ax,y      ; ax=ypos
+    call getIndex
+    xchg si,ax
+    lodsw         ; al=ds:si
+    xchg bp,ax    ; bp=ax (=alive)
+;;;; tot hier werkt het. al is er maar één dot
+;;;; bp bevat de waarde of deze dot zelf alive is
+    hlt
+
+.neighbours:
+
+    hlt
+
+nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
+
+
+getIndex:        ; ax=(ax*COLS+bx)*4  = (y*COLS+x)*4
+    mov cx,COLS 
+    mul cx       ; y*COLS
+    add ax,bx    ; +x
+    shl ax,1     ; *2
+    shl ax,1     ; *2
     ret
 
-; .getDot:  ; =alive? 255 if is x,y is alive
-;     mov bx,x      ; bx=xpos
-;     mov ax,y      ; ax=ypos
-;     call getIndex
-;     xchg si,ax
-;     lodsw         ; al=ds:si
-;     xchg bp,ax    ; bp=ax (=alive)
-; ;;;; tot hier werkt het. al is er maar één dot
-; ;;;; bp bevat de waarde of deze dot zelf alive is
-;     hlt
 
-; .neighbours:
-
-;     hlt
-
-; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
-
-
-; getIndex:        ; ax=(ax*COLS+bx)*4  = (y*COLS+x)*4
-;     mov cx,COLS 
-;     mul cx       ; y*COLS
-;     add ax,bx    ; +x
-;     shl ax,1     ; *2
-;     shl ax,1     ; *2
-;     ret
-
-
-;     hlt
+    hlt
 
     ; xor ax,ax
     ; xchg al,bl ;al=y, bl=0
@@ -299,7 +98,7 @@ swap: ;es,ds
 ;     mov cx,4
 ;     mul cx    ; *=4
 
-    ; hlt
+    hlt
 
     ; xchg ax,bx
 
@@ -450,25 +249,25 @@ swap: ;es,ds
 ;nb: db -1,1,-W,W,-W-1,-W+1,W-1,W+1
     
 
-initCells:
-    xor di,di
-    mov cx,WH   
-    mov bp,4
-    mov bx,10000  ; probability (signed)
-.1: mov ax,25173  ; LCG Multiplier
-    mul bp        ; DX:AX = LCG multiplier * seed
-    add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
-    mov bp,ax     ; Update seed = return value
-    cmp ax,bx
-    mov ax,255
-    jg .2
-    xor ax,ax
-.2: push cx
-    mov cx,4
-    rep stosb
-    pop cx
-    loop .1
-    ret
+; initCells:
+;     xor di,di
+;     mov cx,WH   
+;     mov bp,4
+;     mov bx,10000  ; probability (signed)
+; .1: mov ax,25173  ; LCG Multiplier
+;     mul bp        ; DX:AX = LCG multiplier * seed
+;     add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
+;     mov bp,ax     ; Update seed = return value
+;     cmp ax,bx
+;     mov ax,255
+;     jg .2
+;     xor ax,ax
+; .2: push cx
+;     mov cx,4
+;     rep stosb
+;     pop cx
+;     loop .1
+;     ret
  
 
 ;  initCells2:
