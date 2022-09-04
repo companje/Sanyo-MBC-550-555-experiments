@@ -476,131 +476,7 @@ public class Intel8086 {
    */
   public final int[]        queue       = new int[6];
 
-  /**
-   * Memory
-   *
-   * The 8086 can accommodate up to 1,048,576 bytes of memory in both minimum
-   * and maximum mode. This section describes how memory is functionally
-   * organized and used.
-   *
-   * Storage Organization
-   *
-   * From a storage point of view, the 8086 memory space is organized as an
-   * array of 8-bit bytes. Instructions, byte data and word data may be
-   * freely stored at any byte address without regard for alignment thereby
-   * saving memory space by allowing code to be densely packed in memory.
-   * Odd-addressed (unaligned) word variables, however, do not take advantage
-   * of the 8086's ability to transfer 16-bits at a time. Instruction
-   * alignment does not materially affect the performance of the processor.
-   *
-   * Following Intel convention, word data always is stored with the most-
-   * significant byte in the higher memory location. Most of the time this
-   * storage convention is "invisible" to anyone working with the processors;
-   * exceptions may occur when monitoring the system bus or when reading
-   * memory dumps.
-   *
-   * A special class of data is stored as doublewords; i.e., two consecutive
-   * words. These are called pointers and are used to address data and code
-   * that are outside the currently-addressable segments. The lower-addressed
-   * word of a pointer contains an offset value, and the higher-addressed
-   * word contains a segment base address. Each word is stored conventionally
-   * with the higher-addressed byte containing the most significant eight
-   * bits of the word.
-   *
-   * Segmentation
-   *
-   * 8086 programs "view" the megabyte of memory space as a group of segments
-   * that are defined by the application. A segment is a logical unit of
-   * memory that may be up to 64k bytes long. Each segment is made up of
-   * contiguous memory locations and is an independent, separately-
-   * addressable unit. Every segment is assigned (by software) a base
-   * address, which is its starting location in the memory space. All
-   * segments begin on 16-byte memory boundaries. There are no other
-   * restrictions on segment locations; segments may be adjacent, disjoint,
-   * partially overlapped, or fully overlapped. A physical memory location
-   * may be mapped into (contained in) one or more logical segments.
-   *
-   * The segment registers point to (contain the vase address values of) the
-   * four currently addressable segments. Programs obtain access to code and
-   * data in other segments by changing the segment registers to point to the
-   * desired segments.
-   *
-   * Every application will define and use segments differently. The
-   * currently addressable segments provide a generous work space: 64k bytes
-   * for code, a 64k byte stack and 128k bytes of data storage. Many
-   * applications can be written to simply initialize the segments registers
-   * and then forget them. Larger applications should be designed with
-   * careful consideration given to segment definition.
-   *
-   * The segmented structure of the 8086 memory space supports modular
-   * software design by discouraging huge, monolithic programs. The segments
-   * also can be used to advantage in many programming situations. Take, for
-   * example, the case of an editor for several on-line terminals. A 64k text
-   * buffer (probably an extra segment) could be assigned to each terminal. A
-   * single program could maintain all the buffers by simply changing
-   * register ES to point to the buffer of the terminal requesting service.
-   *
-   * Physical Address Generation
-   *
-   * It is useful to think of every memory location as having two kinds of
-   * addresses, physical and logical. A physical address is the 20-bit value
-   * that uniquely identifies each byte location in the megabyte memory
-   * space. Physical addresses may range from 0H through FFFFFH. All
-   * exchanges between the CPU and memory components use this physical
-   * address.
-   *
-   * Programs deal with logical, rather than physical addresses and allow
-   * code to be developed with prior knowledge of where the code is to be
-   * located in memory and facilitate dynamic management of memory resources.
-   * A logical address consists of a segment base value and an offset value.
-   * For any given memory location, the segment base value locate the first
-   * byte of the containing segment and the offset value is the distance, in
-   * bytes, of the target location from the beginning of the segment. Segment
-   * base and offset values are unsigned 16-bit quantities; the lowest-
-   * addressed byte in a segment has an offset of 0. Many different logical
-   * addresses can map to the same physical location.
-   *
-   * Whenever the BIU accesses memory--to fetch an instruction or to obtain
-   * or store a variable--it generates a physical address from a logical
-   * address. This is done by shifting the segment base value four bit
-   * positions and adding the offset. Note that this addition process
-   * provides for modulo 64k addressing (addresses wrap around from the end
-   * of a segment to the beginning of the same segment).
-   *
-   * The BIU obtains the logical address of a memory location from different
-   * sources depending on the type of reference that is being made.
-   * Instructions always are fetched from the current code segment; IP
-   * contains the offset of the target instruction from the beginning of the
-   * segment. Stack instructions always operate on the current stack segment;
-   * SP contains the offset of the top of the stack. Most variables (memory
-   * operands) are assumed to reside in the current data segment, although a
-   * program can instruct the BIU to access a variable in one of the other
-   * currently addressable segments. The offset of a memory variable is
-   * calculated by the EU. This calculation is based on the addressing mode
-   * specified in the instruction, the result is called the operand's
-   * effective address (EA).
-   *
-   * In most cases, the BIU's segment assumptions are a convenience to
-   * programmers. It is possible, however, for a programmer to explicitly
-   * direct the BIU to access a variable in any of the currently addressable
-   * segments (the only exception is the destination operand of a string
-   * instruction which must be in the extra segment). This is done by
-   * preceding an instruction with a segment override prefix. This one-byte
-   * machine instruction tells the BIU which segment register to use to
-   * access a variable referenced in the following instruction.
-   *
-   * Dedicated and Reserved Memory Locations
-   *
-   * Two areas in extreme low and high memory are dedicated to specific
-   * processor functions or are reserved by Intel Corporation for use by
-   * Intel hardware and software products. The locations are: 0H through 7FH
-   * (128 bytes) and FFFF0H through FFFFFH (16 bytes). These areas are used
-   * for interrupt and system reset processing; 8086 application systems
-   * should not use these areas for any other purpose. Doing so may make
-   * these systems incompatible with future Intel products.
-   */
-  public final int[]      memory      = new int[0x200000]; ///HACK was 0x100000=1048576
-
+  
   /*
      * External Components
    */
@@ -1200,39 +1076,6 @@ public class Intel8086 {
     return res;
   }
 
-  /**
-   * Loads a binary file into memory at the specified address.
-   *
-   * @param addr
-   *            the address
-   * @param path
-   *            the file path
-   * @throws IOException
-   */
-
-  public void load_max(int addr, byte bin[], int maxBytes) {
-    for (int i = 0; i < min(bin.length, maxBytes); i++)
-      memory[addr + i] = bin[i] & 0xff;
-  }
-
-  public void load(int addr, byte bin[]) { // throws IOException {
-    for (int i = 0; i < bin.length; i++)
-      memory[addr + i] = bin[i] & 0xff;
-
-    //final InputStream is = getClass().getClassLoader().getResourceAsStream(path);
-    //final byte[] bin = new byte[is.available()];
-    //DataInputStream dis = null;
-    //try {
-    //    dis = new DataInputStream(is);
-    //    dis.readFully(bin);
-    //} catch (final IOException e) {
-    //    e.printStackTrace();
-    //} finally {
-    //    if (dis != null)
-    //        dis.close();
-    //    is.close();
-    //}
-  }
 
   /**
    * Sets flags according to the result of a logical operation.
@@ -1268,41 +1111,7 @@ public class Intel8086 {
    *            the port
    * @return the value
    */
-  public int portIn(final int w, final int port) {
-    if (port==0x22) {
-      return int(millis());
-    }
-    //for (final Peripheral peripheral : peripherals)
-    //  if (peripheral.isConnected(port))
-    //    return peripheral.portIn(w, port);
-    return 0;
-  }
-
-  /**
-   * Write output to the specified port.
-   *
-   * @param w
-   *            word/byte operation
-   * @param port
-   *            the port
-   * @param val
-   *            the value
-   */
-  public void portOut(final int w, final int port, final int val) {
-    if (port==0x10) {
-      if (val==4) greenOffset=0x0C000;
-      if (val==5) greenOffset=0x1C000;
-      if (val==6) greenOffset=0x2C000;
-      if (val==7) greenOffset=0x3C000;
-    }
-    
-    //for (final Peripheral peripheral : peripherals)
-    //  if (peripheral.isConnected(port)) {
-    //    peripheral.portOut(w, port, val);
-    //    return;
-    //  }
-  }
-
+  
   /**
    * Pushes a value to the top of the stack.
    *
@@ -1623,14 +1432,15 @@ public class Intel8086 {
       }
     }
 
-    //print(hex(ip, 4)+": ");
+    print(hex(ip, 4)+": ");
 
     // Fetch instruction from memory.
     for (int i = 0; i < 6; ++i) {
       queue[i] = getMem(B, getAddr(cs, ip + i));
-      //print(hex(queue[i], 2)+" ");
+      print(hex(queue[i], 2)+" ");
     }
 
+    println();
 
     // Decode first byte.
     op = queue[0];
@@ -1713,6 +1523,7 @@ public class Intel8086 {
       case 0x89: // MOV REG16/MEM16,REG16
       case 0x8a: // MOV REG8,REG8/MEM8
       case 0x8b: // MOV REG16,REG16/MEM16
+        debugPrint("MOV");
         decode();
         if (d == 0b0) {
           src = getReg(w, reg);
@@ -1728,6 +1539,7 @@ public class Intel8086 {
         // Immediate to Register/Memory
       case 0xc6: // MOV REG8/MEM8,IMMED8
       case 0xc7: // MOV REG16/MEM16,IMMED16
+        debugPrint("MOV");
         decode();
         switch (reg) {
         case 0b000:
@@ -1754,6 +1566,7 @@ public class Intel8086 {
       case 0xbd: // MOV BP,IMMED16
       case 0xbe: // MOV SI,IMMED16
       case 0xbf: // MOV DI,IMMED16
+        debugPrint("MOV");
         w   = op >>> 3 & 0b1;
         reg = op       & 0b111;
         src = getMem(w);
@@ -1766,6 +1579,7 @@ public class Intel8086 {
       case 0xa1: // MOV AX,MEM16
       case 0xa2: // MOV MEM8,AL
       case 0xa3: // MOV MEM16,AX
+        debugPrint("MOV");
         dst = getMem(W);
         if (d == 0b0) {
           src = getMem(w, getAddr(os, dst));
@@ -1780,6 +1594,7 @@ public class Intel8086 {
         // Register/Memory to/from Segment Register
       case 0x8c: // MOV REG16/MEM16,SEGREG
       case 0x8e: // MOV SEGREG,REG16/MEM16
+        debugPrint("MOV");
         decode();
         if (d == 0b0) {
           src = getSegReg(reg);
@@ -1810,6 +1625,7 @@ public class Intel8086 {
       case 0x55: // PUSH BP
       case 0x56: // PUSH SI
       case 0x57: // PUSH DI
+        debugPrint("PUSH");
         reg = op & 0b111;
         src = getReg(W, reg);
         push(src);
@@ -1821,6 +1637,7 @@ public class Intel8086 {
       case 0x0e: // PUSH CS
       case 0x16: // PUSH SS
       case 0x1e: // PUSH DS
+        debugPrint("PUSH");
         reg = op >>> 3 & 0b111;
         src = getSegReg(reg);
         push(src);
@@ -1844,6 +1661,7 @@ public class Intel8086 {
       case 0x5d: // POP BP
       case 0x5e: // POP SI
       case 0x5f: // POP DI
+        debugPrint("POP");
         reg = op & 0b111;
         src = pop();
         setReg(W, reg, src);
@@ -1855,6 +1673,7 @@ public class Intel8086 {
       case 0x0f: // POP CS
       case 0x17: // POP SS
       case 0x1f: // POP DS
+        debugPrint("POP");
         reg = op >>> 3 & 0b111;
         src = pop();
         setSegReg(reg, src);
@@ -1872,6 +1691,7 @@ public class Intel8086 {
         // Register/Memory with Register
       case 0x86: // XCHG REG8,REG8/MEM8
       case 0x87: // XCHG REG16,REG16/MEM16
+        debugPrint("XCHG");
         decode();
         dst = getReg(w, reg);
         src = getRM(w, mod, rm);
@@ -1888,6 +1708,7 @@ public class Intel8086 {
       case 0x95: // XCHG AX,BP
       case 0x96: // XCHG AX,SI
       case 0x97: // XCHG AX,DI
+        debugPrint("XCHG");
         reg = op & 0b111;
         dst = getReg(W, AX);
         src = getReg(W, reg);
@@ -1912,6 +1733,7 @@ public class Intel8086 {
          * reverse.
          */
       case 0xd7: // XLAT SOURCE-TABLE
+        debugPrint("XLAT");
         al = getMem(B, getAddr(os, getReg(W, BX) + al));
         clocks += 11;
         break;
@@ -1929,6 +1751,7 @@ public class Intel8086 {
         // Variable Port
       case 0xe4: // IN AL,IMMED8
       case 0xe5: // IN AX,IMMED8
+        debugPrint("IN");
         src = getMem(B);
         setReg(w, AX, portIn(w, src));
         clocks += 10;
@@ -1938,6 +1761,7 @@ public class Intel8086 {
         // Fixed Port
       case 0xec: // IN AL,DX
       case 0xed: // IN AX,DX
+        debugPrint("IN");
         src = getReg(W, DX);
         setReg(w, AX, portIn(w, src));
         clocks += 8;
@@ -1958,6 +1782,7 @@ public class Intel8086 {
         // Variable Port
       case 0xe6: // OUT AL,IMMED8
       case 0xe7: // OUT AX,IMMED8
+        debugPrint("OUT");
         src = getMem(B);
         portOut(w, src, getReg(w, AX));
         clocks += 10;
@@ -1967,6 +1792,7 @@ public class Intel8086 {
         // Fixed Port
       case 0xee: // OUT AL,DX
       case 0xef: // OUT AX,DX
+        debugPrint("OUT");
         src = getReg(W, DX);
         portOut(w, src, getReg(w, AX));
         clocks += 8;
@@ -1994,6 +1820,7 @@ public class Intel8086 {
          * XLAT instruction).
          */
       case 0x8d: // LEA REG16,MEM16
+        debugPrint("LEA");
         decode();
         src = getEA(mod, rm) - (os << 4);
         setReg(w, reg, src);
@@ -2015,6 +1842,7 @@ public class Intel8086 {
          * segment and that SI contains the offset of the string).
          */
       case 0xc5: // LDS REG16,MEM32
+        debugPrint("LDS");
         decode();
         src = getEA(mod, rm);
         setReg(w, reg, getMem(W, src));
@@ -2037,6 +1865,7 @@ public class Intel8086 {
          * the offset of the string).
          */
       case 0xc4: // LES REG16,MEM32
+        debugPrint("LES");
         decode();
         src = getEA(mod, rm);
         setReg(w, reg, getMem(W, src));
@@ -2057,6 +1886,7 @@ public class Intel8086 {
          * assembly language programs to run on an 8086.
          */
       case 0x9f: // LAHF
+        debugPrint("LAHF");
         ah = flags & 0xff;
         clocks += 4;
         break;
@@ -2071,6 +1901,7 @@ public class Intel8086 {
          * 8080/8085 compatibility.
          */
       case 0x9e: // SAHF
+        debugPrint("SAHF");
         flags = flags & 0xff00 | ah;
         clocks += 4;
         break;
@@ -2083,6 +1914,7 @@ public class Intel8086 {
          * flags themselves are not affected.
          */
       case 0x9c: // PUSHF
+        debugPrint("PUSHF");
         push(flags);
         clocks += 10;
         break;
@@ -2101,6 +1933,7 @@ public class Intel8086 {
          * the memory- image and then popping the flags.
          */
       case 0x9d: // POPF
+        debugPrint("POPF");
         flags = pop();
         clocks += 8;
         break;
@@ -2202,6 +2035,7 @@ public class Intel8086 {
       case 0x01: // ADD REG16/MEM16,REG16
       case 0x02: // ADD REG8,REG8/MEM8
       case 0x03: // ADD REG16,REG16/MEM16
+        debugPrint("AAD");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2223,6 +2057,7 @@ public class Intel8086 {
         // Immediate to Accumulator
       case 0x04: // ADD AL,IMMED8
       case 0x05: // ADD AX,IMMED16
+        debugPrint("ADD");
         dst = getReg(w, 0);
         src = getMem(w);
         res = add(w, dst, src);
@@ -2245,6 +2080,7 @@ public class Intel8086 {
       case 0x11: // ADC REG16/MEM16,REG16
       case 0x12: // ADC REG8,REG8/MEM8
       case 0x13: // ADC REG16,REG16/MEM16
+        debugPrint("ADC");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2266,6 +2102,7 @@ public class Intel8086 {
         // Immediate to Accumulator
       case 0x14: // ADC AL,IMMED8
       case 0X15: // ADC AX,IMMED16
+        debugPrint("ADC");
         dst = getReg(w, AX);
         src = getMem(w);
         res = adc(w, dst, src);
@@ -2289,6 +2126,7 @@ public class Intel8086 {
       case 0x45: // INC BP
       case 0x46: // INC SI
       case 0x47: // INC DI
+        debugPrint("INC");
         reg = op & 0b111;
         src = getReg(W, reg);
         res = inc(W, src);
@@ -2305,6 +2143,7 @@ public class Intel8086 {
          * ZF is undefined following execution of AAA.
          */
       case 0x37: // AAA
+        debugPrint("AAA");
         if ((al & 0xf) > 9 || getFlag(AF)) {
           al += 6;
           ah = ah + 1 & 0xff;
@@ -2329,6 +2168,7 @@ public class Intel8086 {
          * following execution of DAA.
          */
       case 0x27:
+        debugPrint("DAA");
         { // DAA
           final int oldAL = al;
           final boolean oldCF = getFlag(CF);
@@ -2366,6 +2206,7 @@ public class Intel8086 {
       case 0x29: // SUB REG16/MEM16,REG16
       case 0x2a: // SUB REG8,REG8/MEM8
       case 0x2b: // SUB REG16,REG16/MEM16
+        debugPrint("SUB");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2387,6 +2228,7 @@ public class Intel8086 {
         // Immediate from Accumulator
       case 0x2c: // SUB AL,IMMED8
       case 0x2d: // SUB AX,IMMED16
+        debugPrint("SUB");
         dst = getReg(w, AX);
         src = getMem(w);
         res = sub(w, dst, src);
@@ -2410,6 +2252,7 @@ public class Intel8086 {
       case 0x19: // SBB REG16/MEM16,REG16
       case 0x1a: // SBB REG8,REG8/MEM8
       case 0x1b: // SBB REG16,REG16/MEM16
+        debugPrint("SBB");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2431,6 +2274,7 @@ public class Intel8086 {
         // Immediate to Accumulator
       case 0x1c: // SBB AL,IMMED8
       case 0X1d: // SBB AX,IMMED16
+        debugPrint("SBB");
         dst = getReg(w, AX);
         src = getMem(w);
         res = sbb(w, dst, src);
@@ -2454,6 +2298,7 @@ public class Intel8086 {
       case 0x4d: // DEC BP
       case 0x4e: // DEC SI
       case 0x4f: // DEC DI
+        debugPrint("DEC");
         reg = op & 0b111;
         dst = getReg(W, reg);
         res = dec(W, dst);
@@ -2492,6 +2337,7 @@ public class Intel8086 {
       case 0x39: // CMP REG16/MEM16,REG16
       case 0x3a: // CMP REG8,REG8/MEM8
       case 0x3b: // CMP REG16,REG16/MEM16
+        debugPrint("CMP");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2507,6 +2353,7 @@ public class Intel8086 {
         // Immediate with Accumulator
       case 0x3c: // CMP AL,IMMED8
       case 0x3d: // CMP AX,IMMED16
+        debugPrint("CMP");
         dst = getReg(w, AX);
         src = getMem(w);
         sub(w, dst, src);
@@ -2525,6 +2372,7 @@ public class Intel8086 {
          * AAS.
          */
       case 0x3f: // AAS
+        debugPrint("AAS");
         if ((al & 0xf) > 9 || getFlag(AF)) {
           al -= 6;
           ah = ah - 1 & 0xff;
@@ -2549,6 +2397,7 @@ public class Intel8086 {
          * undefined following the execution of DAS.
          */
       case 0x2f: // DAS
+        debugPrint("D");
         {
           final int oldAL = al;
           final boolean oldCF = getFlag(CF);
@@ -2618,6 +2467,7 @@ public class Intel8086 {
          * and OF is undefined following execution of AAM.
          */
       case 0xd4: // AAM
+        debugPrint("AAM");
         src = getMem(B);
         if (src == 0)
           callInt(0);
@@ -2690,6 +2540,7 @@ public class Intel8086 {
          * is undefined following execution of AAD.
          */
       case 0xd5: // AAD
+        debugPrint("AAD");
         src = getMem(B);
         al = ah * src + al & 0xff;
         ah = 0;
@@ -2706,6 +2557,7 @@ public class Intel8086 {
          * from a byte prior to performing byte division.
          */
       case 0x98: // CBW
+        debugPrint("CBW");
         if ((al & 0x80) == 0x80)
           ah = 0xff;
         else
@@ -2722,6 +2574,7 @@ public class Intel8086 {
          * dividend from a word prior to performing word division.
          */
       case 0x99: // CWD
+        debugPrint("CWD");
         if ((ah & 0x80) == 0x80)
           setReg(W, DX, 0xffff);
         else
@@ -2778,6 +2631,7 @@ public class Intel8086 {
       case 0x21: // AND REG16/MEM16,REG16
       case 0x22: // AND REG8,REG8/MEM8
       case 0x23: // AND REG16,REG16/MEM16
+        debugPrint("AND");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2800,6 +2654,7 @@ public class Intel8086 {
         // Immediate to Accumulator
       case 0x24: // AND AL,IMMED8
       case 0x25: // AND AX,IMMED16
+        debugPrint("AND");
         dst = getReg(w, AX);
         src = getMem(w);
         res = dst & src;
@@ -2821,6 +2676,7 @@ public class Intel8086 {
       case 0x09: // OR REG16/MEM16,REG16
       case 0x0a: // OR REG8,REG8/MEM8
       case 0x0b: // OR REG16,REG16/MEM16
+        debugPrint("OR");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2843,6 +2699,7 @@ public class Intel8086 {
         // Immediate to Accumulator
       case 0x0c: // OR AL,IMMED8
       case 0x0d: // OR AX,IMMED16
+        debugPrint("OR");
         dst = getReg(w, AX);
         src = getMem(w);
         res = dst | src;
@@ -2865,6 +2722,7 @@ public class Intel8086 {
       case 0x31: // XOR REG16/MEM16,REG16
       case 0x32: // XOR REG8,REG8/MEM8
       case 0x33: // XOR REG16,REG16/MEM16
+        debugPrint("XOR");
         decode();
         if (d == 0b0) {
           dst = getRM(w, mod, rm);
@@ -2887,6 +2745,7 @@ public class Intel8086 {
         // Immediate to Accumulator
       case 0x34: // XOR AL,IMMED8
       case 0x35: // XOR AX,IMMED16
+        debugPrint("XOR");
         dst = getReg(w, AX);
         src = getMem(w);
         res = dst ^ src;
@@ -2907,6 +2766,7 @@ public class Intel8086 {
         // Register/Memory and Register
       case 0x84: // TEST REG8/MEM8,REG8
       case 0x85: // TEST REG16/MEM16,REG16
+        debugPrint("TEST");
         decode();
         dst = getRM(w, mod, rm);
         src = getReg(w, reg);
@@ -2917,6 +2777,7 @@ public class Intel8086 {
         // Immediate and Accumulator
       case 0xa8: // TEST AL,IMMED8
       case 0xa9: // TEST AX,IMMED16
+        debugPrint("TEST");
         dst = getReg(w, AX);
         src = getMem(w);
         logic(w, dst & src);
@@ -3147,6 +3008,7 @@ public class Intel8086 {
          */
       case 0xa4: // MOVS DEST-STR8,SRC-STR8
       case 0xa5: // MOVS DEST-STR16,SRC-STR16
+        debugPrint("MOVS");
         src = getMem(w, getAddr(os, si));
         setMem(w, getAddr(es, di), src);
         si = si + (getFlag(DF) ? -1 : 1) * (1 + w) & 0xffff;
@@ -3174,6 +3036,7 @@ public class Intel8086 {
          */
       case 0xa6: // CMPS DEST-STR8,SRC-STR8
       case 0xa7: // CMPS DEST-STR16,SRC-STR16
+        debugPrint("CMPS");
         dst = getMem(w, getAddr(es, di));
         src = getMem(w, getAddr(os, si));
         sub(w, src, dst);
@@ -3204,6 +3067,7 @@ public class Intel8086 {
          */
       case 0xae: // SCAS DEST-STR8
       case 0xaf: // SCAS DEST-STR16
+        debugPrint("SCAS");
         dst = getMem(w, getAddr(es, di));
         src = getReg(w, AX);
         sub(w, src, dst);
@@ -3227,6 +3091,7 @@ public class Intel8086 {
          */
       case 0xac: // LODS SRC-STR8
       case 0xad: // LODS SRC-STR16
+        debugPrint("LODS");
         src = getMem(w, getAddr(os, si));
         setReg(w, AX, src);
         si = si + (getFlag(DF) ? -1 : 1) * (1 + w) & 0xffff;
@@ -3244,6 +3109,7 @@ public class Intel8086 {
          */
       case 0xaa: // STOS DEST-STR8
       case 0xab: // STOS DEST-STR16
+        debugPrint("STOS");
         src = getReg(w, AX);
         setMem(w, getAddr(es, di), src);
         di = di + (getFlag(DF) ? -1 : 1) * (1 + w) & 0xffff;
@@ -3851,8 +3717,8 @@ public class Intel8086 {
         // Type Specified
         //print(dl);
         //if (int3_counter>0 && (int3_counter%72)==0) println();
-//println("bp",((bp&(1<<15))-128);
-//);
+        //println("bp",((bp&(1<<15))-128);
+        //);
         if (dl!=0) println(int3_counter, si, dl);
         int3_counter++;
 
@@ -3951,6 +3817,7 @@ public class Intel8086 {
          * STC (Set Carry flag) sets CF to 1 and affects no other flags.
          */
       case 0xf9: // STC
+        debugPrint("STC");
         setFlag(CF, true);
         clocks += 2;
         break;
@@ -3963,6 +3830,7 @@ public class Intel8086 {
          * CLD does not affect any other flags.
          */
       case 0xfc: // CLD
+        debugPrint("CLD");
         setFlag(DF, false);
         clocks += 2;
         break;

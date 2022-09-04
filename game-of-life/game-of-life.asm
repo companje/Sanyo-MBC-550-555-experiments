@@ -27,79 +27,226 @@ jmp setup
     db 9       ; ? Number of heads  
     dw 512     ; Number of hidden sectors
 
-setup:
-    mov ax,0x0c00 ; vram green page1 segment
-    push ax
-    pop es        ; es=0x0c00
 
-    mov ax,0x1c00 ; vram green page2 segment
-    push ax
+
+setup:
+    mov bh,0x0c     ; vram green page1 segment
+    push bx
+    pop es          ; es=0x0c00
+
+    push cs
+    pop ds          ; ds=cs
+
+    dec ax          ; -1
+    mov cl,5
+initShape:
+    mov di,[si+shape]
+    inc si
+    inc si
+    stosw
+    stosw
+    loop initShape
+
+    mov bh,0x1c   ; vram green page2 segment
+    push bx
     pop ds        ; ds=0x0c00
 
+draw:
+    call swap
 
-cellX equ 0
-cellY equ 0
-cellI equ 4*(cellY*COLS+cellX)
+    ; mov cx,WH 
+    xor di,di
+    xor si,si
+
+    mov bx,ROWS ;y
+.forY: 
+    mov dx,COLS ;x
+.forX:
+
+    lodsw
+    lodsw
+
+    ; and ax,1      ; limit to 1
+
+    mov ch,1
+.forCh:
+    mov cl,1
+.forCl:
+
+    ; countCells
+    
+                    ; push si
+                    ; ; push ax
+                    ; push dx
+                    ; push cx
+                    ; push bx
+
+                    ; ; y*COLS+x
+                    ; xchg ax,bx
+                    ; mov cx,COLS
+                    ; push dx
+                    ; mul cx    ; *=COLS
+                    ; pop dx
+                    ; add ax,dx ; +=x
+                    
+                    ; shl ax,1
+                    ; shl ax,1 ; *=4
+                    
+
+                    ; ; ax contains now current calculated si
+
+                    ; mov si,ax
+                    ; mov ax,[si]
+
+                    ; pop bx
+                    ; pop cx
+                    ; pop dx
+                    ; ; pop ax
+                    ; pop si
+
+    ;x
+    ; mov ax,dx
+    ; add al,cl
+    ; ; push cx
+    ; mov cx,COLS
+    ; add ax,cx
+   
+
+    ; ;y
+    ; mov ax,bx
+    ; add al,ch
+    ; ; push cx
+    ; mov cx,ROWS
+    ; add ax,cx
+    ; div cx
+    ; xchg bx,dx ; bx = ... % ROWS
+
+
+    
+
+    ; hlt
+    ; ; mov cx,COLS
+    ; ; ; y*COLS+x
+    ; ; mul cx
+    ; ; add dx
+    
+    ; pop cx
+
+    ; hlt
+
+    ; ; mov si,dx
+
+    ; pop dx
+    ; pop ax
+    ; ; add al,[si]
+    ; pop si
+
+    ; inc bp
+; .nextcell:    
+
+
+    dec cl
+    jns .forCl
+
+    dec ch
+    jns .forCh
+    
+    ; not ax
+    
+    ;setDot [es:di]=ax(0 of -1)
+    stosw
+    stosw
+
+    dec dx
+    jnz .forX
+
+    dec bx
+    jnz .forY
+
+
+    ;alternate between PAGE1 and PAGE2
+    push ax
+    in al,0x10
+    xor al,1
+    out 0x10,al
+    pop ax
+
+    jmp draw
+
+shape: 
+    dw 0,4,8,288,580 ; glider
+
+
+    
+
+    
+
+    ; call swap
+
+; cellX equ 0
+; cellY equ 0
+; cellI equ 4*(cellY*COLS+cellX)
+
+
 
     ; call initCells
     ; mov al,255
     ; mov di,cellI
     ; times 4 stosb
 
-    call swap ; swap ds,es for double buffering
+    ; call swap ; swap ds,es for double buffering
 
     ; mov al,4        ; 0x0c00
     ; out 0x10,al
 
-    mov si,cellI
-    lodsb
-    push ax   ; alive state on stack
-    ; call countNeighbours
+;     mov si,cellI
+;     lodsb
+;     push ax   ; alive state on stack
+;     ; call countNeighbours
 
-    mov bx,9 ;y
-    mov ax,9 ;x
-    call setDot
+;     mov bx,9 ;y
+;     mov ax,9 ;x
+;     call setDot
 
-    mov al,5        ; 0x0c00
-    out 0x10,al
+;     mov al,5        ; 0x0c00
+;     out 0x10,al
 
-    hlt
+;     hlt
 
-getIndex: ;ax=(ax*COLS+bx)*4  Input: ax=y, bx=x, Output: ax=index
-    mov cx,COLS
-    mul cx
-    add ax,bx
-    shl ax,1
-    shl ax,1
-    ret
+; getIndex: ;ax=(ax*COLS+bx)*4  Input: ax=y, bx=x, Output: ax=index
+;     mov cx,COLS
+;     mul cx
+;     add ax,bx
+;     shl ax,1
+;     shl ax,1
+;     ret
 
-setDot: 
-    call getIndex
-    xchg ax,di
-    mov ax,0xffff
-    stosw
-    stosw
-    ret
+; setDot: 
+;     call getIndex
+;     xchg ax,di
+;     mov ax,0xffff
+;     stosw
+;     stosw
+;     ret
 
-getDot: ;Input: ax=y, bx=x, Output: al=result
-    call getIndex
-    xchg ax,si
-    lodsb
-    and al,1 ; only keep lowest bit
-    ret
+; getDot: ;Input: ax=y, bx=x, Output: al=result
+;     call getIndex
+;     xchg ax,si
+;     lodsb
+;     and al,1 ; only keep lowest bit
+;     ret
 
-countNeighbours: ;Input: ax=y, bx=x
-    mov bx,9
-.1:
-    ; mov al,cl
-    ; mov cl,3
-    ; div 
+; countNeighbours: ;Input: ax=y, bx=x
+;     mov bx,9
+; .1:
+;     ; mov al,cl
+;     ; mov cl,3
+;     ; div 
     
-    
-    int3
 
-    loop .1
-    ret
+
+;     loop .1
+;     ret
 
 ;     xchg cx,ax
 ; .1: push cx
@@ -227,14 +374,14 @@ countNeighbours: ;Input: ax=y, bx=x
 ;------
 
 ; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
-nb: dw -1,1,-COLS,COLS,-COLS-1,-COLS+1,COLS-1,COLS+1
+; nb: dw -1,1,-COLS,COLS,-COLS-1,-COLS+1,COLS-1,COLS+1
 
-    ; pop ax
+;     ; pop ax
 
-    ; 
+;     ; 
 
 
-    hlt
+;     hlt
 
 ; .setDot:          ; set x,y=255  
 ;     mov bx,x      ; bx=xpos
@@ -450,25 +597,25 @@ swap: ;es,ds
 ;nb: db -1,1,-W,W,-W-1,-W+1,W-1,W+1
     
 
-initCells:
-    xor di,di
-    mov cx,WH   
-    mov bp,4
-    mov bx,10000  ; probability (signed)
-.1: mov ax,25173  ; LCG Multiplier
-    mul bp        ; DX:AX = LCG multiplier * seed
-    add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
-    mov bp,ax     ; Update seed = return value
-    cmp ax,bx
-    mov ax,255
-    jg .2
-    xor ax,ax
-.2: push cx
-    mov cx,4
-    rep stosb
-    pop cx
-    loop .1
-    ret
+; initCells:
+;     xor di,di
+;     mov cx,WH   
+;     mov bp,4
+;     mov bx,10000  ; probability (signed)
+; .1: mov ax,25173  ; LCG Multiplier
+;     mul bp        ; DX:AX = LCG multiplier * seed
+;     add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
+;     mov bp,ax     ; Update seed = return value
+;     cmp ax,bx
+;     mov ax,255
+;     jg .2
+;     xor ax,ax
+; .2: push cx
+;     mov cx,4
+;     rep stosb
+;     pop cx
+;     loop .1
+;     ret
  
 
 ;  initCells2:
@@ -492,7 +639,7 @@ initCells:
 ;     ret
 
 
-data:
+; data:
 
 
 

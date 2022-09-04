@@ -27,455 +27,624 @@
     27 00000017 09                          db 9       ; ? Number of heads  
     28 00000018 0002                        dw 512     ; Number of hidden sectors
     29                                  
-    30                                  setup:
-    31 0000001A B8000C                      mov ax,0x0c00 ; vram green page1 segment
-    32 0000001D 50                          push ax
-    33 0000001E 07                          pop es        ; es=0x0c00
-    34                                  
-    35 0000001F B8001C                      mov ax,0x1c00 ; vram green page2 segment
-    36 00000022 50                          push ax
-    37 00000023 1F                          pop ds        ; ds=0x0c00
-    38                                  
+    30                                  
+    31                                  
+    32                                  setup:
+    33 0000001A B70C                        mov bh,0x0c     ; vram green page1 segment
+    34 0000001C 53                          push bx
+    35 0000001D 07                          pop es          ; es=0x0c00
+    36                                  
+    37 0000001E 0E                          push cs
+    38 0000001F 1F                          pop ds          ; ds=cs
     39                                  
-    40                                  cellX equ 0
-    41                                  cellY equ 0
-    42                                  cellI equ 4*(cellY*COLS+cellX)
-    43                                  
-    44                                      ; call initCells
-    45                                      ; mov al,255
-    46                                      ; mov di,cellI
-    47                                      ; times 4 stosb
-    48                                  
-    49 00000024 E83600                      call swap ; swap ds,es for double buffering
-    50                                  
-    51                                      ; mov al,4        ; 0x0c00
-    52                                      ; out 0x10,al
+    40 00000020 48                          dec ax          ; -1
+    41 00000021 B105                        mov cl,5
+    42                                  initShape:
+    43 00000023 8BBC[5E00]                  mov di,[si+shape]
+    44 00000027 46                          inc si
+    45 00000028 46                          inc si
+    46 00000029 AB                          stosw
+    47 0000002A AB                          stosw
+    48 0000002B E2F6                        loop initShape
+    49                                  
+    50 0000002D B71C                        mov bh,0x1c   ; vram green page2 segment
+    51 0000002F 53                          push bx
+    52 00000030 1F                          pop ds        ; ds=0x0c00
     53                                  
-    54 00000027 BE0000                      mov si,cellI
-    55 0000002A AC                          lodsb
-    56 0000002B 50                          push ax   ; alive state on stack
-    57                                      ; call countNeighbours
-    58                                  
-    59 0000002C BB0900                      mov bx,9 ;y
-    60 0000002F B80900                      mov ax,9 ;x
-    61 00000032 E80500                      call setDot
-    62                                  
-    63 00000035 B005                        mov al,5        ; 0x0c00
-    64 00000037 E610                        out 0x10,al
+    54                                  draw:
+    55 00000031 E83400                      call swap
+    56                                  
+    57                                      ; mov cx,WH 
+    58 00000034 31FF                        xor di,di
+    59 00000036 31F6                        xor si,si
+    60                                  
+    61 00000038 BB3200                      mov bx,ROWS ;y
+    62                                  .forY: 
+    63 0000003B BA4800                      mov dx,COLS ;x
+    64                                  .forX:
     65                                  
-    66 00000039 F4                          hlt
-    67                                  
-    68                                  setDot:
-    69 0000003A B94800                      mov cx,COLS
-    70 0000003D F7E1                        mul cx
-    71 0000003F 01D8                        add ax,bx
-    72 00000041 D1E0                        shl ax,1
-    73 00000043 D1E0                        shl ax,1
-    74 00000045 97                          xchg ax,di
-    75                                      ; mov di,0
-    76 00000046 B8FFFF                      mov ax,0xffff
-    77 00000049 AB                          stosw
-    78 0000004A AB                          stosw
-    79                                  
-    80                                  
-    81                                  
-    82 0000004B C3                          ret
+    66 0000003E AD                          lodsw
+    67 0000003F AD                          lodsw
+    68                                  
+    69                                      ; and ax,1      ; limit to 1
+    70                                  
+    71 00000040 B501                        mov ch,1
+    72                                  .forCh:
+    73 00000042 B101                        mov cl,1
+    74                                  .forCl:
+    75                                  
+    76                                      ; countCells
+    77                                      
+    78                                                      ; push si
+    79                                                      ; ; push ax
+    80                                                      ; push dx
+    81                                                      ; push cx
+    82                                                      ; push bx
     83                                  
-    84                                  ; countNeighbours:
-    85                                      
-    86                                    
-    87                                  
-    88                                  
-    89                                  ; init:
-    90                                  ;     mov cx,10
-    91                                  ;     lodsw
-    92                                  
-    93                                    ; for (int i=0; i<shape.length; i+=2)
-    94                                    ;   setDot(shape[i], shape[i+1], true);
-    95                                      ; ret
-    96                                      ; shape: db 10, 0, 11, 0, 12, 0, 10, 1, 11, 2
+    84                                                      ; ; y*COLS+x
+    85                                                      ; xchg ax,bx
+    86                                                      ; mov cx,COLS
+    87                                                      ; push dx
+    88                                                      ; mul cx    ; *=COLS
+    89                                                      ; pop dx
+    90                                                      ; add ax,dx ; +=x
+    91                                                      
+    92                                                      ; shl ax,1
+    93                                                      ; shl ax,1 ; *=4
+    94                                                      
+    95                                  
+    96                                                      ; ; ax contains now current calculated si
     97                                  
-    98                                  
-    99                                  
-   100                                      ; ik heb nu x en y...
-   101                                      ; en nu... hoe kan ik in zo weinig mogelijk
-   102                                      ; bytes m'n borders wrappen?
-   103                                  
-   104                                      ; x>0 ? si-2 : si+4*COLS ??
-   105                                      ; y>0 ? si-COLS ?????????/
+    98                                                      ; mov si,ax
+    99                                                      ; mov ax,[si]
+   100                                  
+   101                                                      ; pop bx
+   102                                                      ; pop cx
+   103                                                      ; pop dx
+   104                                                      ; ; pop ax
+   105                                                      ; pop si
    106                                  
-   107                                  ;     hlt
-   108                                  
-   109                                  ; countNeighbours: ; input si, returns dl
-   110                                  ;     push si
-   111                                  ;     pop ax       ; ax=si
-   112                                  ;     shr ax,1     ; /=2
-   113                                  ;     shr ax,1     ; /=2
-   114                                  ;     mov bl,COLS
-   115                                  ;     div bl       ; ax/=bl  ah=x al=y
-   116                                  
-   117                                  
-   118                                  ;     mov dl,0    ; n
-   119                                  ;     mov bx,0    ; bx 8..0  i<len(nb)
-   120                                  ; .1: mov cx,[cs:nb+bx]
-   121                                  
-   122                                  ;     ; add al,cl  ;y
-   123                                  ;     ; add ah,cl  ;x
+   107                                      ;x
+   108                                      ; mov ax,dx
+   109                                      ; add al,cl
+   110                                      ; ; push cx
+   111                                      ; mov cx,COLS
+   112                                      ; add ax,cx
+   113                                     
+   114                                  
+   115                                      ; ;y
+   116                                      ; mov ax,bx
+   117                                      ; add al,ch
+   118                                      ; ; push cx
+   119                                      ; mov cx,ROWS
+   120                                      ; add ax,cx
+   121                                      ; div cx
+   122                                      ; xchg bx,dx ; bx = ... % ROWS
+   123                                  
    124                                  
-   125                                  
-   126                                  ;     mov bh,0
-   127                                  ;     mov bl,al
-   128                                  ;     xchg ah,al
-   129                                  ;     cbw
-   130                                  ;     mov cx,COLS  ; ax=y*COLS
-   131                                  ;     mul cx
-   132                                  
-   133                                  ;     add ax,bx    ; ax+=x
+   125                                      
+   126                                  
+   127                                      ; hlt
+   128                                      ; ; mov cx,COLS
+   129                                      ; ; ; y*COLS+x
+   130                                      ; ; mul cx
+   131                                      ; ; add dx
+   132                                      
+   133                                      ; pop cx
    134                                  
-   135                                  ;     shl ax,1
-   136                                  ;     shl ax,1     ; ax*=4
-   137                                  
+   135                                      ; hlt
+   136                                  
+   137                                      ; ; mov si,dx
    138                                  
-   139                                  
-   140                                  ;     mov di,ax
-   141                                  
-   142                                  ;     mov ax,0xf000
-   143                                  ;     push ax
-   144                                  ;     pop es
-   145                                  
-   146                                  ;     mov ax,0xffff
-   147                                  ;     stosw
-   148                                  ;     stosw
-   149                                  
-   150                                  ;     hlt
-   151                                  
-   152                                  
-   153                                  ;wrapping y
-   154                                  ;     add al,cl  ;y
+   139                                      ; pop dx
+   140                                      ; pop ax
+   141                                      ; ; add al,[si]
+   142                                      ; pop si
+   143                                  
+   144                                      ; inc bp
+   145                                  ; .nextcell:    
+   146                                  
+   147                                  
+   148 00000044 FEC9                        dec cl
+   149 00000046 79FC                        jns .forCl
+   150                                  
+   151 00000048 FECD                        dec ch
+   152 0000004A 79F6                        jns .forCh
+   153                                      
+   154                                      ; not ax
    155                                      
-   156                                  ;     jns .4
-   157                                  ;     add al,ROWS
-   158                                  ; .4: cmp al,ROWS
-   159                                  ;     jl .5
-   160                                  ;     sub al,ROWS
-   161                                  ; .5: 
-   162                                  ;     xchg ah,al    ;swap ah,al to save bytes
-   163                                  ; ;wrapping x
-   164                                  ;     add al,ch   ; x
-   165                                  ;     jns .2
-   166                                  ;     hlt
-   167                                  ;     add al,COLS
-   168                                  ; .2: cmp al,COLS
-   169                                  ;     jl .3
-   170                                  ;     sub al,COLS
-   171                                  ; .3: 
-   172                                  
+   156                                      ;setDot [es:di]=ax(0 of -1)
+   157 0000004C AB                          stosw
+   158 0000004D AB                          stosw
+   159                                  
+   160 0000004E 4A                          dec dx
+   161 0000004F 75ED                        jnz .forX
+   162                                  
+   163 00000051 4B                          dec bx
+   164 00000052 75E7                        jnz .forY
+   165                                  
+   166                                  
+   167                                      ;alternate between PAGE1 and PAGE2
+   168 00000054 50                          push ax
+   169 00000055 E410                        in al,0x10
+   170 00000057 3401                        xor al,1
+   171 00000059 E610                        out 0x10,al
+   172 0000005B 58                          pop ax
    173                                  
-   174                                  
-   175                                  ; hlt
-   176                                  
-   177                                  
-   178                                      ; mov di,ax
+   174 0000005C EBD3                        jmp draw
+   175                                  
+   176                                  shape: 
+   177 0000005E 000004000800200144-         dw 0,4,8,288,580 ; glider
+   177 00000067 02                 
+   178                                  
    179                                  
-   180                                      ; mov ax,0xf000
-   181                                      ; push ax
-   182                                      ; pop es
+   180                                      
+   181                                  
+   182                                      
    183                                  
-   184                                      ; mov ax,0xffff
-   185                                      ; stosw
-   186                                      ; stosw
-   187                                  
-   188                                      ; hlt
+   184                                      ; call swap
+   185                                  
+   186                                  ; cellX equ 0
+   187                                  ; cellY equ 0
+   188                                  ; cellI equ 4*(cellY*COLS+cellX)
    189                                  
-   190                                  ; add ax,bx
-   191                                      ; xchg bx,ax ; bx=y,x
-   192                                      ; add bx,bp  ; y,x+=b,p
-   193                                  
-   194                                  ; hlt
-   195                                  
-   196                                  ;     mov ax,[es:si+bp]   ; read value of neighbouring pixel
-   197                                  ;     test al,128
-   198                                  ;     jz .6
-   199                                  ;     inc dl
-   200                                  ;     ; int3
-   201                                  ; .6: inc bx
-   202                                  ;     inc bx
-   203                                  ;     cmp bx,16
-   204                                  ;     jne .1
-   205                                  ;------
+   190                                  
+   191                                  
+   192                                      ; call initCells
+   193                                      ; mov al,255
+   194                                      ; mov di,cellI
+   195                                      ; times 4 stosb
+   196                                  
+   197                                      ; call swap ; swap ds,es for double buffering
+   198                                  
+   199                                      ; mov al,4        ; 0x0c00
+   200                                      ; out 0x10,al
+   201                                  
+   202                                  ;     mov si,cellI
+   203                                  ;     lodsb
+   204                                  ;     push ax   ; alive state on stack
+   205                                  ;     ; call countNeighbours
    206                                  
-   207                                  ; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
-   208 0000004C FFFF0100B8FF4800B7-     nb: dw -1,1,-COLS,COLS,-COLS-1,-COLS+1,COLS-1,COLS+1
-   208 00000055 FFB9FF47004900     
-   209                                  
-   210                                      ; pop ax
-   211                                  
-   212                                      ; 
+   207                                  ;     mov bx,9 ;y
+   208                                  ;     mov ax,9 ;x
+   209                                  ;     call setDot
+   210                                  
+   211                                  ;     mov al,5        ; 0x0c00
+   212                                  ;     out 0x10,al
    213                                  
-   214                                  
-   215 0000005C F4                          hlt
-   216                                  
-   217                                  ; .setDot:          ; set x,y=255  
-   218                                  ;     mov bx,x      ; bx=xpos
-   219                                  ;     mov ax,y      ; ax=ypos
-   220                                  ;     call getIndex
-   221                                  ;     xchg di,ax    ; di=index
-   222                                  ;     mov ax,0xffff
-   223                                  ;     times 2 stosw ; es:di = ax ax 4 bytes    
-   224                                  
-   225                                  ; nextgen:
-   226                                  
-   227                                  swap: ;es,ds
-   228 0000005D 1E                          push ds
-   229 0000005E 06                          push es
-   230 0000005F 1F                          pop ds
-   231 00000060 07                          pop es
-   232 00000061 C3                          ret
-   233                                  
-   234                                  ; .getDot:  ; =alive? 255 if is x,y is alive
-   235                                  ;     mov bx,x      ; bx=xpos
-   236                                  ;     mov ax,y      ; ax=ypos
-   237                                  ;     call getIndex
-   238                                  ;     xchg si,ax
-   239                                  ;     lodsw         ; al=ds:si
-   240                                  ;     xchg bp,ax    ; bp=ax (=alive)
-   241                                  ; ;;;; tot hier werkt het. al is er maar één dot
-   242                                  ; ;;;; bp bevat de waarde of deze dot zelf alive is
-   243                                  ;     hlt
-   244                                  
-   245                                  ; .neighbours:
+   214                                  ;     hlt
+   215                                  
+   216                                  ; getIndex: ;ax=(ax*COLS+bx)*4  Input: ax=y, bx=x, Output: ax=index
+   217                                  ;     mov cx,COLS
+   218                                  ;     mul cx
+   219                                  ;     add ax,bx
+   220                                  ;     shl ax,1
+   221                                  ;     shl ax,1
+   222                                  ;     ret
+   223                                  
+   224                                  ; setDot: 
+   225                                  ;     call getIndex
+   226                                  ;     xchg ax,di
+   227                                  ;     mov ax,0xffff
+   228                                  ;     stosw
+   229                                  ;     stosw
+   230                                  ;     ret
+   231                                  
+   232                                  ; getDot: ;Input: ax=y, bx=x, Output: al=result
+   233                                  ;     call getIndex
+   234                                  ;     xchg ax,si
+   235                                  ;     lodsb
+   236                                  ;     and al,1 ; only keep lowest bit
+   237                                  ;     ret
+   238                                  
+   239                                  ; countNeighbours: ;Input: ax=y, bx=x
+   240                                  ;     mov bx,9
+   241                                  ; .1:
+   242                                  ;     ; mov al,cl
+   243                                  ;     ; mov cl,3
+   244                                  ;     ; div 
+   245                                      
    246                                  
-   247                                  ;     hlt
-   248                                  
-   249                                  ; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
+   247                                  
+   248                                  ;     loop .1
+   249                                  ;     ret
    250                                  
-   251                                  
-   252                                  ; getIndex:        ; ax=(ax*COLS+bx)*4  = (y*COLS+x)*4
-   253                                  ;     mov cx,COLS 
-   254                                  ;     mul cx       ; y*COLS
-   255                                  ;     add ax,bx    ; +x
-   256                                  ;     shl ax,1     ; *2
-   257                                  ;     shl ax,1     ; *2
-   258                                  ;     ret
-   259                                  
-   260                                  
-   261                                  ;     hlt
-   262                                  
-   263                                      ; xor ax,ax
-   264                                      ; xchg al,bl ;al=y, bl=0
-   265                                      ; mov cx,COLS
-   266                                      ; mul cx
-   267                                      ; xchg bh,bl ;bl=x, bh=0
-   268                                      ; add ax,bx
-   269                                  
-   270                                  ; .getDot: ; bh=x, bl=y
-   271                                  ;     xor ah,ah
-   272                                  ;     mov al,bl
-   273                                  ;     mov cx,COLS
-   274                                  ;     mul cx     ; *=COLS
-   275                                  ;     xor bl,bl ; clr bl=y
-   276                                  ;     add ax,bx ;
-   277                                  ;     mov cx,4
-   278                                  ;     mul cx    ; *=4
-   279                                  
-   280                                      ; hlt
-   281                                  
-   282                                      ; xchg ax,bx
-   283                                  
-   284                                      
-   285                                  ; .xy2di:
-   286                                          
-   287                                  
-   288                                  
-   289                                  
-   290                                  ;     mov ax,0xffff
-   291                                  
-   292                                  ; .setDot: ;es:di = ax
-   293                                  ;     times 2 stosw  
+   251                                  ;     xchg cx,ax
+   252                                  ; .1: push cx
+   253                                  
+   254                                      
+   255                                    
+   256                                  
+   257                                  
+   258                                  ; init:
+   259                                  ;     mov cx,10
+   260                                  ;     lodsw
+   261                                  
+   262                                    ; for (int i=0; i<shape.length; i+=2)
+   263                                    ;   setDot(shape[i], shape[i+1], true);
+   264                                      ; ret
+   265                                      ; shape: db 10, 0, 11, 0, 12, 0, 10, 1, 11, 2
+   266                                  
+   267                                  
+   268                                  
+   269                                      ; ik heb nu x en y...
+   270                                      ; en nu... hoe kan ik in zo weinig mogelijk
+   271                                      ; bytes m'n borders wrappen?
+   272                                  
+   273                                      ; x>0 ? si-2 : si+4*COLS ??
+   274                                      ; y>0 ? si-COLS ?????????/
+   275                                  
+   276                                  ;     hlt
+   277                                  
+   278                                  ; countNeighbours: ; input si, returns dl
+   279                                  ;     push si
+   280                                  ;     pop ax       ; ax=si
+   281                                  ;     shr ax,1     ; /=2
+   282                                  ;     shr ax,1     ; /=2
+   283                                  ;     mov bl,COLS
+   284                                  ;     div bl       ; ax/=bl  ah=x al=y
+   285                                  
+   286                                  
+   287                                  ;     mov dl,0    ; n
+   288                                  ;     mov bx,0    ; bx 8..0  i<len(nb)
+   289                                  ; .1: mov cx,[cs:nb+bx]
+   290                                  
+   291                                  ;     ; add al,cl  ;y
+   292                                  ;     ; add ah,cl  ;x
+   293                                  
    294                                  
-   295                                  ;     hlt
-   296                                  
-   297                                  
-   298                                  
-   299                                  ;     mov ax,0x0c00
-   300                                  ;     push ax
-   301                                  ;     pop ds
-   302                                  
-   303                                     
-   304                                  ; doublebuf:
-   305                                  ;     call initCells
-   306                                  ;     mov al,5        ; 0x0c00
-   307                                  ;     out 0x10,al
+   295                                  ;     mov bh,0
+   296                                  ;     mov bl,al
+   297                                  ;     xchg ah,al
+   298                                  ;     cbw
+   299                                  ;     mov cx,COLS  ; ax=y*COLS
+   300                                  ;     mul cx
+   301                                  
+   302                                  ;     add ax,bx    ; ax+=x
+   303                                  
+   304                                  ;     shl ax,1
+   305                                  ;     shl ax,1     ; ax*=4
+   306                                  
+   307                                  
    308                                  
-   309                                  ;     ; swap es,ds
-   310                                  ;     push ds
-   311                                  ;     push es
-   312                                  ;     pop ds
+   309                                  ;     mov di,ax
+   310                                  
+   311                                  ;     mov ax,0xf000
+   312                                  ;     push ax
    313                                  ;     pop es
    314                                  
-   315                                  ;     call initCells2
-   316                                  
-   317                                  ;     mov al,4         ; 0x1c00
-   318                                  ;     out 0x10,al
-   319                                  
-   320                                  ;     ; swap es,ds
-   321                                  ;     push ds
-   322                                  ;     push es
-   323                                  ;     pop ds
-   324                                  ;     pop es
-   325                                  
-   326                                  ;     jmp doublebuf
-   327                                  
-   328                                  ;     hlt
-   329                                  
-   330                                  ; ; setDot: 
-   331                                  
-   332                                  ; countNeighbours:  ;bh=x, bl=y
-   333                                  ; ; .countNeighbours: ; input si, returns dl
-   334                                  ; ;     mov dl,0    ; n
-   335                                  ; ;     mov bx,0    ; bx 8..0  i<len(nb)
-   336                                  ; ; .1: mov bp,[cs:nb+bx]
-   337                                  ;     ret
-   338                                  
-   339                                  ; nextgen:
-   340                                  ;     ;calculate next generation
-   341                                  ;     xor si,si
-   342                                  ; .calc_cells:
-   343                                  ;     ; call countNeighbours
-   344                                  ;     ; int3
+   315                                  ;     mov ax,0xffff
+   316                                  ;     stosw
+   317                                  ;     stosw
+   318                                  
+   319                                  ;     hlt
+   320                                  
+   321                                  
+   322                                  ;wrapping y
+   323                                  ;     add al,cl  ;y
+   324                                      
+   325                                  ;     jns .4
+   326                                  ;     add al,ROWS
+   327                                  ; .4: cmp al,ROWS
+   328                                  ;     jl .5
+   329                                  ;     sub al,ROWS
+   330                                  ; .5: 
+   331                                  ;     xchg ah,al    ;swap ah,al to save bytes
+   332                                  ; ;wrapping x
+   333                                  ;     add al,ch   ; x
+   334                                  ;     jns .2
+   335                                  ;     hlt
+   336                                  ;     add al,COLS
+   337                                  ; .2: cmp al,COLS
+   338                                  ;     jl .3
+   339                                  ;     sub al,COLS
+   340                                  ; .3: 
+   341                                  
+   342                                  
+   343                                  
+   344                                  ; hlt
    345                                  
-   346                                  ; .countNeighbours: ; input si, returns dl
-   347                                  ;     mov dl,0    ; n
-   348                                  ;     mov bx,0    ; bx 8..0  i<len(nb)
-   349                                  ; .1: mov bp,[cs:nb+bx]
-   350                                  ;     mov al,[es:si+bp]   ; read value of neighbouring pixel
-   351                                  ;     test al,128
-   352                                  ;     jz .2
-   353                                  ;     inc dl
-   354                                  ;     ; int3
-   355                                  ; .2: inc bx
-   356                                  ;     inc bx
-   357                                  ;     cmp bx,16
-   358                                  ;     jne .1
-   359                                  ; ;------
-   360                                  
-   361                                  
-   362                                  ;     mov al,0
-   363                                  
-   364                                  ;     cmp dl,2 
-   365                                  ;     je .j32  
-   366                                  ;     cmp dl,3
-   367                                  ;     jne .set      ; not 2 and not 3 neighbours
-   368                                  ; .j64: add al,32   ; 3 neighbours
-   369                                  ; .j32: add al,32   ; 2 neighbours
-   370                                  ; .set: 
-   371                                  
-   372                                  ;     ; mov al,dl
-   373                                  ;     ; mov cl,64
-   374                                  ;     ; mul cl
+   346                                  
+   347                                      ; mov di,ax
+   348                                  
+   349                                      ; mov ax,0xf000
+   350                                      ; push ax
+   351                                      ; pop es
+   352                                  
+   353                                      ; mov ax,0xffff
+   354                                      ; stosw
+   355                                      ; stosw
+   356                                  
+   357                                      ; hlt
+   358                                  
+   359                                  ; add ax,bx
+   360                                      ; xchg bx,ax ; bx=y,x
+   361                                      ; add bx,bp  ; y,x+=b,p
+   362                                  
+   363                                  ; hlt
+   364                                  
+   365                                  ;     mov ax,[es:si+bp]   ; read value of neighbouring pixel
+   366                                  ;     test al,128
+   367                                  ;     jz .6
+   368                                  ;     inc dl
+   369                                  ;     ; int3
+   370                                  ; .6: inc bx
+   371                                  ;     inc bx
+   372                                  ;     cmp bx,16
+   373                                  ;     jne .1
+   374                                  ;------
    375                                  
-   376                                  ;     xor [es:si],al
-   377                                  ;     add si,4
-   378                                  ;     cmp si,WH*4
-   379                                  ;     jl .calc_cells
+   376                                  ; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
+   377                                  ; nb: dw -1,1,-COLS,COLS,-COLS-1,-COLS+1,COLS-1,COLS+1
+   378                                  
+   379                                  ;     ; pop ax
    380                                  
-   381                                  ; ; hlt
+   381                                  ;     ; 
    382                                  
-   383                                  ; ;redraw cells
-   384                                  ;     ; mov cx,4*WH
-   385                                  ;     ; xor si,si
-   386                                  ;     xor di,di
-   387                                  ; .redraw_cells:
-   388                                  ;     mov al,[es:di]
-   389                                  ;     test al,128    ; alive?
-   390                                  ;     jz .dead
-   391                                  ; .alive:
-   392                                  ;     test al,64
-   393                                  ;     jz .survive
-   394                                  ;     test al,32
-   395                                  ;     jz .survive
-   396                                  ; .die:
-   397                                  ; .stay_dead:
-   398                                  ;     xor al,al
-   399                                  ;     jmp .copy
-   400                                  ; .dead:
-   401                                  ;     test al,64
-   402                                  ;     jz .stay_dead
-   403                                  ; .birth:
-   404                                  ; .survive:
-   405                                  ;     mov al,255
-   406                                  ; .copy:
-   407                                  
-   408                                  ;     mov [es:di+0],al
-   409                                  ;     mov [es:di+1],al
-   410                                  ;     mov [es:di+2],al
-   411                                  ;     mov [es:di+3],al
-   412                                  ;     add di,4
+   383                                  
+   384                                  ;     hlt
+   385                                  
+   386                                  ; .setDot:          ; set x,y=255  
+   387                                  ;     mov bx,x      ; bx=xpos
+   388                                  ;     mov ax,y      ; ax=ypos
+   389                                  ;     call getIndex
+   390                                  ;     xchg di,ax    ; di=index
+   391                                  ;     mov ax,0xffff
+   392                                  ;     times 2 stosw ; es:di = ax ax 4 bytes    
+   393                                  
+   394                                  ; nextgen:
+   395                                  
+   396                                  swap: ;es,ds
+   397 00000068 1E                          push ds
+   398 00000069 06                          push es
+   399 0000006A 1F                          pop ds
+   400 0000006B 07                          pop es
+   401 0000006C C3                          ret
+   402                                  
+   403                                  ; .getDot:  ; =alive? 255 if is x,y is alive
+   404                                  ;     mov bx,x      ; bx=xpos
+   405                                  ;     mov ax,y      ; ax=ypos
+   406                                  ;     call getIndex
+   407                                  ;     xchg si,ax
+   408                                  ;     lodsw         ; al=ds:si
+   409                                  ;     xchg bp,ax    ; bp=ax (=alive)
+   410                                  ; ;;;; tot hier werkt het. al is er maar één dot
+   411                                  ; ;;;; bp bevat de waarde of deze dot zelf alive is
+   412                                  ;     hlt
    413                                  
-   414                                      
-   415                                  ;     cmp di,WH*4
-   416                                  ;     jl .redraw_cells
+   414                                  ; .neighbours:
+   415                                  
+   416                                  ;     hlt
    417                                  
-   418                                  
-   419                                  ;     jmp nextgen
+   418                                  ; nb: db -1,-1, 0,-1, 1,-1, -1,0, 1,0, -1,1, 0,1, 1,1
+   419                                  
    420                                  
-   421                                     
-   422                                  
-   423                                      ; ret
-   424                                  
-   425                                      ;checkme
-   426                                  ; dw -4,4,-W*4,W*4,-W*4-4,-W*4+4,W*4-4,W*4+4
-   427                                  
-   428                                  ;nb: db -1,1,-W,W,-W-1,-W+1,W-1,W+1
-   429                                      
-   430                                  
-   431                                  initCells:
-   432 00000062 31FF                        xor di,di
-   433 00000064 B9100E                      mov cx,WH   
-   434 00000067 BD0400                      mov bp,4
-   435 0000006A BB1027                      mov bx,10000  ; probability (signed)
-   436 0000006D B85562                  .1: mov ax,25173  ; LCG Multiplier
-   437 00000070 F7E5                        mul bp        ; DX:AX = LCG multiplier * seed
-   438 00000072 051936                      add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
-   439 00000075 89C5                        mov bp,ax     ; Update seed = return value
-   440 00000077 39D8                        cmp ax,bx
-   441 00000079 B8FF00                      mov ax,255
-   442 0000007C 7F02                        jg .2
-   443 0000007E 31C0                        xor ax,ax
-   444 00000080 51                      .2: push cx
-   445 00000081 B90400                      mov cx,4
-   446 00000084 F3AA                        rep stosb
-   447 00000086 59                          pop cx
-   448 00000087 E2E4                        loop .1
-   449 00000089 C3                          ret
-   450                                   
-   451                                  
-   452                                  ;  initCells2:
-   453                                  ;     xor di,di
-   454                                  ;     mov cx,WH   
-   455                                  ;     mov bp,5
-   456                                  ;     mov bx,10000  ; probability (signed)
-   457                                  ; .1: mov ax,25173  ; LCG Multiplier
-   458                                  ;     mul bp        ; DX:AX = LCG multiplier * seed
-   459                                  ;     add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
-   460                                  ;     mov bp,ax     ; Update seed = return value
-   461                                  ;     cmp ax,bx
-   462                                  ;     mov ax,255
-   463                                  ;     jg .2
-   464                                  ;     xor ax,ax
-   465                                  ; .2: push cx
-   466                                  ;     mov cx,4
-   467                                  ;     rep stosb
-   468                                  ;     pop cx
-   469                                  ;     loop .1
-   470                                  ;     ret
+   421                                  ; getIndex:        ; ax=(ax*COLS+bx)*4  = (y*COLS+x)*4
+   422                                  ;     mov cx,COLS 
+   423                                  ;     mul cx       ; y*COLS
+   424                                  ;     add ax,bx    ; +x
+   425                                  ;     shl ax,1     ; *2
+   426                                  ;     shl ax,1     ; *2
+   427                                  ;     ret
+   428                                  
+   429                                  
+   430                                  ;     hlt
+   431                                  
+   432                                      ; xor ax,ax
+   433                                      ; xchg al,bl ;al=y, bl=0
+   434                                      ; mov cx,COLS
+   435                                      ; mul cx
+   436                                      ; xchg bh,bl ;bl=x, bh=0
+   437                                      ; add ax,bx
+   438                                  
+   439                                  ; .getDot: ; bh=x, bl=y
+   440                                  ;     xor ah,ah
+   441                                  ;     mov al,bl
+   442                                  ;     mov cx,COLS
+   443                                  ;     mul cx     ; *=COLS
+   444                                  ;     xor bl,bl ; clr bl=y
+   445                                  ;     add ax,bx ;
+   446                                  ;     mov cx,4
+   447                                  ;     mul cx    ; *=4
+   448                                  
+   449                                      ; hlt
+   450                                  
+   451                                      ; xchg ax,bx
+   452                                  
+   453                                      
+   454                                  ; .xy2di:
+   455                                          
+   456                                  
+   457                                  
+   458                                  
+   459                                  ;     mov ax,0xffff
+   460                                  
+   461                                  ; .setDot: ;es:di = ax
+   462                                  ;     times 2 stosw  
+   463                                  
+   464                                  ;     hlt
+   465                                  
+   466                                  
+   467                                  
+   468                                  ;     mov ax,0x0c00
+   469                                  ;     push ax
+   470                                  ;     pop ds
    471                                  
-   472                                  
-   473                                  data:
-   474                                  
-   475                                  
-   476                                  
-   477                                  ; rnd: db 0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,0,0,255,0,0,255,0,0,0,0,255,0,0,255,255,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,0,0,255,0,0,0,0,0,255,255,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,255,255,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,255,255,255,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,255,0,255,0,0,0,255,0,0,255,0,255,0,255,0,0,0,255,0,0,255,0,255,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,255,0,0,255,0,0,255,0,0,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,0,255,0,255,255,0,0,0,0,0,255,0,0,0,255,255,255,0,255,0,0,0,0,0,0,0,0,0,0,0,255,0,255,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,255,0,0,0,255,0,0,255,0,0,0,0,255,0,255,0,0,0,255,0,0,255,0,0,0,0,0,0,0,255,0,0,255,255,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,255,0,0,255,0,...
-   478                                  
-   479                                  ; times 368640-($-$$) db 0   ;fill up floppy
-   480                                  
+   472                                     
+   473                                  ; doublebuf:
+   474                                  ;     call initCells
+   475                                  ;     mov al,5        ; 0x0c00
+   476                                  ;     out 0x10,al
+   477                                  
+   478                                  ;     ; swap es,ds
+   479                                  ;     push ds
+   480                                  ;     push es
+   481                                  ;     pop ds
+   482                                  ;     pop es
+   483                                  
+   484                                  ;     call initCells2
+   485                                  
+   486                                  ;     mov al,4         ; 0x1c00
+   487                                  ;     out 0x10,al
+   488                                  
+   489                                  ;     ; swap es,ds
+   490                                  ;     push ds
+   491                                  ;     push es
+   492                                  ;     pop ds
+   493                                  ;     pop es
+   494                                  
+   495                                  ;     jmp doublebuf
+   496                                  
+   497                                  ;     hlt
+   498                                  
+   499                                  ; ; setDot: 
+   500                                  
+   501                                  ; countNeighbours:  ;bh=x, bl=y
+   502                                  ; ; .countNeighbours: ; input si, returns dl
+   503                                  ; ;     mov dl,0    ; n
+   504                                  ; ;     mov bx,0    ; bx 8..0  i<len(nb)
+   505                                  ; ; .1: mov bp,[cs:nb+bx]
+   506                                  ;     ret
+   507                                  
+   508                                  ; nextgen:
+   509                                  ;     ;calculate next generation
+   510                                  ;     xor si,si
+   511                                  ; .calc_cells:
+   512                                  ;     ; call countNeighbours
+   513                                  ;     ; int3
+   514                                  
+   515                                  ; .countNeighbours: ; input si, returns dl
+   516                                  ;     mov dl,0    ; n
+   517                                  ;     mov bx,0    ; bx 8..0  i<len(nb)
+   518                                  ; .1: mov bp,[cs:nb+bx]
+   519                                  ;     mov al,[es:si+bp]   ; read value of neighbouring pixel
+   520                                  ;     test al,128
+   521                                  ;     jz .2
+   522                                  ;     inc dl
+   523                                  ;     ; int3
+   524                                  ; .2: inc bx
+   525                                  ;     inc bx
+   526                                  ;     cmp bx,16
+   527                                  ;     jne .1
+   528                                  ; ;------
+   529                                  
+   530                                  
+   531                                  ;     mov al,0
+   532                                  
+   533                                  ;     cmp dl,2 
+   534                                  ;     je .j32  
+   535                                  ;     cmp dl,3
+   536                                  ;     jne .set      ; not 2 and not 3 neighbours
+   537                                  ; .j64: add al,32   ; 3 neighbours
+   538                                  ; .j32: add al,32   ; 2 neighbours
+   539                                  ; .set: 
+   540                                  
+   541                                  ;     ; mov al,dl
+   542                                  ;     ; mov cl,64
+   543                                  ;     ; mul cl
+   544                                  
+   545                                  ;     xor [es:si],al
+   546                                  ;     add si,4
+   547                                  ;     cmp si,WH*4
+   548                                  ;     jl .calc_cells
+   549                                  
+   550                                  ; ; hlt
+   551                                  
+   552                                  ; ;redraw cells
+   553                                  ;     ; mov cx,4*WH
+   554                                  ;     ; xor si,si
+   555                                  ;     xor di,di
+   556                                  ; .redraw_cells:
+   557                                  ;     mov al,[es:di]
+   558                                  ;     test al,128    ; alive?
+   559                                  ;     jz .dead
+   560                                  ; .alive:
+   561                                  ;     test al,64
+   562                                  ;     jz .survive
+   563                                  ;     test al,32
+   564                                  ;     jz .survive
+   565                                  ; .die:
+   566                                  ; .stay_dead:
+   567                                  ;     xor al,al
+   568                                  ;     jmp .copy
+   569                                  ; .dead:
+   570                                  ;     test al,64
+   571                                  ;     jz .stay_dead
+   572                                  ; .birth:
+   573                                  ; .survive:
+   574                                  ;     mov al,255
+   575                                  ; .copy:
+   576                                  
+   577                                  ;     mov [es:di+0],al
+   578                                  ;     mov [es:di+1],al
+   579                                  ;     mov [es:di+2],al
+   580                                  ;     mov [es:di+3],al
+   581                                  ;     add di,4
+   582                                  
+   583                                      
+   584                                  ;     cmp di,WH*4
+   585                                  ;     jl .redraw_cells
+   586                                  
+   587                                  
+   588                                  ;     jmp nextgen
+   589                                  
+   590                                     
+   591                                  
+   592                                      ; ret
+   593                                  
+   594                                      ;checkme
+   595                                  ; dw -4,4,-W*4,W*4,-W*4-4,-W*4+4,W*4-4,W*4+4
+   596                                  
+   597                                  ;nb: db -1,1,-W,W,-W-1,-W+1,W-1,W+1
+   598                                      
+   599                                  
+   600                                  ; initCells:
+   601                                  ;     xor di,di
+   602                                  ;     mov cx,WH   
+   603                                  ;     mov bp,4
+   604                                  ;     mov bx,10000  ; probability (signed)
+   605                                  ; .1: mov ax,25173  ; LCG Multiplier
+   606                                  ;     mul bp        ; DX:AX = LCG multiplier * seed
+   607                                  ;     add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
+   608                                  ;     mov bp,ax     ; Update seed = return value
+   609                                  ;     cmp ax,bx
+   610                                  ;     mov ax,255
+   611                                  ;     jg .2
+   612                                  ;     xor ax,ax
+   613                                  ; .2: push cx
+   614                                  ;     mov cx,4
+   615                                  ;     rep stosb
+   616                                  ;     pop cx
+   617                                  ;     loop .1
+   618                                  ;     ret
+   619                                   
+   620                                  
+   621                                  ;  initCells2:
+   622                                  ;     xor di,di
+   623                                  ;     mov cx,WH   
+   624                                  ;     mov bp,5
+   625                                  ;     mov bx,10000  ; probability (signed)
+   626                                  ; .1: mov ax,25173  ; LCG Multiplier
+   627                                  ;     mul bp        ; DX:AX = LCG multiplier * seed
+   628                                  ;     add ax,13849  ; Add LCG increment value ; Modulo 65536, AX = (multiplier*seed+increment) mod 65536
+   629                                  ;     mov bp,ax     ; Update seed = return value
+   630                                  ;     cmp ax,bx
+   631                                  ;     mov ax,255
+   632                                  ;     jg .2
+   633                                  ;     xor ax,ax
+   634                                  ; .2: push cx
+   635                                  ;     mov cx,4
+   636                                  ;     rep stosb
+   637                                  ;     pop cx
+   638                                  ;     loop .1
+   639                                  ;     ret
+   640                                  
+   641                                  
+   642                                  ; data:
+   643                                  
+   644                                  
+   645                                  
+   646                                  ; rnd: db 0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,0,0,255,0,0,255,0,0,0,0,255,0,0,255,255,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,0,0,255,0,0,0,0,0,255,255,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,255,255,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,255,255,255,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,255,0,0,0,255,0,0,0,0,255,0,255,0,0,0,255,0,0,255,0,255,0,255,0,0,0,255,0,0,255,0,255,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,0,0,0,0,255,0,0,0,0,255,0,0,255,0,0,255,0,0,255,0,0,255,255,0,0,0,0,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,0,255,0,255,255,0,0,0,0,0,255,0,0,0,255,255,255,0,255,0,0,0,0,0,0,0,0,0,0,0,255,0,255,0,255,0,0,0,0,0,255,0,0,0,0,255,0,0,0,0,255,0,0,0,255,0,0,255,0,0,0,0,255,0,255,0,0,0,255,0,0,255,0,0,0,0,0,0,0,255,0,0,255,255,0,0,255,0,0,0,255,0,0,0,0,0,0,0,0,0,0,255,0,0,0,255,0,0,0,0,0,0,255,0,0,255,0,...
+   647                                  
+   648                                  ; times 368640-($-$$) db 0   ;fill up floppy
+   649                                  
