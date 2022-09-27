@@ -1,0 +1,59 @@
+     1                                      cpu 8086
+     2                                      org 0x00
+     3                                  
+     4 00000000 EB41                        jmp setup
+     5                                  
+     6 00000002 53616E796F312E32            db 'Sanyo1.2'
+     7 0000000A 0002020100027000            db 0x00,0x02,0x02,0x01,0x00,0x02,0x70,0x00
+     8 00000012 D002FD0200090002            db 0xd0,0x02,0xfd,0x02,0x00,0x09,0x00,0x02
+     9 0000001A 00000000001C00              db 0x00,0x00,0x00,0x00,0x00,0x1c,0x00
+    10 00000021 FF2020202020202053-         db 0xff,'       Sanyo MBC-550/555        ',0x00
+    10 0000002A 616E796F204D42432D-
+    10 00000033 3535302F3535352020-
+    10 0000003C 20202020202000     
+    11                                  
+    12                                  RED   equ 0xf000
+    13                                  GREEN equ 0x0c00
+    14                                  BLUE  equ 0xf400
+    15                                  
+    16                                  setup:
+    17                                  
+    18 00000043 B8000C                      mov ax,GREEN
+    19 00000046 8EC0                        mov es,ax
+    20 00000048 B700                        mov bh,0     ; time
+    21                                  
+    22                                  draw:
+    23 0000004A 31FF                        xor di,di
+    24 0000004C B9A005                      mov cx,1440  ; cx=3600..0 (72x50=3600)
+    25                                  lp:
+    26 0000004F 89F8                        mov ax,di    ; ax=di=0..4*3600
+    27 00000051 D1E8                        shr ax,1     ; /=2
+    28 00000053 D1E8                        shr ax,1     ; /=2
+    29                                  
+    30 00000055 B348                        mov bl,72
+    31 00000057 F6F3                        div bl        ; ah=ax/72, al=ax%72
+    32                                  
+    33 00000059 00F8                        add al,bh     ; animate time
+    34 0000005B 00F8                        add al,bh     ; animate time
+    35                                  
+    36 0000005D 20E0                        and al,ah     ; x&y
+    37 0000005F B0FF                        mov al,255
+    38 00000061 B4FF                        mov ah,255
+    39                                      ; mov al,1+4+16+64
+    40                                      ; mov ah,al
+    41 00000063 7404                        jz dot
+    42 00000065 B055                        mov al,1+4+16+64
+    43 00000067 B4AA                        mov ah,2+8+32+128
+    44                                  dot:
+    45 00000069 AB<rep 2h>                  times 2 stosw
+    46 0000006B E2E2                        loop lp
+    47                                  
+    48 0000006D FEC7                        inc bh        ; time
+    49 0000006F EBD9                        jmp draw
+    50                                  
+    51                                  %assign num $-$$
+    52                                  %warning total num
+    52          ******************       warning: total 113 [-w+user]
+    53 00000071 00<rep 59F8Fh>          times 368640-num db 0                 ; fill up with zeros until file size=360k
+    54                                  
+    55                                  
