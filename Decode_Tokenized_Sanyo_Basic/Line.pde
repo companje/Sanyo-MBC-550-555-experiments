@@ -12,7 +12,7 @@ class Line {
       char b = 0;
 
       if (a==0x11) { //16bit hex constant
-        r+="{{HEX CONSTANT}}";
+        r+="&h" + (hex((byte)s.charAt(i+2),2) + hex((byte)s.charAt(i+1),2)).replaceFirst("^0+(?!$)", ""); //2x byte to hex. remove leading zero's      
       } else if (a==0x18) { //64bit double
         //r+=parse_float64(s.substring(i+1, i+9).toCharArray());
         r+="{{FLOAT64}}";
@@ -38,7 +38,7 @@ class Line {
         r+=a+"";
       } else {
         println("Unknown char: 0x" + hex(a, 2));
-        System.exit(0);
+        //System.exit(0);
       }
     }
   }

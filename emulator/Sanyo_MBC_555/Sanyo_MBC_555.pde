@@ -7,12 +7,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 int int3_counter = 0;
 Intel8086 cpu = new Intel8086();
 int greenOffset = 0x0c000;
-PApplet app=this;
+PApplet app=this;m
 PImage img;
 int cols=72;
 long timeStamp;
 File file;
-String filename="nuke.img";
+String filename="tixyboot.img";
 
 void setup() {
   file = new File(dataPath(filename));
@@ -111,7 +111,7 @@ void draw() {
   popMatrix();
 
   if (frameCount<20) {
-    saveImage();
+    //saveImage();
   }
 }
 

@@ -30,7 +30,7 @@ function setup() {
 }
 
 function draw() {
-  // background(50);
+  background(50);
 
   for (var i=0; i<1000; i++) {
     tick();

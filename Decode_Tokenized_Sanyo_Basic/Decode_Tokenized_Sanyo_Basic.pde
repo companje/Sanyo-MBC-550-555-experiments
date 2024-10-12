@@ -9,7 +9,7 @@ void setup() {
 
   loadFunctions();
 
-  bytes = loadBytes("/Users/rick/c/E.BAS"); //DEMO-tokenized.BAS");
+  bytes = loadBytes("WRITEASM.BAS"); //DEMO-tokenized.BAS");
 
   readShort(); //ignore first 2 bytes
 
@@ -20,6 +20,7 @@ void setup() {
       try {
         line.parse();
         out.println(line.nr + " "+line.r);
+        println(line.nr + " "+line.r);
         line = readLine(); //next one
       }
       catch (Exception e) {
