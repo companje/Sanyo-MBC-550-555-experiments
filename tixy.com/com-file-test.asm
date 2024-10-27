@@ -1,181 +1,378 @@
-; Rick Companje, April 10, 2022
-    cpu 8086
-    org 0x100
+org 0x100
+cpu 8086
 
-    cols equ 80
-    startpos equ 4*24 + 4*cols*8
+COLS  equ 72
+TOP   equ 9*4*COLS+20*4    ; row=9,col=20
+RED   equ 0xf0
+GREEN equ 0x0c
+BLUE  equ 0xf4
 
-    mov ax,0x0002
-    int 0x10
+effect_timeout equ 50      ; every 30 frames another effect
+isqrt_table    equ 1000    ; available location in code segment
 
-    mov ch,0  ; t
-forT:
-    mov cl,0  ; i
-    mov dl,0  ; x
-    mov dh,0  ; y           
-    mov di,startpos
+; using dx and bx registers as t,i,x,y variables
+%define t dh
+%define i dl
+%define x bh
+%define y bl
 
-    call clear
+jmp setup
 
-forY:
-    mov dl,0
-forX:
-    ; mov al,15
-    ; mov al,ch    ; t
-    ; and al,7     ; 
+; some parts of FAT12 table is included here to be able to mount the binary 
+; as a diskimage on Mac. This seems also to be needed for FlashFloppy to recognize
+; the diskimage. The Sanyo does not need the regular bootsector signature 0x55 0xAA
 
-    ; add al,dh
-    ; sub al,7
+fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
+    ; db ,
+    db fx0,fx1,fx2,fx3 ;,fx4,fx5,fx6,fx7 
+    %assign num 8-($-fx_table) 
+    times num db 0x20
+
+    ; db 'Sanyo1.2'
+    dw 512     ; Number of bytes per sector
+    db 2       ; Number of sectors per cluster
+    db 1       ; Number of FAT copies
+    dw 512     ; Number of root directory entries
+    db 112     ; Total number of sectors in the filesystem
+    db 0       ; Media descriptor type
+    dw 512     ; Number of sectors per FAT
+    dw 765     ; ? Number of sectors per track
+    ; db 0     ; ? Number of heads   (now first byte of sine table)
+    ; db 9     ; ? Number of heads  
+    ; dw 512   ; Number of hidden sectors
+    ; the the last 4 bytes of the FAT12 table are overwritten by the sine table
+
+sin_table: ;31 bytes, (input -15..15 index=0..31)
+    db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
+    db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
+    ; tried to mirror the second line of the sine table with code 
+    ; but would take a same of amount of bytes
+
+fx0: ; x
+    mov al,x
+    ret
+
+fx1: ; y-7
+    mov al,y
+    sub al,7
+    ret
+
+fx2: ; y+t
+    mov al,y
+    add al,t
+    ret
+
+fx3: ; y-t
+    mov al,y
+    sub al,x
+    ret
+
+; fx4: ; sin(x+y+t)
+;     mov al,x
+;     add al,y
+;     add al,t
+;     call sin
+;     ret
+
+fx5: ; bitmap_data[i+t]
+    push bx
+    mov al,i
+    add al,t
+    mov bx,bitmap_data
+    xlat
+    pop bx
+    ret
+
+; fx6: ; -8*(y-x)+t
+;     mov cl,-8
+;     mov al,y
+;     sub al,x
+;     mul cl
+;     call limit
+;     add al,t
+;     ret
+
+; fx7: ; sin(sqrt(x^2+y^2))-t)
+;     mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
+;     push bx
+;     mov bx,isqrt_table
+;     xlat
+;     pop bx
+;     sub al,t
+;     call sin
+;     ret
+
+; sin: ; sine function
+;     call wrap
+;     push bx
+;     add al,15 ; sin(-15) = sin_table[0]
+;     mov bx,sin_table
+;     xlat 
+;     pop bx
+;     ret
+
+; wrap: ; while (al>15) al-=15; while (al<-15) al+=15
+;     cmp al,15
+;     jg .sub16
+;     cmp al,-15
+;     jl .add16
+;     ret
+;   .sub16:
+;     sub al,31
+;     jmp wrap
+;   .add16:
+;     add al,31
+;     jmp wrap
+
+; limit: ; if (al>15) al=15; else if (al<-15) al=-15;
+;     cmp al,15
+;     jg .pos16
+;     cmp al,-15
+;     jnl .ret
+;     mov al,-15
+;     ret
+;   .pos16:
+;     mov al,15
+;   .ret:
+;     ret
+
+; calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
+;     push dx
+;     push di
+;     mov di,isqrt_table      ; di=isqrt_table[0]
+;     add di,dx               ; di+=i
+;     mov al,x
+;     inc al
+;     mul al                  ; x*x
+;     xchg ax,cx
+;     mov al,y
+;     inc al
+;     mul al                  ; y*y
+;     add ax,cx               ; + 
+;   .isqrt:  ; while((L+1)^2<=y) L++; return L
+;     xchg cx,ax              ; cx=y
+;     xor ax,ax               ; ax=L=0
+;   .loop:
+;     inc ax
+;     push ax
+;     mul ax
+;     cmp ax,cx
+;     pop ax
+;     jl .loop
+;     dec ax
+;   .end_isqrt:
+;     mov [di],al             ; store al
+;     pop di
+;     pop dx
+;     ret
+
+setup:                      ; starting point of code
+    ;no need to clear the screen. ROM BIOS does this already.
+
+    mov ax,GREEN << 8
+    push ax
+    pop es
+    mov di,0
+    mov cx,0x4000
+    mov al,255
+    rep stosb
+
+    hlt
+
+    ;set ds and es segments to cs
+    push cs
+    pop ds                  ; ds:si in code segment
+    push cs
+    pop es                  ; es:di in code segment
+
+    ; generate 16x8 bitmap data for 16 sizes of dots.
+    ; Because the dots are symmetric we can save at least
+    ; 97 bytes by mirroring the left-top corner 3 times
+
+    call generate_chars
+
+    xor bp,bp               ; start with effect 0
+    xor dx,dx               ; t=i=0 (clear time and index)
+
+draw:
+    mov di,TOP              ; left top corner to center tixy
+  .dot:
     push dx
-    ; shl dh,1
-    ; shl dl,1
-    ; sub dh,ch
-    ; add dl,ch
-    mov al,dh  ;  x*y+t
-    mul dl
-    add al,ch
+    mov al,i                ; al=index
+    xor ah,ah               ; ah=0
+    mov cl,16
+    div cl                  ; calculate x and y from i
+    xchg ax,bx              ; bh=x, bl=y
     pop dx
 
-    ; mov al,ch           ; t
-    ; times 2 shr al,1    ; /=2
-    ; and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
-    ; times 2 shl al,1    ; *=4
-    ; mov bx,sin
-    ; cs xlat                ; extract sin value
+    ;on the first frame calc sqrt table for every i
+    ;reusing the i,x,y loop here. this saves some bytes.
+    ; or t,t
+    ; jnz .call_effect
+    ; call calc_isqrt_xx_yy
+  
+  ; .call_effect:
+  ;   push bp                   ; bp contains current effect number
+  ;   mov bp, [fx_table + bp]   ; overwrite bp with address of effect
+  ;   and bp,0xff               ; reduce address to single byte
+  ;   call bp                   ; call effect, al contains result
+  ;   pop bp                    ; restore effect number
+    mov al,15
 
-    call draw_dot_color2
-    inc dl              ; x
-    inc cl              ; i
-    add di,8
-    cmp dl,16
-    jl forX
-    mov dl,0
-    add di,(cols-16)*8    ; skip remaining cols
-    inc dh
-    cmp dh,16
-    jl forY
-    inc ch              ; t
-    ; jnc forT
-    cmp ch,50
-    jb forT
-    int 0x20
+  ; .draw_char_color:
+  ;   cmp al,0
+  ;   pushf
+  ;   jge .red
+  ;   neg al
 
-    ; jmp top
+  .red:
+    mov cx,RED << 8         ; ch=0xf0, cl=0
+    call draw_char
+    ; popf
+    jge .green_blue
+    xor al,al               ; if negative then just red so clear (al=0) green and blue
 
-; fx0:
-;     mov al,ch           ; t
-;     times 2 shr al,1    ; /=2
-;     and al,15           ; wrap (werkt dit ook voor negatieve getallen?)
-;     times 2 shl al,1    ; *=4
-;     mov bx,sin
-;     cs xlat                ; extract sin value
-;     ret
-clear:
-    push di
-    push bx
-    push cx
-    mov ax,0
-    mov bx,0xf400
-    mov es,bx
-    mov cx,10240/2
-    rep stosw
-    mov bx,0x3c00
-    mov es,bx
-    mov cx,10240/2
-    rep stosw
-    pop cx
-    pop bx
-    pop di
-    ret
+  .green_blue:
+    mov ch,GREEN
+    call draw_char
+    mov ch,BLUE
+    call draw_char
 
-draw_dot_color2:
-    mov bx,0xf400
-    or al,al
-    jns .dr
-    mov bx,0x3c00
-.dr call draw_dot
-    ret
+  .next:  
+    inc i                   ; i++
+    add di,8         
+    cmp x,15
+    jl .dot                  ; next col
+    add di,4*COLS       
+    add di,160
+    cmp y,15
+    jl .dot                  ; next line
+    inc t
+    cmp t,effect_timeout
+    jb draw                 ; next frame
+    inc bp                  ; inc effect
+    xor t,t                 ; reset time
+    cmp bp,3
+    jl draw                 ; next effect
+    xor bp,bp               ; reset effect
+    jmp draw
 
-draw_dot_color:
-    mov bx,0xf000    ; red
-    call draw_dot
-    or al,al
-    jns .draw_blue_green  ; check sign bit for negative number
-    mov al,0         ; clear dot on blue and green channel
-.draw_blue_green:
-    neg al
-    mov bx,0xf400    ; blue
-    call draw_dot
-    mov bx,0x3c00    ; green
-    call draw_dot
-    ret
-
-draw_dot:
-    push di
+draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destroys cx
     push ax
+    push di
+
     push cx
-    mov ah,al    
-    or al,al
-    jns .positive
-    neg al
-.positive:
-    mov es,bx    ; vram
-    and al,15    ; limit to 15 (4 bits)
-    mov cl,8
-    mul cl    ; ax=al*8
+    pop es                  ; es=bp (color channel now cx)
+    push cs
+    pop ds                  ; ds=cs
+
+    mov cx,4
+    push cx
+    push cx
+
+    and al,15               ; limit al to 15
+    cbw                     ; ah=0
+   
+    shl al,cl               ; al*=16
+    add ax,bitmap_data
+    xchg si,ax              ; si = source address of rendered bitmap char
+
+    pop cx                  ;cx=4
+    rep movsw
+    add di,4*COLS-8
+    pop cx                  ;cx=4
+    rep movsw
+
+    pop di                    
+    pop ax
+    ret
+
+generate_chars:
+    mov di,bitmap_data      ; dest address of render data
+    xor bh,bh
+  
+  .render_char:
+    xor ah,ah
+    mov al,bh
+    mov cx,4                ; cl is also used below
+    mul cl
     mov si,ax
     add si,img
-    times 4 cs movsw
-    add di,(4*cols)-8
-    mov si,ax
-    add si,img+128
-    times 4 cs movsw
-    pop cx
-    pop ax
-    pop di
+  
+  .render_char_part:        ; input requirement at first time cl=4
+    lodsb                   ; use lodsb instead of movsb to keep a copy in al
+    stosb                   ; draw in left top nibble
+    push bx                 ; save cur x and y
+    push cx                 ; cur loop counter (4,3,2,1)
+    push cx
+    pop bx                  ; bx = counter
+    shl bx,1                ; bx *= 2
+    push bx                 ; save counter*2 for right bottom
+    cmp bx,2                ; skip top line of left bottom nibble
+    je .flip_bits
+    mov [di+bx+1],al        ; draw in left bottom starting at line 3 instead of 4
+
+  .flip_bits:                 ; flips all bits dropping highest bit
+    mov cl,8                ; 8 bits to flip
+    xor ah,ah
+  
+  .flip_bit:
+    mov bx,0x8001           ; bl=1, bh=128  bl doubles, bh halves
+    shl bl,cl
+    test al,bl
+    jz .next_bit
+    dec cx
+    shr bh,cl
+    or ah,bh
+    inc cx
+
+  .next_bit:
+    loop .flip_bit          ; loop 8 bits for flipping
+    mov [di+3],ah           ; draw in right top nibble
+    pop bx                  ; bx = counter*2
+    cmp bx,2                ; skip top line of right bottom nibble
+    je .flip_done
+    mov [di+bx+5],ah        ; draw in right bottom starting at line 3 instead of 4
+
+  .flip_done:
+    pop cx                  ; restore loop counter
+    pop bx                  ; restore x and y
+    loop .render_char_part
+
+  .clear_bottom_line:
+    add di,7
+    xor al,al
+    stosb                   ; right bottom
+    add di,3
+    stosb                   ; left bottom
+
+  .next_char:
+    inc bh                  ; next char
+    cmp bh,16
+    jl .render_char
     ret
 
-; table: db fx0
-
-; sin:
-;     db 0x00,0x01,0x03,0x04,0x06,0x07,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0e,0x0f,0x0f,0x0f
-;     db 0x0f,0x0f,0x0f,0x0f,0x0e,0x0e,0x0d,0x0c,0x0b,0x0a,0x09,0x07,0x06,0x04,0x03,0x01
-;     db 0x00,0xff,0xfd,0xfc,0xfa,0xf9,0xf7,0xf6,0xf5,0xf4,0xf3,0xf2,0xf2,0xf1,0xf1,0xf1
-;     db 0xf1,0xf1,0xf1,0xf1,0xf2,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf9,0xfa,0xfc,0xfd,0xff
-
 img:
-    db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80
-    db 0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xc0,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0xc0
-    db 0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xe0,0x00,0x00,0x00,0x03,0x00,0x00,0x80,0xe0
-    db 0x00,0x00,0x03,0x07,0x00,0x00,0xe0,0xf0,0x00,0x00,0x03,0x07,0x00,0x00,0xe0,0xf0
-    db 0x00,0x00,0x07,0x0f,0x00,0x80,0xf0,0xf8,0x00,0x00,0x07,0x0f,0x00,0x80,0xf0,0xf8
-    db 0x00,0x03,0x0f,0x1f,0x00,0xe0,0xf8,0xfc,0x00,0x07,0x1f,0x1f,0x00,0xf0,0xfc,0xfc
-    db 0x00,0x0f,0x1f,0x3f,0x80,0xf8,0xfc,0xfe,0x00,0x0f,0x3f,0x3f,0x80,0xf8,0xfe,0xfe
-    db 0x07,0x1f,0x3f,0x7f,0xf0,0xfc,0xfe,0xff,0x07,0x3f,0x7f,0x7f,0xf0,0xfe,0xff,0xff
-    db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-    db 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
-    db 0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x80,0x00,0x00,0x00
-    db 0x03,0x00,0x00,0x00,0xe0,0x00,0x00,0x00,0x03,0x00,0x00,0x00,0xe0,0x00,0x00,0x00
-    db 0x07,0x00,0x00,0x00,0xf0,0x80,0x00,0x00,0x07,0x00,0x00,0x00,0xf0,0x80,0x00,0x00
-    db 0x0f,0x03,0x00,0x00,0xf8,0xe0,0x00,0x00,0x1f,0x07,0x00,0x00,0xfc,0xf0,0x00,0x00
-    db 0x1f,0x0f,0x00,0x00,0xfc,0xf8,0x80,0x00,0x3f,0x0f,0x00,0x00,0xfe,0xf8,0x80,0x00
-    db 0x3f,0x1f,0x07,0x00,0xfe,0xfc,0xf0,0x00,0x7f,0x3f,0x07,0x00,0xff,0xfe,0xf0,0x00
+    db 0,0,0,0
+    db 0,0,0,1
+    db 0,0,0,3
+    db 0,0,1,3
+    db 0,0,3,7
+    db 0,0,7,15
+    db 0,3,15,31
+    db 0,7,31,63
+    db 1,15,63,63
+    db 3,31,63,63
+    db 7,31,63,127
+    db 7,31,127,127
+    db 7,63,127,127
+    db 15,63,127,127
+    db 15,63,127,255
+    db 31,127,255,255
 
-; clearScreen:
-;     cld
-;     mov ax,0x5555  ; bitmap pattern
-;     mov bp,0xf000  ; red + blue
-;     mov es,bp
-;     mov di,0
-;     mov cx,0x4000
-;     rep stosw
-;     mov bp,0x0c00  ; green
-;     mov es,bp
-;     mov di,0
-;     mov cx,0x2000
-;     rep stosw
-;     ret
+; %assign num $-$$
+; %warning total num
 
-; ; %include "lib.asm"
-; incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
-
+bitmap_data:                          ; destination for 128 bytes rendered bitmap data
+    
+; times 368640-num db 0                 ; fill up with zeros until file size=360k
