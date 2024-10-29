@@ -7,19 +7,20 @@ import java.nio.file.attribute.BasicFileAttributes;
 int int3_counter = 0;
 Intel8086 cpu = new Intel8086();
 int greenOffset = 0x0c000;
-PApplet app=this;m
+PApplet app=this;
 PImage img;
 int cols=72;
 long timeStamp;
 File file;
-String filename="tixyboot.img";
+String filename="bootpic.img";
+
+void settings() {
+  size(640, 400);
+  noSmooth();
+}
 
 void setup() {
   file = new File(dataPath(filename));
-
-  noSmooth();
-  size(576, 400,P3D);
-
   frameRate(60);
   textFont(loadFont("CourierNewPSMT-18.vlw"));
   surface.setLocation(755, 0);
@@ -41,6 +42,8 @@ void reload() {
   cpu.ss = 0x0be4;
   cpu.sp = 0x0000;
   cpu.halt = false;
+
+  cpu.load_max(0xFE000, loadBytes("MBC-555.ROM"), 8192);
 }
 
 void draw() {
@@ -53,7 +56,7 @@ void draw() {
     for (int i=0; i<10000 && cpu.tick(); i++);
   }
   catch (Exception e) {
-    println("exception",e);
+    println("exception", e);
   }
 
   pushMatrix();
@@ -74,11 +77,13 @@ void draw() {
   float hscale=1; //1.3; //2; //1.5;
   float vscale=1; //1.3; //2; //1.5;
   float ratio=1; //1.2; //1.7;
-  //scale(3);
-  scale(hscale, vscale);
-  image(img, 0, 0, width, height); //width*scale*ratio, height*scale); 
+
+  //img.save("img.png");
+
+  //scale(hscale, vscale);
+  image(img, 0, 0, width*5, height*5) ;//, width, height); //width*scale*ratio, height*scale);
   popMatrix();
-  
+
   //vlines raster
   //for (int y=0; y<height; y+=height/200.) {
   //  stroke(0, 150);
@@ -117,9 +122,9 @@ void draw() {
 
 void text2(String s, float x, float y) {
   fill(255);
-  rect(x-5,y-18,textWidth(s)+13,24);
+  rect(x-5, y-18, textWidth(s)+13, 24);
   fill(0);
-  text(s,x,y);  
+  text(s, x, y);
 }
 
 void mousePressed() {
