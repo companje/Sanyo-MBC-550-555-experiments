@@ -1,7 +1,7 @@
 ArrayList<String> filenames = new ArrayList();
 
 void setup() {
-  size(640, 400);
+  size(640, 200);
   frameRate(30);
   background(0);
   noStroke();
@@ -16,15 +16,17 @@ void setup() {
 
 void draw() {
   //String filename = filenames.get(int(float(mouseX)/width*filenames.size()));
-  String filename = "eleven.jpg";
+  String filename = "bandit3.png";
   PImage img = loadImage(filename);
   //img.filter(GRAY);
-  img.resize(width, 200);
-  img = applyDithering(img, 1);
-  savePIC(img, "data/output/"+filename.replace(".jpg", ".pic"));
+  //img.resize(width, 200);
+  //img = applyDithering(img, 1);
+  image(img,0,0);
+  //img = get();
+  savePIC(img, "data/output/"+filename.replace(".jpg", "").replace(".png","")+".pic");
   PImage img2 = createImage(width, height, RGB);
-  scaleInto(img, img2);
-  image(img2, 0, 0);
+  //scaleInto(img, img2);
+  //image(img2, 0, 0);
 }
 
 void savePIC(PImage img, String filename) {

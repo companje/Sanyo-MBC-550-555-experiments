@@ -1,151 +1,154 @@
      1                                  org 0
-     2                                  ; cpu 8086
-     3                                  CPU 186
+     2                                  cpu 8086
+     3                                  ; CPU 186
      4                                  
      5                                  RED   equ 0xf000
      6                                  GREEN equ 0x0c00
      7                                  BLUE  equ 0xf400
      8                                  COLS  equ 72
      9                                  
-    10                                  FONT_BASE equ 0x1000   ; Startadres van de font-tabel in ROM
-    11                                  ; CHAR_SIZE equ 8        ; Aantal bytes per karakter in de font-tabel
-    12                                  ; ROW_OFFSET equ 4*COLS-4  ; Offset naar de volgende rij voor de onderste helft van een karakter
-    13                                  
-    14                                  LINES_PER_ROW equ 4
-    15                                  COLS_PER_ROW equ 72
-    16                                  
-    17 00000000 EB1B                    jmp setup
-    18                                  
-    19 00000002 53616E796F312E3202-     db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
-    19 0000000B 000100000270000000-
-    19 00000014 0200FD020009000200 
-    20                                  
-    21                                  setup:
-    22 0000001D E83400                    call blue_bg
-    23                                  
-    24                                    ; call rom_to_vram
-    25                                  
-    26                                    ; hlt
-    27                                    
-    28                                    ; mov bh,10
-    29                                    ; mov bl,30
-    30                                    ; call draw_char_at
-    31                                    ; call calculate_di
-    32                                  
-    33                                    ; mov ax,GREEN           ; Laad het videosegment in ES
-    34                                    ; mov es,ax 
-    35                                  
-    36                                    ; mov di,0
-    37                                    ; mov cx,0x1000
-    38                                    ; mov al,255
-    39                                    ; rep stosb
-    40                                  
-    41 00000020 B8000C                    mov ax,GREEN           ; Laad het videosegment in ES
-    42 00000023 8EC0                      mov es,ax
-    43 00000025 B80100                    mov ax,1
-    44 00000028 B90400                    mov cx,4
-    45 0000002B F7E1                      mul cx 
-    46 0000002D 89C7                      mov di,ax
-    47                                  
+    10                                  FONT equ 0xFF00
+    11                                  ; FONT_BASE equ 0x1000   ; Startadres van de font-tabel in ROM
+    12                                  ; CHAR_SIZE equ 8        ; Aantal bytes per karakter in de font-tabel
+    13                                  ; ROW_OFFSET equ 4*COLS-4  ; Offset naar de volgende rij voor de onderste helft van een karakter
+    14                                  
+    15                                  LINES_PER_ROW equ 4
+    16                                  COLS_PER_ROW equ 72
+    17                                  
+    18 00000000 EB1B                    jmp setup
+    19                                  
+    20 00000002 53616E796F312E3202-     db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
+    20 0000000B 000100000270000000-
+    20 00000014 0200FD020009000200 
+    21                                  
+    22                                  setup:
+    23                                    ; call blue_bg
+    24                                  
+    25                                    ; call rom_to_vram
+    26                                  
+    27                                    ; hlt
+    28                                    
+    29                                    ; mov bh,10
+    30                                    ; mov bl,30
+    31                                    ; call draw_char_at
+    32                                    ; call calculate_di
+    33                                  
+    34                                    ; mov ax,GREEN           ; Laad het videosegment in ES
+    35                                    ; mov es,ax 
+    36                                  
+    37                                    ; mov di,0
+    38                                    ; mov cx,0x1000
+    39                                    ; mov al,255
+    40                                    ; rep stosb
+    41                                  
+    42 0000001D B8000C                    mov ax,GREEN           ; Laad het videosegment in ES
+    43 00000020 8EC0                      mov es,ax
+    44 00000022 B80100                    mov ax,1
+    45 00000025 B90400                    mov cx,4
+    46 00000028 F7E1                      mul cx 
+    47 0000002A 89C7                      mov di,ax
     48                                  
-    49 0000002F B040                      mov al,64
-    50 00000031 E80100                    call draw_char
-    51                                    
-    52                                  draw:
-    53 00000034 F4                        hlt
-    54                                  
-    55                                  draw_char:    ; bh=row, bl=col, al=char
-    56 00000035 50                        push ax
-    57 00000036 B800FF                    mov ax, 0xFF00       ; Laad het segmentadres van de ROM in DS
-    58 00000039 8ED8                      mov ds, ax      
-    59 0000003B 58                        pop ax
-    60 0000003C 30E4                      xor ah,ah
-    61                                  
-    62                                    ; mov ax,2
-    63 0000003E B90800                    mov cx,8
-    64 00000041 F7E1                      mul cx
-    65 00000043 89C6                      mov si, ax ;ax ;ax          ; Offset voor karakter 0x01 in de font-tabel (0x01 * 8 bytes = 0x08)
-    66                                  
-    67                                    ; mov di, 0  should be set in advance
-    68 00000045 B90400                    mov cx, 4            ; Aantal bytes voor de bovenste helft
-    69 00000048 F3A4                      rep movsb            ; Kopieer de eerste 4 bytes van DS:SI naar ES:DI
-    70                                    
-    71 0000004A 81C71C01                  add di, 4*72-4         ; Zet DI naar de positie voor de onderste helft (4 rijen verder)
-    72 0000004E B90400                    mov cx, 4            ; Aantal bytes voor de onderste helft
-    73 00000051 F3A4                      rep movsb            ; Kopieer de volgende 4 bytes van DS:SI naar ES:DI
-    74 00000053 C3                        ret
-    75                                  
-    76                                  ; calculate_di:
-    77                                      ; Bereken BH * LINES_PER_ROW * COLS_PER_ROW
-    78                                      ; mov al, bh               ; Zet de waarde van BH in AL
-    79                                      ; cbw                      ; Zet AL naar AX (breid uit met tekenextensie)
-    80                                      ; mov cx, LINES_PER_ROW    ; Zet LINES_PER_ROW in CX
-    81                                      ; imul cx                  ; AX = BH * LINES_PER_ROW
-    82                                  
-    83                                      ; mov cx, COLS_PER_ROW     ; Zet COLS_PER_ROW in CX
-    84                                      ; imul cx                  ; AX = AX * COLS_PER_ROW
-    85                                      ; mov di, ax               ; Zet het resultaat in DI
-    86                                  
-    87                                      ; ; Bereken BL * COLS_PER_ROW en tel het op bij DI
-    88                                      ; mov al, bl               ; Zet kolomwaarde (BL) in AL
-    89                                      ; cbw                      ; Zet AL naar AX (tekenextensie)
-    90                                      ; imul cx                  ; AX = BL * COLS_PER_ROW
-    91                                      ; add di, ax               ; DI = DI + AX (het uiteindelijke offset)
-    92                                  
-    93                                      ; mov ax,RED
-    94                                      ; mov es,ax
-    95                                      ; ret                      ; Keer terug, DI bevat nu het berekende adres
-    96                                  
-    97                                  ; set_pos:
-    98                                  ;   mov ax, 0xFE00           ; Laad het segmentadres van de ROM in DS
-    99                                  ;   mov ds, ax               ; DS = ROM-segment
-   100                                  ;   mov ax, 0x0C00           ; Laad het videosegment in ES
-   101                                  ;   mov es, ax               ; ES = video-segment
-   102                                  ;   mov di, 0                ; Zet DI op het startadres in videogeheugen
-   103                                  
-   104                                  
-   105                                  ; draw_char_at:
-   106                                  ;   mov ax, 0xFF00       ; Laad het segmentadres van de ROM in DS
-   107                                  ;   mov ds, ax           ; DS = ROM-segment
-   108                                  ;   mov ax, 0x0C00       ; Laad het videosegment in ES
-   109                                  ;   mov es, ax           ; ES = video-segment
-   110                                  ;   mov si, 0       ; Offset voor karakter 0x01 in de font-tabel (0x01 * 8 bytes = 0x08)
-   111                                    
-   112                                  ;   ; add si, ax
-   113                                  
-   114                                  
-   115                                  ;   mov di, 0             ; Zet DI op het startadres in videogeheugen voor de bovenste helft
-   116                                  ;   mov cx, 4            ; Aantal bytes voor de bovenste helft
-   117                                  ;   rep movsb            ; Kopieer de eerste 4 bytes van DS:SI naar ES:DI
-   118                                  ;   add di, 4*COLS-4         ; Zet DI naar de positie voor de onderste helft (4 rijen verder)
-   119                                  ;   mov cx, 4            ; Aantal bytes voor de onderste helft
-   120                                  ;   rep movsb            ; Kopieer de volgende 4 bytes van DS:SI naar ES:DI
-   121                                  ;   ret
-   122                                  
-   123                                  blue_bg:
-   124 00000054 B800F0                    mov ax,RED
-   125 00000057 50                        push ax
-   126 00000058 07                        pop es
-   127 00000059 BF0000                    mov di,0
-   128 0000005C B90040                    mov cx,0x4000
-   129 0000005F B0FF                      mov al,255
-   130 00000061 F3AA                      rep stosb
-   131 00000063 C3                        ret
-   132                                  
-   133                                  rom_to_vram:
-   134 00000064 B800FE                    mov ax, 0xFE00
-   135 00000067 8ED8                      mov ds, ax       ; DS source segment
-   136 00000069 B8000C                    mov ax, 0x0C00
-   137 0000006C 8EC0                      mov es, ax       ; ES dest segment
-   138 0000006E BE0010                    mov si, 0x1000   ; FONT offset in ROM
-   139 00000071 BF0000                    mov di, 0        ; dest index
-   140 00000074 B90040                    mov cx, 0x4000   ; 8000 bytes (0x4000 in hexadecimal)
-   141 00000077 F3A4                      rep movsb        ; Kopieer CX bytes van DS:SI naar ES:DI
-   142 00000079 C3                        ret
-   143                                  
-   144                                  img: 
-   145 0000007A <bin BB84h>               incbin "zwembad.pic"
+    49                                  
+    50 0000002C B041                      mov al,65
+    51 0000002E E80600                    call draw_char
+    52                                    
+    53 00000031 B042                      mov al,66
+    54 00000033 E80100                    call draw_char
+    55                                  
+    56                                  draw:
+    57 00000036 F4                        hlt
+    58                                  
+    59                                  draw_string:
+    60                                  
+    61                                  draw_char:    ; bh=row, bl=col, al=char
+    62 00000037 B900FF                    mov cx,FONT
+    63 0000003A 8ED9                      mov ds,cx      
+    64 0000003C 30E4                      xor ah,ah
+    65                                  
+    66 0000003E B90800                    mov cx,8
+    67 00000041 F7E1                      mul cx
+    68 00000043 96                        xchg si,ax
+    69                                    ; mov cx,4
+    70 00000044 D1E9                      shr cx,1
+    71 00000046 51                        push cx
+    72 00000047 F3A4                      rep movsb
+    73 00000049 81C71C01                  add di,4*COLS-4
+    74 0000004D 59                        pop cx
+    75 0000004E F3A4                      rep movsb
+    76 00000050 81EF2001                  sub di, 4*COLS
+    77 00000054 C3                        ret
+    78                                  
+    79                                  ; calculate_di:
+    80                                      ; Bereken BH * LINES_PER_ROW * COLS_PER_ROW
+    81                                      ; mov al, bh               ; Zet de waarde van BH in AL
+    82                                      ; cbw                      ; Zet AL naar AX (breid uit met tekenextensie)
+    83                                      ; mov cx, LINES_PER_ROW    ; Zet LINES_PER_ROW in CX
+    84                                      ; imul cx                  ; AX = BH * LINES_PER_ROW
+    85                                  
+    86                                      ; mov cx, COLS_PER_ROW     ; Zet COLS_PER_ROW in CX
+    87                                      ; imul cx                  ; AX = AX * COLS_PER_ROW
+    88                                      ; mov di, ax               ; Zet het resultaat in DI
+    89                                  
+    90                                      ; ; Bereken BL * COLS_PER_ROW en tel het op bij DI
+    91                                      ; mov al, bl               ; Zet kolomwaarde (BL) in AL
+    92                                      ; cbw                      ; Zet AL naar AX (tekenextensie)
+    93                                      ; imul cx                  ; AX = BL * COLS_PER_ROW
+    94                                      ; add di, ax               ; DI = DI + AX (het uiteindelijke offset)
+    95                                  
+    96                                      ; mov ax,RED
+    97                                      ; mov es,ax
+    98                                      ; ret                      ; Keer terug, DI bevat nu het berekende adres
+    99                                  
+   100                                  ; set_pos:
+   101                                  ;   mov ax, 0xFE00           ; Laad het segmentadres van de ROM in DS
+   102                                  ;   mov ds, ax               ; DS = ROM-segment
+   103                                  ;   mov ax, 0x0C00           ; Laad het videosegment in ES
+   104                                  ;   mov es, ax               ; ES = video-segment
+   105                                  ;   mov di, 0                ; Zet DI op het startadres in videogeheugen
+   106                                  
+   107                                  
+   108                                  ; draw_char_at:
+   109                                  ;   mov ax, 0xFF00       ; Laad het segmentadres van de ROM in DS
+   110                                  ;   mov ds, ax           ; DS = ROM-segment
+   111                                  ;   mov ax, 0x0C00       ; Laad het videosegment in ES
+   112                                  ;   mov es, ax           ; ES = video-segment
+   113                                  ;   mov si, 0       ; Offset voor karakter 0x01 in de font-tabel (0x01 * 8 bytes = 0x08)
+   114                                    
+   115                                  ;   ; add si, ax
+   116                                  
+   117                                  
+   118                                  ;   mov di, 0             ; Zet DI op het startadres in videogeheugen voor de bovenste helft
+   119                                  ;   mov cx, 4            ; Aantal bytes voor de bovenste helft
+   120                                  ;   rep movsb            ; Kopieer de eerste 4 bytes van DS:SI naar ES:DI
+   121                                  ;   add di, 4*COLS-4         ; Zet DI naar de positie voor de onderste helft (4 rijen verder)
+   122                                  ;   mov cx, 4            ; Aantal bytes voor de onderste helft
+   123                                  ;   rep movsb            ; Kopieer de volgende 4 bytes van DS:SI naar ES:DI
+   124                                  ;   ret
+   125                                  
+   126                                  blue_bg:
+   127 00000055 B800F4                    mov ax,BLUE
+   128 00000058 50                        push ax
+   129 00000059 07                        pop es
+   130 0000005A BF0000                    mov di,0
+   131 0000005D B90040                    mov cx,0x4000
+   132 00000060 B0FF                      mov al,255
+   133 00000062 F3AA                      rep stosb
+   134 00000064 C3                        ret
+   135                                  
+   136                                  rom_to_vram:
+   137 00000065 B800FE                    mov ax, 0xFE00
+   138 00000068 8ED8                      mov ds, ax       ; DS source segment
+   139 0000006A B8000C                    mov ax, 0x0C00
+   140 0000006D 8EC0                      mov es, ax       ; ES dest segment
+   141 0000006F BE0010                    mov si, 0x1000   ; FONT offset in ROM
+   142 00000072 BF0000                    mov di, 0        ; dest index
+   143 00000075 B90040                    mov cx, 0x4000   ; 8000 bytes (0x4000 in hexadecimal)
+   144 00000078 F3A4                      rep movsb        ; Kopieer CX bytes van DS:SI naar ES:DI
+   145 0000007A C3                        ret
    146                                  
-   147                                  %assign num $-$$
-   148                                  
-   149 0000BBFE 00<rep 4E402h>          times 368640-num db  0
+   147                                  img: 
+   148 0000007B <bin BB84h>               incbin "zwembad.pic"
+   149                                  
+   150                                  %assign num $-$$
+   151                                  
+   152 0000BBFF 00<rep 4E401h>          times 368640-num db  0
