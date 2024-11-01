@@ -80,8 +80,9 @@ void draw() {
 
   //img.save("img.png");
 
+  scale(2);
   //scale(hscale, vscale);
-  image(img, 0, 0, width*5, height*5) ;//, width, height); //width*scale*ratio, height*scale);
+  image(img, 0, 0, width, height) ;//, width, height); //width*scale*ratio, height*scale);
   popMatrix();
 
   //vlines raster

@@ -11,7 +11,7 @@ color[] palette = {
 };
 
 void setup() {
-  img = loadImage("zwembad.jpg"); //IMG_0547.jpg"); //eleven3.jpg");
+  img = loadImage("huisjes.jpg"); //IMG_0547.jpg"); //eleven3.jpg");
   size(640, 200);
   img.resize(width, height);
   //posterizeImage(8);
@@ -19,7 +19,7 @@ void setup() {
   //removeIsolatedPixels(7);
   //blendEdgePixels();
   image(img, 0, 0);
-  savePIC(img, "zwembad.pic");
+  savePIC(img, "huisjes.pic");
   noLoop();
 }
 

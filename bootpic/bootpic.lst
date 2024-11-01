@@ -1,154 +1,359 @@
-     1                                  org 0
-     2                                  cpu 8086
-     3                                  ; CPU 186
+     1                                  ; DIT WERKT, MAAR ONDERSTAANDE OOK
+     2                                  ; org 0
+     3                                  ; cpu 8086
      4                                  
-     5                                  RED   equ 0xf000
-     6                                  GREEN equ 0x0c00
-     7                                  BLUE  equ 0xf400
-     8                                  COLS  equ 72
-     9                                  
-    10                                  FONT equ 0xFF00
-    11                                  ; FONT_BASE equ 0x1000   ; Startadres van de font-tabel in ROM
-    12                                  ; CHAR_SIZE equ 8        ; Aantal bytes per karakter in de font-tabel
-    13                                  ; ROW_OFFSET equ 4*COLS-4  ; Offset naar de volgende rij voor de onderste helft van een karakter
-    14                                  
-    15                                  LINES_PER_ROW equ 4
-    16                                  COLS_PER_ROW equ 72
-    17                                  
-    18 00000000 EB1B                    jmp setup
-    19                                  
-    20 00000002 53616E796F312E3202-     db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
-    20 0000000B 000100000270000000-
-    20 00000014 0200FD020009000200 
-    21                                  
-    22                                  setup:
-    23                                    ; call blue_bg
-    24                                  
-    25                                    ; call rom_to_vram
-    26                                  
-    27                                    ; hlt
-    28                                    
-    29                                    ; mov bh,10
-    30                                    ; mov bl,30
-    31                                    ; call draw_char_at
-    32                                    ; call calculate_di
+     5                                  ; begin: 
+     6                                  ; jmp setup
+     7                                  
+     8                                  ; db "Sanyo'24"
+     9                                  ; dw 512   ; Number of bytes per sector
+    10                                  ; db 2     ; Number of sectors per cluster
+    11                                  ; db 1     ; Number of FAT copies
+    12                                  ; dw 512   ; Number of root directory entries
+    13                                  ; db 112   ; Total number of sectors in the filesystem
+    14                                  ; db 0     ; Media descriptor type
+    15                                  ; dw 512   ; Number of sectors per FAT
+    16                                  ; dw 765   ; ? Number of sectors per track
+    17                                  ; db 0     ; ? Number of heads   (now first byte of sine table)
+    18                                  ; db 9     ; ? Number of heads  
+    19                                  ; dw 512   ; Number of hidden sectors
+    20                                  
+    21                                  ; times 150 db 0x20
+    22                                  
+    23                                  ; setup:
+    24                                  ;   hlt
+    25                                  
+    26                                  ; %assign num $-$$
+    27                                  ; %warning total num
+    28                                  
+    29                                  ; times 368640-num db 0                 ; fill up with zeros until file size=360k
+    30                                  
+    31                                  
+    32                                  
     33                                  
-    34                                    ; mov ax,GREEN           ; Laad het videosegment in ES
-    35                                    ; mov es,ax 
+    34                                  
+    35                                  
     36                                  
-    37                                    ; mov di,0
-    38                                    ; mov cx,0x1000
-    39                                    ; mov al,255
-    40                                    ; rep stosb
-    41                                  
-    42 0000001D B8000C                    mov ax,GREEN           ; Laad het videosegment in ES
-    43 00000020 8EC0                      mov es,ax
-    44 00000022 B80100                    mov ax,1
-    45 00000025 B90400                    mov cx,4
-    46 00000028 F7E1                      mul cx 
-    47 0000002A 89C7                      mov di,ax
-    48                                  
-    49                                  
-    50 0000002C B041                      mov al,65
-    51 0000002E E80600                    call draw_char
-    52                                    
-    53 00000031 B042                      mov al,66
-    54 00000033 E80100                    call draw_char
+    37                                  ;WARNING:  This code is a convoluted hack.  You have been warned.
+    38                                  
+    39 00000000 EB1E                    Begin:  jmp short Startup
+    40 00000002 00                      ZBL:  db 0
+    41 00000003 504C5A5741495400        Label:  db "PLZWAIT",0  ;OEM Name
+    42 0000000B 0002                    BPS:  dw 512    ;Bytes per Sector
+    43 0000000D 02                      SPC:  db 2    ;Sectors per Cluster
+    44 0000000E 0100                    ResSec: dw 1    ;Reserved Sectors
+    45 00000010 02                      NumFAT: db 2    ;Number of FATs
+    46 00000011 7000                    REnt: dw 112    ;Root Entries
+    47 00000013 D002                      dw 720    ;Total Sectors
+    48 00000015 FD                        db 0xfd   ;Media Byte
+    49 00000016 0200                    SPFAT:  dw 2    ;Sectors per FAT
+    50 00000018 0900                    SPT:  dw 9    ;Sectors per Track
+    51 0000001A 0200                    HPC:  dw 2    ;Heads per Cylinder
+    52 0000001C 00000000                RSBuf:  dd 0    ;Hidden Sectors
+    53                                  
+    54                                  ;times 6 db 0 ;FreeDOS likes these
     55                                  
-    56                                  draw:
-    57 00000036 F4                        hlt
-    58                                  
-    59                                  draw_string:
-    60                                  
-    61                                  draw_char:    ; bh=row, bl=col, al=char
-    62 00000037 B900FF                    mov cx,FONT
-    63 0000003A 8ED9                      mov ds,cx      
-    64 0000003C 30E4                      xor ah,ah
-    65                                  
-    66 0000003E B90800                    mov cx,8
-    67 00000041 F7E1                      mul cx
-    68 00000043 96                        xchg si,ax
-    69                                    ; mov cx,4
-    70 00000044 D1E9                      shr cx,1
-    71 00000046 51                        push cx
-    72 00000047 F3A4                      rep movsb
-    73 00000049 81C71C01                  add di,4*COLS-4
-    74 0000004D 59                        pop cx
-    75 0000004E F3A4                      rep movsb
-    76 00000050 81EF2001                  sub di, 4*COLS
-    77 00000054 C3                        ret
-    78                                  
-    79                                  ; calculate_di:
-    80                                      ; Bereken BH * LINES_PER_ROW * COLS_PER_ROW
-    81                                      ; mov al, bh               ; Zet de waarde van BH in AL
-    82                                      ; cbw                      ; Zet AL naar AX (breid uit met tekenextensie)
-    83                                      ; mov cx, LINES_PER_ROW    ; Zet LINES_PER_ROW in CX
-    84                                      ; imul cx                  ; AX = BH * LINES_PER_ROW
-    85                                  
-    86                                      ; mov cx, COLS_PER_ROW     ; Zet COLS_PER_ROW in CX
-    87                                      ; imul cx                  ; AX = AX * COLS_PER_ROW
-    88                                      ; mov di, ax               ; Zet het resultaat in DI
+    56                                  
+    57                                  Startup:
+    58 00000020 FA                        cli ;no interruptions please
+    59 00000021 FC                        cld ;copying forward would be nice
+    60                                    ;Set up the stack
+    61 00000022 B80010                    mov ax,0x1000
+    62 00000025 8ED0                      mov ss,ax
+    63 00000027 BCFFFF                    mov sp,0xffff
+    64 0000002A B004                      mov al,0x4
+    65 0000002C E610                      out 0x10,al ;video segment 0C00
+    66                                  
+    67 0000002E B098                      mov al,0x98
+    68 00000030 E61C                      out 0x1c,al ;disk 0 side 0
+    69                                  
+    70                                    ;clear the screen
+    71 00000032 BB[0200]                  mov bx,ZBL
+    72 00000035 E84001                    call DisplayStringTL  ;we use this to set up es and di
+    73                                    ;al is zero from DisplayString
+    74 00000038 B540                      mov ch,0x40 ;we go a little over here but who cares
+    75 0000003A F3AA                      rep stosb
+    76                                  
+    77                                    ;let the people know who's up in this shiaaat
+    78 0000003C E83901                    call DisplayStringTL  ;bx was already set
+    79 0000003F BB[CF01]                  mov bx,txtBoot
+    80 00000042 E83501                    call DisplayString
+    81                                  
+    82 00000045 0E                        push cs ;segment setup fun
+    83 00000046 07                        pop es
+    84 00000047 0E                        push cs
+    85 00000048 1F                        pop ds
+    86                                  
+    87 00000049 B00C                      mov al,0xc
+    88 0000004B E608                      out 8,al ;seek track 0, load head, verify, 6ms step rate
     89                                  
-    90                                      ; ; Bereken BL * COLS_PER_ROW en tel het op bij DI
-    91                                      ; mov al, bl               ; Zet kolomwaarde (BL) in AL
-    92                                      ; cbw                      ; Zet AL naar AX (tekenextensie)
-    93                                      ; imul cx                  ; AX = BL * COLS_PER_ROW
-    94                                      ; add di, ax               ; DI = DI + AX (het uiteindelijke offset)
-    95                                  
-    96                                      ; mov ax,RED
-    97                                      ; mov es,ax
-    98                                      ; ret                      ; Keer terug, DI bevat nu het berekende adres
-    99                                  
-   100                                  ; set_pos:
-   101                                  ;   mov ax, 0xFE00           ; Laad het segmentadres van de ROM in DS
-   102                                  ;   mov ds, ax               ; DS = ROM-segment
-   103                                  ;   mov ax, 0x0C00           ; Laad het videosegment in ES
-   104                                  ;   mov es, ax               ; ES = video-segment
-   105                                  ;   mov di, 0                ; Zet DI op het startadres in videogeheugen
-   106                                  
-   107                                  
-   108                                  ; draw_char_at:
-   109                                  ;   mov ax, 0xFF00       ; Laad het segmentadres van de ROM in DS
-   110                                  ;   mov ds, ax           ; DS = ROM-segment
-   111                                  ;   mov ax, 0x0C00       ; Laad het videosegment in ES
-   112                                  ;   mov es, ax           ; ES = video-segment
-   113                                  ;   mov si, 0       ; Offset voor karakter 0x01 in de font-tabel (0x01 * 8 bytes = 0x08)
-   114                                    
-   115                                  ;   ; add si, ax
-   116                                  
-   117                                  
-   118                                  ;   mov di, 0             ; Zet DI op het startadres in videogeheugen voor de bovenste helft
-   119                                  ;   mov cx, 4            ; Aantal bytes voor de bovenste helft
-   120                                  ;   rep movsb            ; Kopieer de eerste 4 bytes van DS:SI naar ES:DI
-   121                                  ;   add di, 4*COLS-4         ; Zet DI naar de positie voor de onderste helft (4 rijen verder)
-   122                                  ;   mov cx, 4            ; Aantal bytes voor de onderste helft
-   123                                  ;   rep movsb            ; Kopieer de volgende 4 bytes van DS:SI naar ES:DI
-   124                                  ;   ret
-   125                                  
-   126                                  blue_bg:
-   127 00000055 B800F4                    mov ax,BLUE
-   128 00000058 50                        push ax
-   129 00000059 07                        pop es
-   130 0000005A BF0000                    mov di,0
-   131 0000005D B90040                    mov cx,0x4000
-   132 00000060 B0FF                      mov al,255
-   133 00000062 F3AA                      rep stosb
-   134 00000064 C3                        ret
-   135                                  
-   136                                  rom_to_vram:
-   137 00000065 B800FE                    mov ax, 0xFE00
-   138 00000068 8ED8                      mov ds, ax       ; DS source segment
-   139 0000006A B8000C                    mov ax, 0x0C00
-   140 0000006D 8EC0                      mov es, ax       ; ES dest segment
-   141 0000006F BE0010                    mov si, 0x1000   ; FONT offset in ROM
-   142 00000072 BF0000                    mov di, 0        ; dest index
-   143 00000075 B90040                    mov cx, 0x4000   ; 8000 bytes (0x4000 in hexadecimal)
-   144 00000078 F3A4                      rep movsb        ; Kopieer CX bytes van DS:SI naar ES:DI
-   145 0000007A C3                        ret
-   146                                  
-   147                                  img: 
-   148 0000007B <bin BB84h>               incbin "zwembad.pic"
-   149                                  
-   150                                  %assign num $-$$
+    90                                    ;next, we load the FAT to :1000
+    91 0000004D BF0010                    mov di,0x1000
+    92 00000050 57                        push di ;mmm... tasty... we save this for later!
+    93 00000051 8B0E[1600]                mov cx,[SPFAT]
+    94 00000055 E80301                    call WaitFDCReady
+    95 00000058 A1[0E00]                  mov ax,[ResSec]
+    96 0000005B E89200                  LFLoop: call ReadSector
+    97 0000005E E2FB                      loop LFLoop ;zeros cx
+    98                                  
+    99                                    ;the FAT is now loaded
+   100                                  
+   101                                    ;now, we read the root directory and look for the file
+   102                                    ;ax will store the current directory sector
+   103                                    ;cx will store the count of searched entries
+   104                                  
+   105                                    ;find first sector, cx is already zero
+   106 00000060 A1[1600]                  mov ax,[SPFAT]
+   107 00000063 F626[1000]                mul byte [NumFAT]
+   108 00000067 0306[0E00]                add ax,word [ResSec]
+   109 0000006B A3[1C00]                  mov [RSBuf],ax
+   110                                  
+   111                                    ;load a directory sector if it's a 16th entry
+   112                                  .sloop  ;now, find the offset
+   113 0000006E 88CF                      mov bh,cl
+   114 00000070 81E3000F                  and bx,0xf00
+   115 00000074 9C                        pushf
+   116 00000075 43                        inc bx      ;this inc turns into 0x2000
+   117 00000076 D1CB<rep 3h>              times 3 ror bx,1  ;bx=(cx:0-3)*8+0x2000
+   118 0000007C 9D                        popf
+   119 0000007D 7505                      jnz .noload ;zero is set if cx:0-3 was zero
+   120 0000007F 89DF                      mov di,bx ;di=0x2000
+   121 00000081 E86C00                    call ReadSector
+   122 00000084 803F00                  .noload cmp byte [bx],0 ;is it the last entry?
+   123 00000087 7412                      je .nfe
+   124 00000089 BE0A00                    mov si,10 ;si is our character count for name comparison
+   125                                    ;compare 11 characters
+   126 0000008C 8A10                    .cmplp  mov dl,[si+bx]
+   127 0000008E 3A94[A001]                cmp dl,[si+BootName]
+   128 00000092 7410                      je .kps ;same char?
+   129                                  
+   130 00000094 41                        inc cx ; next entry...
+   131 00000095 3B0E[1100]                cmp cx,[REnt]
+   132 00000099 76D3                      jna .sloop
+   133 0000009B BB[9F01]                .nfe  mov bx,txtNotFound
+   134 0000009E E8D700                    call DisplayStringTL
+   135 000000A1 E9CC00                    jmp ErrorHalt
+   136                                  
+   137 000000A4 4E                      .kps  dec si
+   138 000000A5 79E5                      jns .cmplp
+   139                                  
+   140                                    ;we found it
+   141                                  
+   142                                    ;es is now loading zone
+   143 000000A7 5E                        pop si  ;we hid some 0x1000 goodness earlier
+   144 000000A8 8EC6                      mov es,si
+   145                                    ;xor di,di
+   146 000000AA BF0001                    mov di,0x100  ;simulate .com execution
+   147                                  
+   148                                    ;set up our boot vector
+   149 000000AD 06                        push es
+   150 000000AE 57                        push di
    151                                  
-   152 0000BBFF 00<rep 4E401h>          times 368640-num db  0
+   152                                    ;cluster # goes in bx
+   153 000000AF 8B5F1A                    mov bx,[bx+26]
+   154                                  
+   155                                    ;find next cluster, put it in bx
+   156 000000B2 89D8                    .nextc  mov ax,bx ;current goes in ax
+   157                                  
+   158 000000B4 D1E3                      shl bx,1  ;
+   159 000000B6 01C3                      add bx,ax ;bx=ax*3/2
+   160 000000B8 D1EB                      shr bx,1  ;
+   161                                    ;carry is set if there is a remainder
+   162 000000BA 8B18                      mov bx,[bx+si]
+   163 000000BC 7304                      jnc .even
+   164 000000BE B104                      mov cl,4
+   165 000000C0 D3CB                      ror bx,cl
+   166 000000C2 80E70F                  .even and bh,0xf
+   167 000000C5 3DF80F                    cmp ax,0xff8
+   168 000000C8 7203                      jb .cnt
+   169 000000CA 06                        push es
+   170 000000CB 1F                        pop ds  ;hopefully this helps upx
+   171 000000CC CB                        retf  ;boot that shizat (vector already pushed)
+   172 000000CD 48                      .cnt  dec ax
+   173 000000CE 48                        dec ax
+   174                                    ;ReadCluster section
+   175                                    ;input: ax=cluster number, trashed
+   176                                    ; es:di is data destination, will be incremented 1 cluster
+   177                                    ;outpt: dx,bp=trashed
+   178                                    ; cx=set to zero
+   179 000000CF 8A0E[0D00]                mov cl,[SPC] ;get sectors per cluster
+   180 000000D3 30ED                      xor ch,ch
+   181 000000D5 F7E1                      mul cx ;multiply ax by this (need 16>32 multiply)
+   182 000000D7 89CA                      mov dx,cx  ;number of sectors to load
+   183 000000D9 95                        xchg ax,bp  ;sectors worth of clusters to skip goes in bp
+   184                                    ;we also need to add all the junk from res+fat+root
+   185 000000DA A1[1100]                  mov ax,[REnt]
+   186                                    ;we assume there is no remainder here
+   187 000000DD B104                      mov cl,4  ;this boot sector won't fit in a 256 byte
+   188 000000DF D3E8                      shr ax,cl ;  sector, so I think we can hardcode this
+   189                                    ;ax now has root secs to skip
+   190 000000E1 0306[1C00]                add ax,[RSBuf]  ;add on start of root sectors
+   191 000000E5 89D1                      mov cx,dx
+   192 000000E7 01E8                      add ax,bp ;fat+root+res+cluster
+   193 000000E9 E80400                  .RS call ReadSector
+   194 000000EC E2FB                      loop .RS
+   195 000000EE EBC2                      jmp short .nextc
+   196                                  
+   197                                  ReadSector:
+   198                                    ; input: es:di must be set to desired load area
+   199                                    ;   ax must be set to sector number
+   200                                    ;   di and ax will be incremented for the next sector
+   201                                    ; Output: bp = remaining attempts
+   202                                    ;   dx = 8
+   203                                  
+   204                                    ; The plan...
+   205                                    ; divide by SPT.  if 2 sides, shift LSBit right - side flag
+   206                                    ; remaining is the track number
+   207                                    ; use sector# mod SPT for sector #
+   208                                  
+   209 000000F0 BD0800                    mov bp,8  ;max read attempts + 1 (MUST BE 8)
+   210 000000F3 89EA                      mov dx,bp
+   211                                  
+   212 000000F5 50                      .retry  push ax
+   213 000000F6 57                        push di
+   214 000000F7 F636[1800]                div byte [SPT]  ;divide out sectors
+   215                                    ;let's get those sectors out of the way right away
+   216 000000FB 86C4                      xchg ah,al
+   217 000000FD FEC0                      inc al  ;first sector is 1??  Flaming.
+   218 000000FF E60C                      out 0xc,al  ;set sectors
+   219                                    ;ah has track+maybe side#
+   220                                  
+   221 00000101 803E[1A00]01              cmp byte [HPC],1  ;how many sides? (actually a word! mwahaha)
+   222 00000106 7412                      je .sets1 ;we only have one side
+   223                                  
+   224                                    ;figure out if we're on the same track/side as before
+   225 00000108 3A26[DE01]                cmp ah,[LastTrack]
+   226 0000010C 7431                      je .trok
+   227 0000010E 8826[DE01]                mov [LastTrack],ah  ;store this one
+   228                                  
+   229                                    ;the disk has 2 sides, but we need to check which we're on
+   230 00000112 D0EC                      shr ah,1  ;carry now has side, ah has track
+   231                                  
+   232 00000114 7304                      jnc .sets1
+   233 00000116 B09C                      mov al,0x9c ;side 2
+   234 00000118 EB02                      jmp short .sets
+   235 0000011A B098                    .sets1  mov al,0x98 ;side 1
+   236 0000011C E61C                    .sets out 0x1c,al
+   237                                  
+   238 0000011E 7506                      jne .settr  ;force a track set if the side changed
+   239                                    ;now we need to find out if we're on the right track
+   240 00000120 E40A                      in al,0xa
+   241 00000122 38E0                      cmp al,ah
+   242 00000124 7419                      je .trok  ;already there
+   243 00000126 88E0                    .settr  mov al,ah
+   244 00000128 E60E                      out 0xe,al  ;track# goes to data port
+   245 0000012A B01C                      mov al,0x1c
+   246 0000012C EE                        out dx,al ;seek, load head, verify track, 6ms step
+   247 0000012D E82B00                    call WaitFDCReady
+   248 00000130 740D                      jz .trok
+   249                                    ;... seek error??
+   250                                    ;let's do a restore command in case the track is desynched
+   251 00000132 B00C                      mov al,0xc
+   252 00000134 EE                        out dx,al ;seek track 0, load head, verify, 6ms step rate
+   253 00000135 5F                      .error  pop di
+   254 00000136 E82E00                  .errax  call CountError
+   255 00000139 E81F00                    call WaitFDCReady
+   256 0000013C 58                        pop ax
+   257 0000013D EBB6                      jmp short .retry
+   258                                  .trok ;we got everything lined up; let's read this shit
+   259 0000013F B080                      mov al,0x80
+   260 00000141 EE                        out dx,al ;read sector, no side compare, no delay
+   261 00000142 E81400                    call sdelay ;delay
+   262 00000145 EC                      .wait in al,dx
+   263 00000146 A802                      test al,2
+   264 00000148 7405                      jz .ndata
+   265 0000014A E40E                      in al,0xe
+   266 0000014C AA                        stosb
+   267 0000014D EBF6                      jmp short .wait
+   268 0000014F A801                    .ndata  test al,1 ;are we still busy?
+   269 00000151 75F2                      jnz .wait
+   270                                    ;ok, we're not busy anymore...
+   271 00000153 A89C                      test al,0x9c
+   272 00000155 75DE                      jnz .error  ;uh oh...
+   273 00000157 58                        pop ax  ;this was the start di
+   274                                    ;sub ax,di
+   275                                    ;cmp ax,-512 ;did we get 512 bytes?
+   276                                    ;je .exit
+   277                                    ;add ax,di
+   278                                    ;xchg ax,di
+   279                                    ;jmp short .errax
+   280 00000158 58                      .exit pop ax
+   281 00000159 40                      sdelay: inc ax  ;increment the sector
+   282 0000015A C3                        ret
+   283                                  
+   284                                  WaitFDCReady:   ;)
+   285                                    ;input:  none
+   286                                    ;output:al=last status from FDC
+   287                                    ; zero flag is set if no RNF/seek or CRC error
+   288                                    ; we should never have a lost data error in here
+   289 0000015B E8FBFF                    call sdelay
+   290 0000015E E408                    .wait in al,8
+   291 00000160 A881                      test al,0x81
+   292 00000162 75FA                      jnz .wait
+   293 00000164 A818                      test al,0x18
+   294 00000166 C3                      jRet: ret
+   295                                  
+   296                                  CountError:
+   297                                    ;input: bp = error counter
+   298                                    ;trashed: nothing
+   299 00000167 4D                        dec bp
+   300 00000168 75FC                      jnz jRet
+   301 0000016A BB[B701]                  mov bx,txtRead
+   302 0000016D E80800                    call DisplayStringTL
+   303                                    ;do not insert anything here - routines are chained
+   304                                  ErrorHalt:
+   305 00000170 BB[C201]                  mov bx,txtError
+   306 00000173 E80400                    call DisplayString
+   307 00000176 EBFE                    .stop jmp short .stop
+   308                                  
+   309                                  DisplayStringTL:
+   310 00000178 31FF                      xor di,di
+   311                                  DisplayString:
+   312                                    ; cs:bx = ASCIZ string location
+   313                                    ; di = video memory display location
+   314                                    ; other segments will be taken care of here
+   315                                    ; trashed: ax, si, es, ds
+   316                                    ; bx is advanced to character after null
+   317 0000017A B8000C                    mov ax,0xc00
+   318 0000017D 8EC0                      mov es,ax
+   319 0000017F B4FF                      mov ah,0xff
+   320 00000181 8ED8                      mov ds,ax
+   321 00000183 2E8A07                  .cloop  mov al,[cs:bx]
+   322 00000186 43                        inc bx
+   323 00000187 08C0                      or al,al
+   324 00000189 74DB                      jz jRet ;save a byte
+   325 0000018B B408                      mov ah,8
+   326 0000018D F6E4                      mul ah
+   327 0000018F 89C6                      mov si,ax
+   328 00000191 A5                        movsw
+   329 00000192 A5                        movsw
+   330 00000193 81C71C01                  add di,0x11c
+   331 00000197 A5                        movsw
+   332 00000198 A5                        movsw
+   333 00000199 81EF2001                  sub di,0x120
+   334 0000019D EBE4                      jmp short .cloop
+   335                                  
+   336                                  txtNotFound:
+   337 0000019F 22                        db '"'
+   338                                  BootName:
+   339 000001A0 445342494F53202043-       db 'DSBIOS  COM" Not Found',0
+   339 000001A9 4F4D22204E6F742046-
+   339 000001B2 6F756E6400         
+   340                                  txtRead:
+   341 000001B7 52656164204572726F-       db "Read Error",0
+   341 000001C0 7200               
+   342                                  txtError:
+   343 000001C2 2E202048616C746564-       db ".  Halted.  ",0
+   343 000001CB 2E202000           
+   344                                  txtBoot:
+   345 000001CF 28746D2920426F6F74-       db "(tm) Bootloader"
+   345 000001D8 6C6F61646572       
+   346                                  LastTrack:
+   347 000001DE 00                        db 0
+   348 000001DF FF<rep 1Fh>             times 510-$+Begin db 0xff
+   349 000001FE 55AA                      db 0x55,0xaa
+   350                                  
+   351                                  
+   352                                  %assign num $-$$
+   353 00000200 00<rep 59E00h>          times 368640-num db  0
+   354                                  
