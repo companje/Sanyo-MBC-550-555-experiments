@@ -38,7 +38,7 @@
     38                                  GREEN equ 0x0c
     39                                  BLUE  equ 0xf4
     40                                  
-    41                                  effect_timeout equ 50      ; every 30 frames another effect
+    41                                  effect_timeout equ 30      ; every 30 frames another effect
     42                                  isqrt_table    equ 1000    ; available location in code segment
     43                                  
     44                                  ; using dx and bx registers as t,i,x,y variables
@@ -47,366 +47,350 @@
     47                                  %define x bh
     48                                  %define y bl
     49                                  
-    50 00000000 EB50                    jmp setup
+    50 00000000 E9C900                  jmp setup
     51                                  
     52                                  ; some parts of FAT12 table is included here to be able to mount the binary 
-    53                                  ; as a diskimage on Mac. This seems also to be needed for FlashFloppy to recognize
-    54                                  ; the diskimage. The Sanyo does not need the regular bootsector signature 0x55 0xAA
-    55                                  
-    56                                  fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
-    57                                      ; db ,
-    58 00000002 [35][38][3D][42]            db fx0,fx1,fx2,fx3 ;,fx4,fx5,fx6,fx7 
-    59                                      %assign num 8-($-fx_table) 
-    60 00000006 20<rep 4h>                  times num db 0x20
+    53                                  ; as a diskimage on Mac. This seems also to be needed for FlashFloppy to
+    54                                  ; recognize the diskimage. The Sanyo does not need the regular bootsector 
+    55                                  ; signature 0x55 0xAA
+    56                                  
+    57                                  fx_table:      ; the 'effects' table: 8 bytes, overwriting the 'Sanyo1.2' tag
+    58 00000003 [36][39][3E][43]-           db fx0,fx1,fx2,fx3,fx4,fx5,fx6,fx7 
+    58 00000007 [48][52][5D][6B]   
+    59                                      ; %assign num 8-($-fx_table) 
+    60                                      ; times num db 0x20
     61                                  
     62                                      ; db 'Sanyo1.2'
-    63 0000000A 0002                        dw 512     ; Number of bytes per sector
-    64 0000000C 02                          db 2       ; Number of sectors per cluster
-    65 0000000D 01                          db 1       ; Number of FAT copies
-    66 0000000E 0002                        dw 512     ; Number of root directory entries
-    67 00000010 70                          db 112     ; Total number of sectors in the filesystem
-    68 00000011 00                          db 0       ; Media descriptor type
-    69 00000012 0002                        dw 512     ; Number of sectors per FAT
-    70 00000014 FD02                        dw 765     ; ? Number of sectors per track
+    63 0000000B 0002                        dw 512     ; Number of bytes per sector
+    64 0000000D 02                          db 2       ; Number of sectors per cluster
+    65 0000000E 01                          db 1       ; Number of FAT copies
+    66 0000000F 0002                        dw 512     ; Number of root directory entries
+    67 00000011 70                          db 112     ; Total number of sectors in the filesystem
+    68 00000012 00                          db 0       ; Media descriptor type
+    69 00000013 0002                        dw 512     ; Number of sectors per FAT
+    70 00000015 FD02                        dw 765     ; ? Number of sectors per track
     71                                      ; db 0     ; ? Number of heads   (now first byte of sine table)
     72                                      ; db 9     ; ? Number of heads  
     73                                      ; dw 512   ; Number of hidden sectors
     74                                      ; the the last 4 bytes of the FAT12 table are overwritten by the sine table
     75                                  
     76                                  sin_table: ;31 bytes, (input -15..15 index=0..31)
-    77 00000016 00FDFAF7F5F3F1F1F1-         db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
-    77 0000001F F1F3F5F7FAFD       
-    78 00000025 000306090B0D0F0F0F-         db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
-    78 0000002E 0F0D0B09060300     
+    77 00000017 00FDFAF7F5F3F1F1F1-         db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
+    77 00000020 F1F3F5F7FAFD       
+    78 00000026 000306090B0D0F0F0F-         db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
+    78 0000002F 0F0D0B09060300     
     79                                      ; tried to mirror the second line of the sine table with code 
     80                                      ; but would take a same of amount of bytes
     81                                  
     82                                  fx0: ; x
-    83 00000035 88F8                        mov al,x
-    84 00000037 C3                          ret
+    83 00000036 88F8                        mov al,x
+    84 00000038 C3                          ret
     85                                  
     86                                  fx1: ; y-7
-    87 00000038 88D8                        mov al,y
-    88 0000003A 2C07                        sub al,7
-    89 0000003C C3                          ret
+    87 00000039 88D8                        mov al,y
+    88 0000003B 2C07                        sub al,7
+    89 0000003D C3                          ret
     90                                  
     91                                  fx2: ; y+t
-    92 0000003D 88D8                        mov al,y
-    93 0000003F 00F0                        add al,t
-    94 00000041 C3                          ret
+    92 0000003E 88D8                        mov al,y
+    93 00000040 00F0                        add al,t
+    94 00000042 C3                          ret
     95                                  
     96                                  fx3: ; y-t
-    97 00000042 88D8                        mov al,y
-    98 00000044 28F8                        sub al,x
-    99 00000046 C3                          ret
+    97 00000043 88D8                        mov al,y
+    98 00000045 28F8                        sub al,x
+    99 00000047 C3                          ret
    100                                  
-   101                                  ; fx4: ; sin(x+y+t)
-   102                                  ;     mov al,x
-   103                                  ;     add al,y
-   104                                  ;     add al,t
-   105                                  ;     call sin
-   106                                  ;     ret
+   101                                  fx4: ; sin(x+y+t)
+   102 00000048 88F8                        mov al,x
+   103 0000004A 00D8                        add al,y
+   104 0000004C 00F0                        add al,t
+   105 0000004E E82800                      call sin
+   106 00000051 C3                          ret
    107                                  
    108                                  fx5: ; bitmap_data[i+t]
-   109 00000047 53                          push bx
-   110 00000048 88D0                        mov al,i
-   111 0000004A 00F0                        add al,t
-   112 0000004C BB[7801]                    mov bx,bitmap_data
-   113 0000004F D7                          xlat
-   114 00000050 5B                          pop bx
-   115 00000051 C3                          ret
+   109 00000052 53                          push bx
+   110 00000053 88D0                        mov al,i
+   111 00000055 00F0                        add al,t
+   112 00000057 BB[FF01]                    mov bx,bitmap_data
+   113 0000005A D7                          xlat
+   114 0000005B 5B                          pop bx
+   115 0000005C C3                          ret
    116                                  
-   117                                  ; fx6: ; -8*(y-x)+t
-   118                                  ;     mov cl,-8
-   119                                  ;     mov al,y
-   120                                  ;     sub al,x
-   121                                  ;     mul cl
-   122                                  ;     call limit
-   123                                  ;     add al,t
-   124                                  ;     ret
+   117                                  fx6: ; ((y-x)*-8)+t
+   118 0000005D 88D8                        mov al,y
+   119 0000005F 28F8                        sub al,x
+   120 00000061 B1F8                        mov cl,-8
+   121 00000063 F6E1                        mul cl
+   122 00000065 E82E00                      call limit
+   123 00000068 00F0                        add al,t
+   124 0000006A C3                          ret
    125                                  
-   126                                  ; fx7: ; sin(sqrt(x^2+y^2))-t)
-   127                                  ;     mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
-   128                                  ;     push bx
-   129                                  ;     mov bx,isqrt_table
-   130                                  ;     xlat
-   131                                  ;     pop bx
-   132                                  ;     sub al,t
-   133                                  ;     call sin
-   134                                  ;     ret
+   126                                  fx7: ; sin(sqrt(x^2+y^2))-t)
+   127 0000006B 88D0                        mov al,i   ; isqrt_table[i] = sqrt(x^2+y^2)
+   128 0000006D 53                          push bx
+   129 0000006E BBE803                      mov bx,isqrt_table
+   130 00000071 D7                          xlat
+   131 00000072 5B                          pop bx
+   132 00000073 28F0                        sub al,t
+   133 00000075 E80100                      call sin
+   134 00000078 C3                          ret
    135                                  
-   136                                  ; sin: ; sine function
-   137                                  ;     call wrap
-   138                                  ;     push bx
-   139                                  ;     add al,15 ; sin(-15) = sin_table[0]
-   140                                  ;     mov bx,sin_table
-   141                                  ;     xlat 
-   142                                  ;     pop bx
-   143                                  ;     ret
+   136                                  sin: ; sine function
+   137 00000079 E80900                      call wrap
+   138 0000007C 53                          push bx
+   139 0000007D 040F                        add al,15 ; sin(-15) = sin_table[0]
+   140 0000007F BB[1700]                    mov bx,sin_table
+   141 00000082 D7                          xlat 
+   142 00000083 5B                          pop bx
+   143 00000084 C3                          ret
    144                                  
-   145                                  ; wrap: ; while (al>15) al-=15; while (al<-15) al+=15
-   146                                  ;     cmp al,15
-   147                                  ;     jg .sub16
-   148                                  ;     cmp al,-15
-   149                                  ;     jl .add16
-   150                                  ;     ret
-   151                                  ;   .sub16:
-   152                                  ;     sub al,31
-   153                                  ;     jmp wrap
-   154                                  ;   .add16:
-   155                                  ;     add al,31
-   156                                  ;     jmp wrap
+   145                                  wrap: ; while (al>15) al-=15; while (al<-15) al+=15
+   146 00000085 3C0F                        cmp al,15
+   147 00000087 7F05                        jg .sub16
+   148 00000089 3CF1                        cmp al,-15
+   149 0000008B 7C05                        jl .add16
+   150 0000008D C3                          ret
+   151                                    .sub16:
+   152 0000008E 2C1F                        sub al,31
+   153 00000090 EBF3                        jmp wrap
+   154                                    .add16:
+   155 00000092 041F                        add al,31
+   156 00000094 EBEF                        jmp wrap
    157                                  
-   158                                  ; limit: ; if (al>15) al=15; else if (al<-15) al=-15;
-   159                                  ;     cmp al,15
-   160                                  ;     jg .pos16
-   161                                  ;     cmp al,-15
-   162                                  ;     jnl .ret
-   163                                  ;     mov al,-15
-   164                                  ;     ret
-   165                                  ;   .pos16:
-   166                                  ;     mov al,15
-   167                                  ;   .ret:
-   168                                  ;     ret
+   158                                  limit: ; if (al>15) al=15; else if (al<-15) al=-15;
+   159 00000096 3C0F                        cmp al,15
+   160 00000098 7F07                        jg .pos16
+   161 0000009A 3CF1                        cmp al,-15
+   162 0000009C 7D05                        jnl .ret
+   163 0000009E B0F1                        mov al,-15
+   164 000000A0 C3                          ret
+   165                                    .pos16:
+   166 000000A1 B00F                        mov al,15
+   167                                    .ret:
+   168 000000A3 C3                          ret
    169                                  
-   170                                  ; calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
-   171                                  ;     push dx
-   172                                  ;     push di
-   173                                  ;     mov di,isqrt_table      ; di=isqrt_table[0]
-   174                                  ;     add di,dx               ; di+=i
-   175                                  ;     mov al,x
-   176                                  ;     inc al
-   177                                  ;     mul al                  ; x*x
-   178                                  ;     xchg ax,cx
-   179                                  ;     mov al,y
-   180                                  ;     inc al
-   181                                  ;     mul al                  ; y*y
-   182                                  ;     add ax,cx               ; + 
-   183                                  ;   .isqrt:  ; while((L+1)^2<=y) L++; return L
-   184                                  ;     xchg cx,ax              ; cx=y
-   185                                  ;     xor ax,ax               ; ax=L=0
-   186                                  ;   .loop:
-   187                                  ;     inc ax
-   188                                  ;     push ax
-   189                                  ;     mul ax
-   190                                  ;     cmp ax,cx
-   191                                  ;     pop ax
-   192                                  ;     jl .loop
-   193                                  ;     dec ax
-   194                                  ;   .end_isqrt:
-   195                                  ;     mov [di],al             ; store al
-   196                                  ;     pop di
-   197                                  ;     pop dx
-   198                                  ;     ret
+   170                                  calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
+   171 000000A4 52                          push dx
+   172 000000A5 57                          push di
+   173 000000A6 BFE803                      mov di,isqrt_table      ; di=isqrt_table[0]
+   174 000000A9 01D7                        add di,dx               ; di+=i
+   175 000000AB 88F8                        mov al,x
+   176 000000AD FEC0                        inc al
+   177 000000AF F6E0                        mul al                  ; x*x
+   178 000000B1 91                          xchg ax,cx
+   179 000000B2 88D8                        mov al,y
+   180 000000B4 FEC0                        inc al
+   181 000000B6 F6E0                        mul al                  ; y*y
+   182 000000B8 01C8                        add ax,cx               ; + 
+   183                                    .isqrt:  ; while((L+1)^2<=y) L++; return L
+   184 000000BA 91                          xchg cx,ax              ; cx=y
+   185 000000BB 31C0                        xor ax,ax               ; ax=L=0
+   186                                    .loop:
+   187 000000BD 40                          inc ax
+   188 000000BE 50                          push ax
+   189 000000BF F7E0                        mul ax
+   190 000000C1 39C8                        cmp ax,cx
+   191 000000C3 58                          pop ax
+   192 000000C4 7CF7                        jl .loop
+   193 000000C6 48                          dec ax
+   194                                    .end_isqrt:
+   195 000000C7 8805                        mov [di],al             ; store al
+   196 000000C9 5F                          pop di
+   197 000000CA 5A                          pop dx
+   198 000000CB C3                          ret
    199                                  
    200                                  setup:                      ; starting point of code
-   201                                      ;no need to clear the screen. ROM BIOS does this already.
-   202                                  
-   203 00000052 B8000C                      mov ax,GREEN << 8
-   204 00000055 50                          push ax
-   205 00000056 07                          pop es
-   206 00000057 BF0000                      mov di,0
-   207 0000005A B90040                      mov cx,0x4000
-   208 0000005D B0FF                        mov al,255
-   209 0000005F F3AA                        rep stosb
-   210                                  
-   211 00000061 F4                          hlt
-   212                                  
-   213                                      ;set ds and es segments to cs
-   214 00000062 0E                          push cs
-   215 00000063 1F                          pop ds                  ; ds:si in code segment
-   216 00000064 0E                          push cs
-   217 00000065 07                          pop es                  ; es:di in code segment
+   201                                  
+   202                                      ;no need to clear the screen. ROM BIOS does this already.
+   203                                  
+   204                                      ;set ds and es segments to cs
+   205 000000CC 0E                          push cs
+   206 000000CD 1F                          pop ds                  ; ds:si in code segment
+   207 000000CE 0E                          push cs
+   208 000000CF 07                          pop es                  ; es:di in code segment
+   209                                  
+   210                                      ; generate 16x8 bitmap data for 16 sizes of dots.
+   211                                      ; Because the dots are symmetric we can save at least
+   212                                      ; 97 bytes by mirroring the left-top corner 3 times
+   213                                  
+   214 000000D0 E89000                      call generate_chars
+   215                                  
+   216 000000D3 31ED                        xor bp,bp               ; start with effect 0
+   217 000000D5 31D2                        xor dx,dx               ; t=i=0 (clear time and index)
    218                                  
-   219                                      ; generate 16x8 bitmap data for 16 sizes of dots.
-   220                                      ; Because the dots are symmetric we can save at least
-   221                                      ; 97 bytes by mirroring the left-top corner 3 times
-   222                                  
-   223 00000066 E87300                      call generate_chars
-   224                                  
-   225 00000069 31ED                        xor bp,bp               ; start with effect 0
-   226 0000006B 31D2                        xor dx,dx               ; t=i=0 (clear time and index)
-   227                                  
-   228                                  draw:
-   229 0000006D BF700A                      mov di,TOP              ; left top corner to center tixy
-   230                                    .dot:
-   231 00000070 52                          push dx
-   232 00000071 88D0                        mov al,i                ; al=index
-   233 00000073 30E4                        xor ah,ah               ; ah=0
-   234 00000075 B110                        mov cl,16
-   235 00000077 F6F1                        div cl                  ; calculate x and y from i
-   236 00000079 93                          xchg ax,bx              ; bh=x, bl=y
-   237 0000007A 5A                          pop dx
-   238                                  
-   239                                      ;on the first frame calc sqrt table for every i
-   240                                      ;reusing the i,x,y loop here. this saves some bytes.
-   241                                      ; or t,t
-   242                                      ; jnz .call_effect
-   243                                      ; call calc_isqrt_xx_yy
-   244                                    
-   245                                    ; .call_effect:
-   246                                    ;   push bp                   ; bp contains current effect number
-   247                                    ;   mov bp, [fx_table + bp]   ; overwrite bp with address of effect
-   248                                    ;   and bp,0xff               ; reduce address to single byte
-   249                                    ;   call bp                   ; call effect, al contains result
-   250                                    ;   pop bp                    ; restore effect number
-   251 0000007B B00F                        mov al,15
-   252                                  
-   253                                    ; .draw_char_color:
-   254                                    ;   cmp al,0
-   255                                    ;   pushf
-   256                                    ;   jge .red
-   257                                    ;   neg al
-   258                                  
-   259                                    .red:
-   260 0000007D B900F0                      mov cx,RED << 8         ; ch=0xf0, cl=0
-   261 00000080 E83800                      call draw_char
-   262                                      ; popf
-   263 00000083 7D02                        jge .green_blue
-   264 00000085 30C0                        xor al,al               ; if negative then just red so clear (al=0) green and blue
-   265                                  
-   266                                    .green_blue:
-   267 00000087 B50C                        mov ch,GREEN
-   268 00000089 E82F00                      call draw_char
-   269 0000008C B5F4                        mov ch,BLUE
-   270 0000008E E82A00                      call draw_char
-   271                                  
-   272                                    .next:  
-   273 00000091 FEC2                        inc i                   ; i++
-   274 00000093 83C708                      add di,8         
-   275 00000096 80FF0F                      cmp x,15
-   276 00000099 7CD5                        jl .dot                  ; next col
-   277 0000009B 81C72001                    add di,4*COLS       
-   278 0000009F 81C7A000                    add di,160
-   279 000000A3 80FB0F                      cmp y,15
-   280 000000A6 7CC8                        jl .dot                  ; next line
-   281 000000A8 FEC6                        inc t
-   282 000000AA 80FE32                      cmp t,effect_timeout
-   283 000000AD 72BE                        jb draw                 ; next frame
-   284 000000AF 45                          inc bp                  ; inc effect
-   285 000000B0 30F6                        xor t,t                 ; reset time
-   286 000000B2 83FD03                      cmp bp,3
-   287 000000B5 7CB6                        jl draw                 ; next effect
-   288 000000B7 31ED                        xor bp,bp               ; reset effect
-   289 000000B9 EBB2                        jmp draw
-   290                                  
-   291                                  draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destroys cx
-   292 000000BB 50                          push ax
-   293 000000BC 57                          push di
-   294                                  
-   295 000000BD 51                          push cx
-   296 000000BE 07                          pop es                  ; es=bp (color channel now cx)
-   297 000000BF 0E                          push cs
-   298 000000C0 1F                          pop ds                  ; ds=cs
-   299                                  
-   300 000000C1 B90400                      mov cx,4
-   301 000000C4 51                          push cx
-   302 000000C5 51                          push cx
-   303                                  
-   304 000000C6 240F                        and al,15               ; limit al to 15
-   305 000000C8 98                          cbw                     ; ah=0
-   306                                     
-   307 000000C9 D2E0                        shl al,cl               ; al*=16
-   308 000000CB 05[7801]                    add ax,bitmap_data
-   309 000000CE 96                          xchg si,ax              ; si = source address of rendered bitmap char
+   219                                  draw:
+   220 000000D7 BF700A                      mov di,TOP              ; left top corner to center tixy
+   221                                  dot:
+   222 000000DA 52                          push dx
+   223 000000DB 88D0                        mov al,i                ; al=index
+   224 000000DD 30E4                        xor ah,ah               ; ah=0
+   225 000000DF B110                        mov cl,16
+   226 000000E1 F6F1                        div cl                  ; calculate x and y from i
+   227 000000E3 93                          xchg ax,bx              ; bh=x, bl=y
+   228 000000E4 5A                          pop dx
+   229                                  
+   230                                      ;on the first frame calc sqrt table for every i
+   231                                      ;reusing the i,x,y loop here. this saves some bytes.
+   232 000000E5 08F6                        or t,t
+   233 000000E7 7503                        jnz .cont
+   234 000000E9 E8B8FF                      call calc_isqrt_xx_yy
+   235                                    .cont:
+   236                                     
+   237 000000EC 55                          push bp
+   238 000000ED 53                          push bx
+   239 000000EE 87EB                        xchg bx,bp
+   240 000000F0 8BAF[0300]                  mov bp,[bx+fx_table]
+   241 000000F4 81E5FF00                    and bp,0xff             ; effect function needs to fit in one byte to save 8 bytes
+   242 000000F8 5B                          pop bx
+   243 000000F9 FFD5                        call bp                 ; call the effect function
+   244 000000FB 5D                          pop bp
+   245                                  
+   246                                  draw_char_color:
+   247 000000FC 3C00                        cmp al,0
+   248 000000FE 9C                          pushf
+   249 000000FF 7D02                        jge .red
+   250 00000101 F6D8                        neg al
+   251                                    .red:
+   252 00000103 B900F0                      mov cx,RED << 8              ; ch=0xf0, cl=0
+   253 00000106 E83900                      call draw_char
+   254 00000109 9D                          popf
+   255 0000010A 7D02                        jge .green_blue
+   256 0000010C 30C0                        xor al,al               ; if negative then just red so clear (al=0) green and blue
+   257                                    .green_blue:
+   258 0000010E B50C                        mov ch,GREEN
+   259 00000110 E82F00                      call draw_char
+   260 00000113 B5F4                        mov ch,BLUE
+   261 00000115 E82A00                      call draw_char
+   262                                    .next:  
+   263 00000118 FEC2                        inc i                   ; i++
+   264 0000011A 83C708                      add di,8         
+   265 0000011D 80FF0F                      cmp x,15
+   266 00000120 7CB8                        jl dot                  ; next col
+   267 00000122 81C72001                    add di,4*COLS       
+   268 00000126 81C7A000                    add di,160
+   269 0000012A 80FB0F                      cmp y,15
+   270 0000012D 7CAB                        jl dot                  ; next line
+   271 0000012F FEC6                        inc t
+   272 00000131 80FE1E                      cmp t,effect_timeout
+   273 00000134 72A1                        jb draw                 ; next frame
+   274 00000136 45                          inc bp                  ; inc effect
+   275 00000137 30F6                        xor t,t                 ; reset time
+   276 00000139 83FD08                      cmp bp,8
+   277 0000013C 7C99                        jl draw                 ; next effect
+   278 0000013E 31ED                        xor bp,bp               ; reset effect
+   279 00000140 EB95                        jmp draw
+   280                                  
+   281                                  draw_char:                  ; es:di=vram (not increasing), al=char 0..15, destroys cx
+   282 00000142 50                          push ax
+   283 00000143 57                          push di
+   284                                  
+   285 00000144 51                          push cx
+   286 00000145 07                          pop es                  ; es=bp (color channel now cx)
+   287 00000146 0E                          push cs
+   288 00000147 1F                          pop ds                  ; ds=cs
+   289                                  
+   290 00000148 B90400                      mov cx,4
+   291 0000014B 51                          push cx
+   292 0000014C 51                          push cx
+   293                                  
+   294 0000014D 240F                        and al,15               ; limit al to 15
+   295 0000014F 98                          cbw                     ; ah=0
+   296                                     
+   297 00000150 D2E0                        shl al,cl               ; al*=16
+   298 00000152 05[FF01]                    add ax,bitmap_data
+   299 00000155 96                          xchg si,ax              ; si = source address of rendered bitmap char
+   300                                  
+   301 00000156 59                          pop cx                  ;cx=4
+   302 00000157 F3A5                        rep movsw
+   303 00000159 81C71801                    add di,4*COLS-8
+   304 0000015D 59                          pop cx                  ;cx=4
+   305 0000015E F3A5                        rep movsw
+   306                                  
+   307 00000160 5F                          pop di                    
+   308 00000161 58                          pop ax
+   309 00000162 C3                          ret
    310                                  
-   311 000000CF 59                          pop cx                  ;cx=4
-   312 000000D0 F3A5                        rep movsw
-   313 000000D2 81C71801                    add di,4*COLS-8
-   314 000000D6 59                          pop cx                  ;cx=4
-   315 000000D7 F3A5                        rep movsw
-   316                                  
-   317 000000D9 5F                          pop di                    
-   318 000000DA 58                          pop ax
-   319 000000DB C3                          ret
-   320                                  
-   321                                  generate_chars:
-   322 000000DC BF[7801]                    mov di,bitmap_data      ; dest address of render data
-   323 000000DF 30FF                        xor bh,bh
-   324                                    
-   325                                    .render_char:
-   326 000000E1 30E4                        xor ah,ah
-   327 000000E3 88F8                        mov al,bh
-   328 000000E5 B90400                      mov cx,4                ; cl is also used below
-   329 000000E8 F6E1                        mul cl
-   330 000000EA 89C6                        mov si,ax
-   331 000000EC 81C6[3801]                  add si,img
-   332                                    
-   333                                    .render_char_part:        ; input requirement at first time cl=4
-   334 000000F0 AC                          lodsb                   ; use lodsb instead of movsb to keep a copy in al
-   335 000000F1 AA                          stosb                   ; draw in left top nibble
-   336 000000F2 53                          push bx                 ; save cur x and y
-   337 000000F3 51                          push cx                 ; cur loop counter (4,3,2,1)
-   338 000000F4 51                          push cx
-   339 000000F5 5B                          pop bx                  ; bx = counter
-   340 000000F6 D1E3                        shl bx,1                ; bx *= 2
-   341 000000F8 53                          push bx                 ; save counter*2 for right bottom
-   342 000000F9 83FB02                      cmp bx,2                ; skip top line of left bottom nibble
-   343 000000FC 7403                        je .flip_bits
-   344 000000FE 884101                      mov [di+bx+1],al        ; draw in left bottom starting at line 3 instead of 4
-   345                                  
-   346                                    .flip_bits:                 ; flips all bits dropping highest bit
-   347 00000101 B108                        mov cl,8                ; 8 bits to flip
-   348 00000103 30E4                        xor ah,ah
-   349                                    
-   350                                    .flip_bit:
-   351 00000105 BB0180                      mov bx,0x8001           ; bl=1, bh=128  bl doubles, bh halves
-   352 00000108 D2E3                        shl bl,cl
-   353 0000010A 84D8                        test al,bl
-   354 0000010C 7406                        jz .next_bit
-   355 0000010E 49                          dec cx
-   356 0000010F D2EF                        shr bh,cl
-   357 00000111 08FC                        or ah,bh
-   358 00000113 41                          inc cx
-   359                                  
-   360                                    .next_bit:
-   361 00000114 E2EF                        loop .flip_bit          ; loop 8 bits for flipping
-   362 00000116 886503                      mov [di+3],ah           ; draw in right top nibble
-   363 00000119 5B                          pop bx                  ; bx = counter*2
-   364 0000011A 83FB02                      cmp bx,2                ; skip top line of right bottom nibble
-   365 0000011D 7403                        je .flip_done
-   366 0000011F 886105                      mov [di+bx+5],ah        ; draw in right bottom starting at line 3 instead of 4
-   367                                  
-   368                                    .flip_done:
-   369 00000122 59                          pop cx                  ; restore loop counter
-   370 00000123 5B                          pop bx                  ; restore x and y
-   371 00000124 E2CA                        loop .render_char_part
-   372                                  
-   373                                    .clear_bottom_line:
-   374 00000126 83C707                      add di,7
-   375 00000129 30C0                        xor al,al
-   376 0000012B AA                          stosb                   ; right bottom
-   377 0000012C 83C703                      add di,3
-   378 0000012F AA                          stosb                   ; left bottom
-   379                                  
-   380                                    .next_char:
-   381 00000130 FEC7                        inc bh                  ; next char
-   382 00000132 80FF10                      cmp bh,16
-   383 00000135 7CAA                        jl .render_char
-   384 00000137 C3                          ret
-   385                                  
-   386                                  img:
-   387 00000138 00000000                    db 0,0,0,0
-   388 0000013C 00000001                    db 0,0,0,1
-   389 00000140 00000003                    db 0,0,0,3
-   390 00000144 00000103                    db 0,0,1,3
-   391 00000148 00000307                    db 0,0,3,7
-   392 0000014C 0000070F                    db 0,0,7,15
-   393 00000150 00030F1F                    db 0,3,15,31
-   394 00000154 00071F3F                    db 0,7,31,63
-   395 00000158 010F3F3F                    db 1,15,63,63
-   396 0000015C 031F3F3F                    db 3,31,63,63
-   397 00000160 071F3F7F                    db 7,31,63,127
-   398 00000164 071F7F7F                    db 7,31,127,127
-   399 00000168 073F7F7F                    db 7,63,127,127
-   400 0000016C 0F3F7F7F                    db 15,63,127,127
-   401 00000170 0F3F7FFF                    db 15,63,127,255
-   402 00000174 1F7FFFFF                    db 31,127,255,255
-   403                                  
-   404                                  %assign num $-$$
-   405                                  %warning total num
-   405          ******************       warning: total 376 [-w+user]
-   406                                  
-   407                                  bitmap_data:                          ; destination for 128 bytes rendered bitmap data
-   408                                      
-   409 00000178 00<rep 59E88h>          times 368640-num db 0                 ; fill up with zeros until file size=360k
+   311                                  generate_chars:
+   312 00000163 BF[FF01]                    mov di,bitmap_data      ; dest address of render data
+   313 00000166 30FF                        xor bh,bh
+   314                                    .render_char:
+   315 00000168 30E4                        xor ah,ah
+   316 0000016A 88F8                        mov al,bh
+   317 0000016C B90400                      mov cx,4                ; cl is also used below
+   318 0000016F F6E1                        mul cl
+   319 00000171 89C6                        mov si,ax
+   320 00000173 81C6[BF01]                  add si,img
+   321                                    .render_char_part:        ; input requirement at first time cl=4
+   322 00000177 AC                          lodsb                   ; use lodsb instead of movsb to keep a copy in al
+   323 00000178 AA                          stosb                   ; draw in left top nibble
+   324 00000179 53                          push bx                 ; save cur x and y
+   325 0000017A 51                          push cx                 ; cur loop counter (4,3,2,1)
+   326 0000017B 51                          push cx
+   327 0000017C 5B                          pop bx                  ; bx = counter
+   328 0000017D D1E3                        shl bx,1                ; bx *= 2
+   329 0000017F 53                          push bx                 ; save counter*2 for right bottom
+   330 00000180 83FB02                      cmp bx,2                ; skip top line of left bottom nibble
+   331 00000183 7403                        je .flip_bits
+   332 00000185 884101                      mov [di+bx+1],al        ; draw in left bottom starting at line 3 instead of 4
+   333                                  
+   334                                    .flip_bits:                 ; flips all bits dropping highest bit
+   335 00000188 B108                        mov cl,8                ; 8 bits to flip
+   336 0000018A 30E4                        xor ah,ah
+   337                                    .flip_bit:
+   338 0000018C BB0180                      mov bx,0x8001           ; bl=1, bh=128  bl doubles, bh halves
+   339 0000018F D2E3                        shl bl,cl
+   340 00000191 84D8                        test al,bl
+   341 00000193 7406                        jz .next_bit
+   342 00000195 49                          dec cx
+   343 00000196 D2EF                        shr bh,cl
+   344 00000198 08FC                        or ah,bh
+   345 0000019A 41                          inc cx
+   346                                    .next_bit:
+   347 0000019B E2EF                        loop .flip_bit          ; loop 8 bits for flipping
+   348 0000019D 886503                      mov [di+3],ah           ; draw in right top nibble
+   349 000001A0 5B                          pop bx                  ; bx = counter*2
+   350 000001A1 83FB02                      cmp bx,2                ; skip top line of right bottom nibble
+   351 000001A4 7403                        je .flip_done
+   352 000001A6 886105                      mov [di+bx+5],ah        ; draw in right bottom starting at line 3 instead of 4
+   353                                    .flip_done:
+   354 000001A9 59                          pop cx                  ; restore loop counter
+   355 000001AA 5B                          pop bx                  ; restore x and y
+   356 000001AB E2CA                        loop .render_char_part
+   357                                    .clear_bottom_line:
+   358 000001AD 83C707                      add di,7
+   359 000001B0 30C0                        xor al,al
+   360 000001B2 AA                          stosb                   ; right bottom
+   361 000001B3 83C703                      add di,3
+   362 000001B6 AA                          stosb                   ; left bottom
+   363                                    .next_char:
+   364 000001B7 FEC7                        inc bh                  ; next char
+   365 000001B9 80FF10                      cmp bh,16
+   366 000001BC 7CAA                        jl .render_char
+   367 000001BE C3                          ret
+   368                                  
+   369                                  img:
+   370 000001BF 00000000                    db 0,0,0,0
+   371 000001C3 00000001                    db 0,0,0,1
+   372 000001C7 00000003                    db 0,0,0,3
+   373 000001CB 00000103                    db 0,0,1,3
+   374 000001CF 00000307                    db 0,0,3,7
+   375 000001D3 0000070F                    db 0,0,7,15
+   376 000001D7 00030F1F                    db 0,3,15,31
+   377 000001DB 00071F3F                    db 0,7,31,63
+   378 000001DF 010F3F3F                    db 1,15,63,63
+   379 000001E3 031F3F3F                    db 3,31,63,63
+   380 000001E7 071F3F7F                    db 7,31,63,127
+   381 000001EB 071F7F7F                    db 7,31,127,127
+   382 000001EF 073F7F7F                    db 7,63,127,127
+   383 000001F3 0F3F7F7F                    db 15,63,127,127
+   384 000001F7 0F3F7FFF                    db 15,63,127,255
+   385 000001FB 1F7FFFFF                    db 31,127,255,255
+   386                                  
+   387                                  %assign num $-$$
+   388                                  %warning total num
+   388          ******************       warning: total 511 [-w+user]
+   389                                  
+   390                                  bitmap_data:                          ; destination for 128 bytes rendered bitmap data
+   391                                  
+   392 000001FF 00<rep 59E01h>          times 368640-num db  0                 ; fill up with zeros until file size=360k
