@@ -1,11 +1,11 @@
-
-base=green
+base=green2
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
-flashfloppy_image_prefix="0275. "
+flashfloppy_image_prefix="0276. "
 
 set -e
 
-nasm -w-user -w-label-orphan $base.asm -o $base.img -l $base.lst
+nasm -w-label-orphan $base.asm -o $base.img -l $base.lst
+# -w-user 
 
 if [ -d $flashfloppy_image_folder ]; then
 	cp $base.img "$flashfloppy_image_folder$flashfloppy_image_prefix$base.img"
@@ -19,27 +19,4 @@ if pgrep -x "mbc55xtest" > /dev/null; then
 	killall -9 mbc55xtest
 fi
 
-# 800x600 \
-./mbc55xtest mbc55x -debug -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 2560x1600 -prescale 4 \
--flop1 $base.img 
-# &
-
-
-
-	# -hdiutil detach /dev/disk4
-	# -hdiutil unmount /Volumes/Untitled/ -force
-
-	# -open -W bootpic.img	
-	# -open /Volumes/Untitled/
-
- # -debug 
-
-
-	# 	ls /Volumes/
-
-	# 	hdiutil unmount /Volumes/Untitled/ -force
-
-	# 	cp bootpic.img "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/emulator/Sanyo_MBC_555/data/"
-
-	# 	cp bootpic.img "/Volumes/FLASHFLOPPY/diskimages/0273. bootpic.img"
-	# 	hdiutil unmount /Volumes/FLASHFLOPPY -force
+./mbc55xtest mbc55x -flop1 $base.img -debug -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 930x700 -prescale 1 

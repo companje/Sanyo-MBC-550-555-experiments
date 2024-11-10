@@ -1,0 +1,84 @@
+     1                                  org 0
+     2                                  cpu 8086
+     3                                  
+     4                                  RED   equ 0xf000
+     5                                  GREEN equ 0x1c00
+     6                                  BLUE  equ 0xf400
+     7                                  COLS  equ 72
+     8                                  
+     9                                  ROM equ 0xFE00
+    10                                  FONT equ 0xFF00
+    11                                  
+    12                                  LINES_PER_ROW equ 4
+    13                                  COLS_PER_ROW equ 72
+    14                                  
+    15 00000000 EB1B                    jmp setup
+    16                                  
+    17 00000002 53616E796F312E3202-     db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
+    17 0000000B 000100000270000000-
+    17 00000014 0200FD020009000200 
+    18                                  
+    19                                  ; row: db 0
+    20                                  ; col: db 0
+    21                                  
+    22                                  setup:
+    23 0000001D B005                      mov al,5
+    24 0000001F E610                      out 0x10,al ; set video page green to 1C00:0000. Needed to get MAME and Sanyo on the same 'page'
+    25 00000021 E83A00                    call clear_green_channel ; needed for MAME
+    26                                  
+    27 00000024 0E                        push cs
+    28 00000025 1F                        pop ds      ; ds=cs
+    29                                  
+    30 00000026 8D36[6D00]                lea si, img
+    31 0000002A B704                      mov bh,4 ; cols 
+    32 0000002C B304                      mov bl,4 ; rows
+    33 0000002E E80100                    call draw_pic
+    34                                  
+    35 00000031 F4                        hlt
+    36                                  
+    37                                  draw_pic:
+    38 00000032 B800F0                    mov ax, RED
+    39 00000035 E80D00                    call draw_channel
+    40 00000038 B8001C                    mov ax, GREEN
+    41 0000003B E80700                    call draw_channel
+    42 0000003E B800F4                    mov ax, BLUE
+    43 00000041 E80100                    call draw_channel
+    44 00000044 C3                        ret
+    45                                  
+    46                                  draw_channel:
+    47 00000045 8EC0                      mov es,ax
+    48 00000047 31FF                      xor di,di
+    49                                  
+    50 00000049 31C9                      xor cx,cx
+    51 0000004B 88D9                      mov cl,bl        ; rows (bl)
+    52                                  rows_loop:
+    53 0000004D 51                        push cx
+    54 0000004E 31C9                      xor cx,cx
+    55 00000050 88F9                      mov cl,bh        ; cols (bh)
+    56                                  cols_loop:
+    57 00000052 A5                        movsw
+    58 00000053 A5                        movsw
+    59 00000054 E2FC                      loop cols_loop
+    60 00000056 81C71001                  add di,COLS*4 - 4*4
+    61 0000005A 59                        pop cx
+    62 0000005B E2F0                      loop rows_loop
+    63 0000005D C3                        ret
+    64                                  
+    65                                  
+    66                                  clear_green_channel:
+    67 0000005E B8001C                    mov ax,GREEN
+    68 00000061 8EC0                      mov es,ax
+    69 00000063 31FF                      xor di,di
+    70 00000065 B90020                    mov cx,0x2000
+    71 00000068 31C0                      xor ax,ax
+    72 0000006A F3AB                      rep stosw
+    73 0000006C C3                        ret
+    74                                  
+    75                                  img: 
+    76 0000006D <bin C0h>                 incbin "snapshot.bin"
+    77                                  
+    78                                  %assign num $-$$
+    79                                  %warning num
+    79          ******************       warning: 301 [-w+user]
+    80                                  
+    81 0000012D 00<rep 59ED3h>          times 368640-num db  0

@@ -30,129 +30,133 @@
     28                                    ; in MAME wordt hierdoor de achtergrond groen. Op de sanyo zwart.
     29                                    ; dus misschien even clear screen hier doen voor rood,groen en blauw.
     30                                  
-    31 00000023 E82300                    call clear_screen
+    31 00000023 E82000                    call clear_screen
     32                                  
     33                                    ; call blue_bg
     34                                    ; call rom_to_vram
     35                                    ; call green_bg
     36                                  
-    37 00000026 E80100                    call draw_moving_block_animation    
+    37                                    ; call draw_moving_block_animation    
     38                                  
-    39 00000029 F4                        hlt
+    39                                  
     40                                  
-    41                                  
+    41 00000026 F4                        hlt
     42                                  
-    43                                  draw_moving_block_animation:
-    44 0000002A B8001C                    mov ax,GREEN
-    45 0000002D 8EC0                      mov es,ax
-    46 0000002F 31FF                      xor di,di
-    47 00000031 83C728                    add di,40
-    48 00000034 B9B80B                    mov cx,3000
-    49                                  .1
-    50 00000037 E82C00                    call move_block_down
-    51                                    
-    52 0000003A 51                        push cx
-    53 0000003B B98813                    mov cx,5000
-    54 0000003E E80400                    call delay_nops
-    55 00000041 59                        pop cx
-    56                                  
-    57 00000042 E2F3                      loop .1
-    58 00000044 C3                        ret
-    59                                  
-    60                                  delay_nops:
-    61 00000045 90                        nop
-    62 00000046 E2FD                      loop delay_nops
-    63 00000048 C3                        ret
-    64                                  
-    65                                  clear_screen:
-    66 00000049 B8001C                    mov ax,GREEN
-    67 0000004C 8EC0                      mov es,ax
-    68 0000004E 31FF                      xor di,di
-    69 00000050 B90020                    mov cx,0x2000
-    70 00000053 31C0                      xor ax,ax
-    71 00000055 F3AB                      rep stosw
-    72 00000057 C3                        ret
-    73                                  
-    74                                  
-    75                                  move_block_right:
-    76 00000058 83EF04                    sub di,4
-    77 0000005B B80000                    mov ax,0
-    78 0000005E AB                        stosw
-    79 0000005F AB                        stosw
-    80 00000060 B8FFFF                    mov ax,0xffff
-    81 00000063 AB                        stosw
-    82 00000064 AB                        stosw
-    83 00000065 C3                        ret
-    84                                  
-    85                                  move_block_down:
-    86 00000066 57                        push di
-    87 00000067 81EF2001                  sub di,4*COLS
-    88 0000006B B80000                    mov ax,0
-    89 0000006E AB                        stosw
-    90 0000006F AB                        stosw
-    91 00000070 5F                        pop di
-    92 00000071 B8FFFF                    mov ax,0xffff
-    93 00000074 AB                        stosw
-    94 00000075 AB                        stosw
-    95 00000076 81C71C01                  add di,4*COLS-4
-    96 0000007A C3                        ret
-    97                                  
-    98                                  draw_pic:
-    99 0000007B 0E                        push cs
-   100 0000007C 1F                        pop ds
-   101 0000007D B8001C                    mov ax,GREEN
-   102 00000080 8EC0                      mov es,ax
-   103 00000082 8D36[D200]                lea si,img
-   104 00000086 31FF                      xor di,di
-   105 00000088 B9C000                    mov cx,192  ; eerst kijken hoe ik de image data in de bootsector kan tonen. daarna pas diskaccess
-   106 0000008B F3A4                      rep movsb
-   107 0000008D C3                        ret
-   108                                  
-   109                                  blue_bg:
-   110 0000008E B800F4                    mov ax,BLUE
-   111 00000091 50                        push ax
-   112 00000092 07                        pop es
-   113 00000093 BF0000                    mov di,0
-   114 00000096 B90040                    mov cx,0x4000
-   115 00000099 B0FF                      mov al,255
-   116 0000009B F3AA                      rep stosb
-   117 0000009D C3                        ret
-   118                                  
-   119                                  red_bg:
-   120 0000009E B800F0                    mov ax,RED
-   121 000000A1 50                        push ax
-   122 000000A2 07                        pop es
-   123 000000A3 BF0000                    mov di,0
-   124 000000A6 B90040                    mov cx,0x4000
-   125 000000A9 B0FF                      mov al,255
-   126 000000AB F3AA                      rep stosb
-   127 000000AD C3                        ret
-   128                                  
-   129                                  green_bg:
-   130 000000AE B8001C                    mov ax,GREEN
-   131 000000B1 50                        push ax
-   132 000000B2 07                        pop es
-   133 000000B3 BF0000                    mov di,0
-   134 000000B6 B90040                    mov cx,0x4000
-   135 000000B9 B0FF                      mov al,255
-   136 000000BB F3AA                      rep stosb
-   137 000000BD C3                        ret
-   138                                  
-   139                                  rom_to_vram:
-   140 000000BE B800FE                    mov ax,ROM   ; ROM start
-   141 000000C1 8ED8                      mov ds,ax       ; DS source segment
-   142 000000C3 31F6                      xor si,si       ; si=0
-   143 000000C5 B8001C                    mov ax,GREEN
-   144 000000C8 8EC0                      mov es,ax       ; ES dest segment
-   145 000000CA 31FF                      xor di,di       ; di=0
-   146 000000CC B90040                    mov cx, 0x4000  ; 8000 bytes (0x4000 in hexadecimal)
-   147 000000CF F3A4                      rep movsb       ; Kopieer CX bytes van DS:SI naar ES:DI
-   148                                    
-   149 000000D1 C3                        ret
-   150                                  
-   151                                  img: 
-   152 000000D2 <bin C0h>                 incbin "beker.pic"
-   153                                  
-   154                                  %assign num $-$$
+    43                                  
+    44                                  
+    45                                  draw_moving_block_animation:
+    46 00000027 B8001C                    mov ax,GREEN
+    47 0000002A 8EC0                      mov es,ax
+    48 0000002C 31FF                      xor di,di
+    49 0000002E 83C728                    add di,40
+    50 00000031 B9B80B                    mov cx,3000
+    51                                  .1
+    52 00000034 E82C00                    call move_block_down
+    53                                    
+    54 00000037 51                        push cx
+    55 00000038 B98813                    mov cx,5000
+    56 0000003B E80400                    call delay_nops
+    57 0000003E 59                        pop cx
+    58                                  
+    59 0000003F E2F3                      loop .1
+    60 00000041 C3                        ret
+    61                                  
+    62                                  delay_nops:
+    63 00000042 90                        nop
+    64 00000043 E2FD                      loop delay_nops
+    65 00000045 C3                        ret
+    66                                  
+    67                                  clear_screen:
+    68 00000046 B8001C                    mov ax,GREEN
+    69 00000049 8EC0                      mov es,ax
+    70 0000004B 31FF                      xor di,di
+    71 0000004D B90020                    mov cx,0x2000
+    72 00000050 31C0                      xor ax,ax
+    73 00000052 F3AB                      rep stosw
+    74 00000054 C3                        ret
+    75                                  
+    76                                  
+    77                                  move_block_right:
+    78 00000055 83EF04                    sub di,4
+    79 00000058 B80000                    mov ax,0
+    80 0000005B AB                        stosw
+    81 0000005C AB                        stosw
+    82 0000005D B8FFFF                    mov ax,0xffff
+    83 00000060 AB                        stosw
+    84 00000061 AB                        stosw
+    85 00000062 C3                        ret
+    86                                  
+    87                                  move_block_down:
+    88 00000063 57                        push di
+    89 00000064 81EF2001                  sub di,4*COLS
+    90 00000068 B80000                    mov ax,0
+    91 0000006B AB                        stosw
+    92 0000006C AB                        stosw
+    93 0000006D 5F                        pop di
+    94 0000006E B8FFFF                    mov ax,0xffff
+    95 00000071 AB                        stosw
+    96 00000072 AB                        stosw
+    97 00000073 81C71C01                  add di,4*COLS-4
+    98 00000077 C3                        ret
+    99                                  
+   100                                  draw_pic:
+   101 00000078 0E                        push cs
+   102 00000079 1F                        pop ds
+   103 0000007A B8001C                    mov ax,GREEN
+   104 0000007D 8EC0                      mov es,ax
+   105 0000007F 8D36[CF00]                lea si,img
+   106 00000083 31FF                      xor di,di
+   107 00000085 B9C000                    mov cx,192  ; eerst kijken hoe ik de image data in de bootsector kan tonen. daarna pas diskaccess
+   108 00000088 F3A4                      rep movsb
+   109 0000008A C3                        ret
+   110                                  
+   111                                  blue_bg:
+   112 0000008B B800F4                    mov ax,BLUE
+   113 0000008E 50                        push ax
+   114 0000008F 07                        pop es
+   115 00000090 BF0000                    mov di,0
+   116 00000093 B90040                    mov cx,0x4000
+   117 00000096 B0FF                      mov al,255
+   118 00000098 F3AA                      rep stosb
+   119 0000009A C3                        ret
+   120                                  
+   121                                  red_bg:
+   122 0000009B B800F0                    mov ax,RED
+   123 0000009E 50                        push ax
+   124 0000009F 07                        pop es
+   125 000000A0 BF0000                    mov di,0
+   126 000000A3 B90040                    mov cx,0x4000
+   127 000000A6 B0FF                      mov al,255
+   128 000000A8 F3AA                      rep stosb
+   129 000000AA C3                        ret
+   130                                  
+   131                                  green_bg:
+   132 000000AB B8001C                    mov ax,GREEN
+   133 000000AE 50                        push ax
+   134 000000AF 07                        pop es
+   135 000000B0 BF0000                    mov di,0
+   136 000000B3 B90040                    mov cx,0x4000
+   137 000000B6 B0FF                      mov al,255
+   138 000000B8 F3AA                      rep stosb
+   139 000000BA C3                        ret
+   140                                  
+   141                                  rom_to_vram:
+   142 000000BB B800FE                    mov ax,ROM   ; ROM start
+   143 000000BE 8ED8                      mov ds,ax       ; DS source segment
+   144 000000C0 31F6                      xor si,si       ; si=0
+   145 000000C2 B8001C                    mov ax,GREEN
+   146 000000C5 8EC0                      mov es,ax       ; ES dest segment
+   147 000000C7 31FF                      xor di,di       ; di=0
+   148 000000C9 B90040                    mov cx, 0x4000  ; 8000 bytes (0x4000 in hexadecimal)
+   149 000000CC F3A4                      rep movsb       ; Kopieer CX bytes van DS:SI naar ES:DI
+   150                                    
+   151 000000CE C3                        ret
+   152                                  
+   153                                  img: 
+   154 000000CF <bin C0h>                 incbin "snapshot.bin"
    155                                  
-   156 00000192 00<rep 59E6Eh>          times 368640-num db  0
+   156                                  %assign num $-$$
+   157                                  %warning num
+   157          ******************       warning: 399 [-w+user]
+   158                                  
+   159 0000018F 00<rep 59E71h>          times 368640-num db  0

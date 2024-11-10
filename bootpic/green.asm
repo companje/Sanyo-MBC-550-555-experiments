@@ -34,7 +34,9 @@ setup:
   ; call rom_to_vram
   ; call green_bg
 
-  call draw_moving_block_animation    
+  ; call draw_moving_block_animation    
+
+
 
   hlt
 
@@ -149,8 +151,9 @@ rom_to_vram:
   ret
 
 img: 
-  incbin "beker.pic"
+  incbin "snapshot.bin"
 
 %assign num $-$$
+%warning num
 
 times 368640-num db  0
