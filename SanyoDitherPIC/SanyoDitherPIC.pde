@@ -1,48 +1,78 @@
-ArrayList<String> filenames = new ArrayList();
+//ArrayList<String> filenames = new ArrayList();
+//String extension = ".jpg";
 
 void setup() {
-  size(640, 400);
-  frameRate(30);
-  background(0);
-  noStroke();
+  //size(640, 400);
+  //frameRate(30);
+  //background(0);
+  //noStroke();
+  //File[] files = new File(dataPath("input/")).listFiles(); //.replaceAll("data/",""))).listFiles();
+  //for (int i=0; i<files.length; i++) {
+  //  if (files[i].getName().endsWith(extension)) {
+  //    filenames.add(files[i].getName());
+  //  }
+  //}
 
-  File[] files = new File(dataPath("input/")).listFiles(); //.replaceAll("data/",""))).listFiles();
-  for (int i=0; i<files.length; i++) {
-    if (files[i].getName().endsWith(".jpg")) {
-      filenames.add(files[i].getName()); 
+  String inputFilename = "data/input/beker.png";
+  String outputFilename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/bootpic/beker.pic";
+  PImage img = loadImage(inputFilename);
+  savePIC(img, outputFilename, false);
+  println("done");
+  
+  size(320,320);
+  noSmooth();
+  img = loadPIC(outputFilename, 32, 16);
+  image(img,0,0,width,height);
+ 
+}
+
+PImage loadPIC(String filename, int w, int h) { //PIC without header!
+  byte bytes[] = loadBytes(filename);
+  PImage img = createImage(w,h,RGB);
+  for (int i=0, x=0, y=0, n=w*h/8; i<n; i++) {
+    for (int j=128; j>0; j/=2, x=(x+1)%w, y=i/(w/8)) {
+      int rr=(bytes[i+2*n]&j)/j<<8;
+      int gg=(bytes[i+1*n]&j)/j<<8;
+      int bb=(bytes[i+0*n]&j)/j<<8;
+      img.set(x,y,color(rr, gg, bb));
     }
   }
+  return img;
 }
 
-void draw() {
-  String filename = filenames.get(int(float(mouseX)/width*filenames.size()));
-  PImage img = loadImage("input/"+filename);
-  //img.filter(GRAY);
-  img.resize(width, 200);
-  img = applyDithering(img, 1);
-  savePIC(img, "data/output/"+filename.replace(".jpg", ".pic"));
-  PImage img2 = createImage(width, height, RGB);
-  scaleInto(img, img2);
-  image(img2, 0, 0);
-}
-
-void savePIC(PImage img, String filename) {
-  byte bytes[] = new byte[img.width*img.height*3/8+4];
-  bytes[0] = byte(img.width & 255);
-  bytes[1] = byte(img.width >> 8);
-  bytes[2] = byte(img.height & 255);
-  bytes[3] = byte(img.height >> 8);
+void savePIC(PImage img, String filename, boolean header) {
+  int headerLength = header ? 4 : 0;
+  byte bytes[] = new byte[img.width*img.height*3/8+headerLength];
+  if (header) {
+    bytes[0] = byte(img.width & 255);
+    bytes[1] = byte(img.width >> 8);
+    bytes[2] = byte(img.height & 255);
+    bytes[3] = byte(img.height >> 8);
+  }
 
   for (int i=0, x=0, y=0, n=img.width*img.height/8; i<n; i++) {
     for (int j=128; j>0; j/=2, x=(x+1)%img.width, y=i/(img.width/8)) {
       color c = img.get(x, y);
-      bytes[i+4+2*n] |= byte(j * red(c)/255);
-      bytes[i+4+1*n] |= byte(j * green(c)/255);
-      bytes[i+4+0*n] |= byte(j * blue(c)/255);
+      bytes[i+headerLength+2*n] |= byte(j * red(c)/255);
+      bytes[i+headerLength+1*n] |= byte(j * green(c)/255);
+      bytes[i+headerLength+0*n] |= byte(j * blue(c)/255);
     }
   }
 
   saveBytes(filename, bytes);
+}
+
+
+void draw() {
+  //String filename = filenames.get(int(float(mouseX)/width*filenames.size()));
+  //PImage img = loadImage("input/"+filename);
+  ////img.filter(GRAY);
+  //img.resize(width, 200);
+  //img = applyDithering(img, 1);
+  //savePIC(img, "data/output/"+filename.replace(extension, ".pic"));
+  //PImage img2 = createImage(width, height, RGB);
+  //scaleInto(img, img2);
+  //image(img2, 0, 0);
 }
 
 void drawPIC(String filename) {

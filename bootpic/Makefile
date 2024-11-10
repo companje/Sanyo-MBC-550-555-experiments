@@ -7,6 +7,7 @@ build:
 	-open -W bootpic.img	
 	-open /Volumes/Untitled/
 
+# ./mbc55xtest mbc55x -debug -ramsize 256K -verbose -skip_gameinfo -effect scanlines -window -nomaximize -resolution0 800x600 -flop1 floppies/disk-a.img
 
 
 	# 	ls /Volumes/
