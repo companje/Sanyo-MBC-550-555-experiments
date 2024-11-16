@@ -1,6 +1,6 @@
-base=green2
+base=green3-floppy
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
-flashfloppy_image_prefix="0276. "
+flashfloppy_image_prefix="0277. "
 
 set -e
 

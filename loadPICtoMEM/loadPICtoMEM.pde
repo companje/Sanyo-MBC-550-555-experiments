@@ -21,70 +21,30 @@ void setup() {
 void draw() {
   pg.beginDraw();
   pg.background(0);
-  pg.image(beker, 0, 0);
+  pg.image(bandit, 0, 0);
   pg.endDraw();
 
   setMemoryFromImage(pg);
   setImageFromMemory(img);
   image(img, 0, 0, width, height);
     
-  saveBytes("/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/bootpic/snapshot.bin", getSnapshotSeparated(0,0,4,4)); //(col,row,cols,rows) 1 col=8px, 1 row=4px
+  saveBytes("/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/bootpic/snapshot.bin", getSnapshot(16,0,4*8,4*11)); //(col,row,cols,rows) 1 col=8px, 1 row=4px
 }
 
-//byte[] getSnapshot(int col, int row, int cols, int rows) {
-//   byte bin[] = new byte[rows*cols*4*3]; //4x4 cells x 3 colors = 32x16px x 3 colors = 192 bytes
-//   for (int i=0; i<bin.length/3; i++) {
-//     bin[i] = ...
-//   }
-//   return bin;
-//}
-
-byte[] getSnapshotSeparated(int col, int row, int cols, int rows) {
+byte[] getSnapshot(int col, int row, int cols, int rows) {
   byte[] bin = new byte[rows * cols * 4 * 3];
-  int redOffset = 0, greenOffset = rows * cols * 4, blueOffset = rows * cols * 4 * 2;
   for (int r = 0; r < rows; r++) {
     for (int c = 0; c < cols; c++) {
       for (int y = 0; y < 4; y++) {
         int baseIndex = (row + r) * (img.width / 2) + y + (col + c) * 4;
-        bin[redOffset + (r * cols + c) * 4 + y] = (byte) memory[R + baseIndex];
-        bin[greenOffset + (r * cols + c) * 4 + y] = (byte) memory[G + baseIndex];
-        bin[blueOffset + (r * cols + c) * 4 + y] = (byte) memory[B + baseIndex];
+        bin[rows * cols * 4 * 0 + (r * cols + c) * 4 + y] = (byte) memory[R + baseIndex];
+        bin[rows * cols * 4 * 1 + (r * cols + c) * 4 + y] = (byte) memory[G + baseIndex];
+        bin[rows * cols * 4 * 2 + (r * cols + c) * 4 + y] = (byte) memory[B + baseIndex];
       }
     }
   }
   return bin;
 }
-
-//byte[] getSnapshot(int col, int row, int cols, int rows) {
-//  byte[] bin = new byte[rows * cols * 4 * 3];
-//  for (int r = 0; r < rows; r++) {
-//    for (int c = 0; c < cols; c++) {
-//      for (int y = 0; y < 4; y++) {
-//        for (int chn= 0; chn < 3; chn++) {
-//          int memoryOffset = (chn == 0 ? R : chn == 1 ? G : B);
-//          int baseIndex = memoryOffset + (row + r) * (img.width / 2) + y + (col + c) * 4;
-//          bin[(r * cols + c) * 12 + y * 3 + chn] = (byte) memory[baseIndex];
-//        }
-//      }
-//    }
-//  }
-//  return bin;
-//}
-
-//byte[] getGreenSnapshot(int col, int row, int cols, int rows) {
-//  byte[] bin = new byte[rows * cols * 4];
-//  for (int r = 0; r < rows; r++) {
-//    for (int c = 0; c < cols; c++) {
-//      for (int y = 0; y < 4; y++) {
-//        int baseIndex = G + (row + r) * (img.width / 2) + y + (col + c) * 4;
-//        bin[(r * cols + c) * 4 + y] = (byte) memory[baseIndex];
-//      }
-//    }
-//  }
-//  return bin;
-//}
-
-
 
 
 void setImageFromMemory(PImage img) {

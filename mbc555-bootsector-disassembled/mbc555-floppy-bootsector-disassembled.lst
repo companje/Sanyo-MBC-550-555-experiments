@@ -1,0 +1,313 @@
+     1                                  ; Disassembling the Sanyo MBC-555 MS-DOS 2.11 floppy bootsector
+     2                                  ; Rick Companje, The Netherlands, March 28th, 2022 + November 2024
+     3                                  ; reconstructed using ndisasm 
+     4                                  ; ndisasm -b16 empty-base.img > tmp.lst                 # this is for disassembling most of the code
+     5                                  ; ndisasm -b16 -e 68 -o 68 empty-base.img  >  tmp2.lst  # this part is for the code at 0x44
+     6                                  ; analysed using MAME debugger
+     7                                  
+     8                                  cpu 8086
+     9                                  org 0x00
+    10                                  
+    11                                  PORT_DISK_STATUS equ 0x08
+    12                                  PORT_DISK_CMD equ 0x08
+    13                                  PORT_DISK_SECTOR equ 0x0C
+    14                                  PORT_DISK_DATA equ 0x0E
+    15                                  PORT_DISK_CONTROL equ 0x1C     ; 1C: parallel/drive control
+    16                                  PORT_VIDEO_PAGE equ 0x10
+    17                                  
+    18                                  SCREEN_CENTER equ 0x1b50
+    19                                  
+    20 00000000 E9E400                  jmp begin
+    21                                  
+    22 00000003 53616E796F312E32        db 'Sanyo1.2'
+    23                                  
+    24                                  ;OB: 00 02   ; bytes per sector
+    25                                  ;0D: 02      ; sectors per cluster
+    26                                  ;0E: 01 00   ; reserved sectors
+    27                                  ;10: 02      ; number of FATs
+    28                                  ;11: 70 00   ; max number of root dir
+    29                                  ;13: D0 02   ; total sector count
+    30                                  ;15: FD      ; ignore
+    31                                  ;16: 02 00   ; sectors per FAT
+    32                                  ;18: 09 00   ; sectors per track
+    33                                  ;1A: 02 00   ; number of heads
+    34                                  ;1C: 00      ; -
+    35                                  ;1D: 00      ; -
+    36                                  ;1E: 00      ; -
+    37                                  ;1F 00 1C    ; GREEN PLANE
+    38                                  ;21: 00 FF   ; FONT
+    39                                  
+    40 0000000B 0002                    _0x0b:dw 512     ; bytes per sector
+    41 0000000D 02                      _0x0d:db 2       ; sectors per cluster
+    42 0000000E 0001                    _0x0e:dw 256     ; reserved sectors
+    43 00000010 02                      _0x10:db 2       ; number of FATs
+    44 00000011 7000                    _0x11:dw 112     ; max number of root directory entries (0x70)
+    45 00000013 D002                    _0x13:dw 720     ; total sector count
+    46                                  
+    47 00000015 FD                      _0x15:db 0xfd    ; ??? 'ignore according to docs' but used for something: maybe FAT ID 0xFD to indicate 360 KB?
+    48 00000016 0200                    _0x16:dw 2       ; sectors per FAT
+    49 00000018 0900                    _0x18:dw 9       ; sectors per track
+    50 0000001A 0200                    _0x1a:dw 2       ; number of heads
+    51                                  
+    52 0000001C 00                      _0x1c:db 0       ; -
+    53 0000001D 00                      _0x1d:db 0       ; -
+    54 0000001E 00                      _0x1e:db 0       ; - used but for what? is set to 1 
+    55                                  
+    56                                  ; used by bootsector code: 0x15, 0x1e, 0x18
+    57                                  
+    58 0000001F 001C                    GREEN_PLANE: dw 0x1c00
+    59 00000021 00FF                    FONT: dw 0xff00
+    60 00000023 20202020202E535953-     BOOT_ERROR: db '     .SYS file(s) not found     ',0x00
+    60 0000002C 2066696C6528732920-
+    60 00000035 6E6F7420666F756E64-
+    60 0000003E 202020202000       
+    61                                  
+    62                                  _0x44:
+    63 00000044 FEC6                        inc dh
+    64 00000046 2EA1[1800]                  mov ax,[cs:_0x18]      ; sectors per track ?
+    65 0000004A FEC0                        inc al
+    66 0000004C 38C6                        cmp dh,al
+    67 0000004E 7226                        jc _0x76
+    68 00000050 B601                        mov dh,1
+    69 00000052 FEC2                        inc dl
+    70                                  _0x54:
+    71 00000054 88D0                        mov al,dl
+    72 00000056 2EF606[1500]01              test byte [cs:_0x15],1  ; 0xFD & 1 ?  check FAT ID ? 0xFD / 11111101 ???
+    73 0000005C 7402                        jz _0x60
+    74 0000005E D0E8                        shr al,1   ; divide al by 2 ?
+    75                                  _0x60:
+    76                                      ; al=0x61 ??
+    77 00000060 E60E                        out PORT_DISK_DATA,al                       ; 0xE  set track number?
+    78 00000062 B018                        mov al,0x18
+    79 00000064 E608                        out PORT_DISK_CMD,al                        ; floppy command
+    80                                  
+    81 00000066 B000                        mov al,0
+    82 00000068 7302                        jnc setDiskControl
+    83 0000006A B004                        mov al,4
+    84                                  setDiskControl:
+    85 0000006C E61C                        out PORT_DISK_CONTROL,al                    ; 0 of 4
+    86 0000006E D40A                        aam
+    87                                  _0x70:
+    88 00000070 E408                        in al,PORT_DISK_STATUS                      ; floppy status
+    89 00000072 A801                        test al,1
+    90 00000074 75FA                        jnz _0x70
+    91                                  _0x76:
+    92 00000076 88F0                        mov al,dh
+    93 00000078 E60C                        out PORT_DISK_SECTOR,al                     ; floppy set sector
+    94                                      
+    95 0000007A 89D5                        mov bp,dx
+    96 0000007C BA0800                      mov dx,0x8                                  ; prepare dx=8 for reading disk status with in al,dx
+    97 0000007F BEA500                      mov si,0xa5
+    98 00000082 B702                        mov bh,0x2
+    99 00000084 B396                        mov bl,0x96
+   100 00000086 B400                        mov ah,0x0
+   101                                  
+   102 00000088 B080                        mov al,0x80
+   103 0000008A E608                        out PORT_DISK_CMD,al
+   104 0000008C 89FC                        mov sp,di
+   105 0000008E D40A<rep 4h>                times 4 aam      ; delay
+   106                                  _0x96:
+   107 00000096 EC                          in al,dx         ; dx=8  get disk status
+   108 00000097 D0F8                        sar al,1
+   109 00000099 731C                        jnc _0xb7
+   110 0000009B 75F9                        jnz _0x96
+   111                                  _0x9d:
+   112 0000009D EC                          in al,dx
+   113 0000009E 20D8                        and al,bl
+   114 000000A0 74FB                        jz _0x9d
+   115 000000A2 E40E                        in al,PORT_DISK_DATA
+   116 000000A4 AA                          stosb
+   117                                  _0xa5:
+   118 000000A5 EC                          in al,dx          ; dx=8  get disk status
+   119 000000A6 48                          dec ax
+   120 000000A7 74FC                        jz _0xa5
+   121 000000A9 38F8                        cmp al,bh
+   122 000000AB 750A                        jnz _0xb7
+   123                                  _0xad:
+   124 000000AD E40E                        in al,PORT_DISK_DATA
+   125 000000AF AA                          stosb
+   126 000000B0 EC                          in al,dx           ; dx=8  get disk status
+   127 000000B1 38F8                        cmp al,bh
+   128 000000B3 74F8                        jz _0xad
+   129 000000B5 FFE6                        jmp si
+   130                                  _0xb7:
+   131 000000B7 EC                          in al,dx           ; dx=8  get disk status
+   132 000000B8 89EA                        mov dx,bp
+   133 000000BA A81C                        test al,0x1c
+   134 000000BC 7404                        jz _0xc2
+   135 000000BE 89E7                        mov di,sp
+   136 000000C0 EBB4                        jmp short _0x76
+   137                                  _0xc2:
+   138 000000C2 E280                        loop _0x44
+   139 000000C4 2EF606[1E00]01              test byte [cs:_0x1e],1
+   140                                  
+   141 000000CA 745B                        jz _0x127   ; as long as there's no 1 at cs:0x1e repeat loading IO.SYS ?
+   142                                  
+   143 000000CC EA00004000                  jmp 0x40:0
+   144                                  
+   145                                  _FILENAME_IO_SYS:    
+   146 000000D1 494F20202020202053-         db 'IO      SYS'
+   146 000000DA 5953               
+   147                                  
+   148                                  _FILENAME_MSDOS_SYS: 
+   149 000000DC 4D53444F5320202053-         db 'MSDOS   SYS'
+   149 000000E5 5953               
+   150                                  
+   151                                  begin:  ; copies the bootsector to 0020:0000 and continues there
+   152 000000E7 FA                          cli
+   153 000000E8 FC                          cld
+   154 000000E9 8CC8                        mov ax,cs
+   155 000000EB 8ED8                        mov ds,ax         
+   156 000000ED 8ED0                        mov ss,ax         
+   157 000000EF BC0004                      mov sp,0x400
+   158                                      
+   159 000000F2 31FF                        xor di,di         
+   160 000000F4 31F6                        xor si,si         
+   161 000000F6 B82000                      mov ax,0x20
+   162 000000F9 8EC0                        mov es,ax         ; ES destination segment 0x20
+   163 000000FB B90001                      mov cx,0x100      ; 
+   164 000000FE F3A5                        repz movsw        ; copy 0x100 words (512 bytes) from DS:SI to ES:DI
+   165                                  
+   166 00000100 06                          push es           ; put 0020 (segment) on the stack
+   167 00000101 B8[0601]                    mov ax,begin2
+   168 00000104 50                          push ax           ; put 0106 (offset) on the stack
+   169 00000105 CB                          retf              ; 'jump' to 0020:0106
+   170                                  
+   171                                  ; it continues here but now the bootsector code has been moved to 0020:0106
+   172                                  begin2:               
+   173 00000106 8CC8                        mov ax,cs
+   174 00000108 8ED8                        mov ds,ax
+   175 0000010A B80000                      mov ax,0
+   176 0000010D 8EC0                        mov es,ax
+   177 0000010F BF0000                      mov di,0
+   178 00000112 BA0004                      mov dx,0x400      ; stack?
+   179                                  
+   180 00000115 2EF606[1500]02              test byte [cs:_0x15],2  ;  0xFD (11111101 & 2) ?
+   181 0000011B 7504                        jnz _0x121
+   182 0000011D FEC6                        inc dh
+   183 0000011F FEC6                        inc dh     ; now dx=0x600
+   184                                  _0x121:
+   185 00000121 B90100                      mov cx,1
+   186 00000124 E92DFF                      jmp _0x54
+   187                                  _0x127:
+   188 00000127 8CC8                        mov ax,cs
+   189 00000129 8ED8                        mov ds,ax
+   190 0000012B 31C0                        xor ax,ax
+   191 0000012D 8EC0                        mov es,ax
+   192 0000012F 89C7                        mov di,ax
+   193 00000131 89C3                        mov bx,ax
+   194 00000133 B20F                        mov dl,0x0f    ; now dx=0x60f
+   195                                  
+   196                                  _find_IO_SYS:
+   197                                  _0x135:
+   198 00000135 BE[D100]                    mov si, _FILENAME_IO_SYS
+   199 00000138 EB09                        jmp short _filenameCompare
+   200                                  _0x13a:
+   201 0000013A 08DB                        or bl,bl
+   202 0000013C 751D                        jnz _0x15b
+   203 0000013E B301                        mov bl,1
+   204                                  _find_MSDOS_SYS:
+   205 00000140 BE[DC00]                    mov si, _FILENAME_MSDOS_SYS
+   206                                  _filenameCompare:
+   207 00000143 89FD                        mov bp,di
+   208 00000145 B90B00                      mov cx,0xb           ; 11 characters 'FILENAMEEXT'
+   209 00000148 F3A6                        repe cmpsb           ; compares string at SI with DI. it searches for IO.SYS of MSDOS.SYS in the directory
+   210 0000014A 89EF                        mov di,bp
+   211 0000014C 74EC                        jz _0x13a
+   212 0000014E 83C720                      add di,byte +0x20    ; skip 32 bytes (date, filesize, attributes etc) to check the next filename in the directory
+   213 00000151 FECA                        dec dl
+   214 00000153 743D                        jz _printBootError
+   215 00000155 08DB                        or bl,bl    
+   216 00000157 74DC                        jz _find_IO_SYS
+   217 00000159 EBE5                        jmp short _find_MSDOS_SYS
+   218                                  
+   219                                  _0x15b:
+   220 0000015B 2EC606[1E00]01              mov byte [cs:_0x1e],1      ; write 1 to cs:001e
+   221 00000161 B84000                      mov ax,0x40                ; segment where IO.SYS gets loaded
+   222 00000164 8EC0                        mov es,ax
+   223 00000166 BF0000                      mov di,0                   ; offset for IO.SYS
+   224 00000169 B80700                      mov ax,7
+   225 0000016C 2EF606[1500]01              test byte [cs:_0x15],1     ; 0xFD (11111101 & 1) ?
+   226 00000172 7403                        jz _0x177
+   227 00000174 B80A00                      mov ax,0xa
+   228                                  _0x177:
+   229 00000177 B208                        mov dl,8
+   230 00000179 2EF606[1500]02              test byte [cs:_0x15],2     ; 0xFD (11111101 & 2) ?
+   231 0000017F 7505                        jnz _0x186
+   232 00000181 B209                        mov dl,9
+   233 00000183 83C002                      add ax,2
+   234                                  _0x186:                        ; dl is 8 or 9 here? based on the value at 0x15
+   235 00000186 F6F2                        div dl
+   236 00000188 FEC4                        inc ah
+   237 0000018A 89C2                        mov dx,ax
+   238 0000018C B95400                      mov cx,0x54
+   239 0000018F E9C2FE                      jmp _0x54
+   240                                  
+   241                                  
+   242                                  _printBootError:
+   243 00000192 2E8E06[1F00]                mov es,[cs:GREEN_PLANE]      ; segment green video plane
+   244 00000197 31C0                        xor ax,ax                    
+   245 00000199 31FF                        xor di,di                    ; left top on screen
+   246 0000019B B90040                      mov cx,0x4000
+   247 0000019E F3AB                        rep stosw                    ; clear screen by putting 16k of zeroes at ES:DI
+   248 000001A0 B005                        mov al,5
+   249 000001A2 E610                        out PORT_VIDEO_PAGE,al       ; select green page 0x5 - address 0x1C000(?) 
+   250 000001A4 2E8E1E[2100]                mov ds,[cs:FONT]             ; segment of font in ROM
+   251 000001A9 BA501B                      mov dx,SCREEN_CENTER         ; center of the screen for ES:DI
+   252 000001AC 31DB                        xor bx,bx
+   253                                  _0x1ae:
+   254 000001AE 2E8A87[2300]                mov al,[cs:bx+BOOT_ERROR]    ; boot error text: '.SYS file(s) not found'
+   255 000001B3 43                          inc bx
+   256 000001B4 08C0                        or al,al                     ; if al=0 then...
+   257                                  
+   258                                  _haltAfterPrintBootError:
+   259 000001B6 74FE                        jz _haltAfterPrintBootError  ;  ...then halt else continue
+   260                                  
+   261                                      ;continue if more letters of the boot error are to be printed
+   262 000001B8 B108                        mov cl,8
+   263 000001BA F6E1                        mul cl                       ; multiply ax by 8: get character from FONT table (8 bytes per char)
+   264 000001BC 89C6                        mov si,ax
+   265 000001BE 89D7                        mov di,dx                    ; position on the screen 0x1b50 is center
+   266 000001C0 2E8E06[1F00]                mov es,[cs:GREEN_PLANE]      ; segment green video plane
+   267 000001C5 B502                        mov ch,2
+   268                                  _writeHalfChar:
+   269 000001C7 B102                        mov cl,2
+   270                                  _writeQuarterChar:
+   271 000001C9 AD                          lodsw                        ; load char from FONT table
+   272 000001CA 268905                      mov [es:di],ax            
+   273 000001CD 47                          inc di    
+   274 000001CE 47                          inc di                       ; write 2 lines of the char the char (2 bytes) to the screen
+   275 000001CF FEC9                        dec cl    
+   276 000001D1 75F6                        jnz _writeQuarterChar        ; repeat next 2 lines of the char
+   277 000001D3 81C71C01                    add di,0x11c                 ; goto to next row of 4 lines to print bottom part of the char
+   278 000001D7 FECD                        dec ch    
+   279 000001D9 75EC                        jnz _writeHalfChar           ; write bottom part of the char to the screen
+   280                                  
+   281                                  
+   282                                  
+   283                                  
+   284 000001DB 83C204                      add dx,byte +0x4              
+   285 000001DE EBCE                        jmp short _0x1ae              
+   286 000001E0 E0(6B)                      loopne 0x16b               ; incorrect address...?                                     
+   287 000001E2 46                          inc si    
+   288 000001E3 F0                          db 0xf0                    ; ????? debug.com shows 'LOCK'
+   289 000001E4 8B46F4                      mov ax,[bp-0xc]                  
+   290 000001E7 B107                        mov cl,7        
+   291 000001E9 D3E8                        shr ax,cl       
+   292 000001EB 8946F2                      mov [bp-0xe],ax             
+   293 000001EE FF76EC                      push word [bp-0x14]                 
+   294 000001F1 8A1E0E16                    mov bl,[0x160e]             
+   295 000001F5 B700                        mov bh,0        
+   296 000001F7 D1E3                        shl bx,1
+   297 000001F9 FFB72E0A                    push word [bx+0xa2e]                  
+   298                                      ; call 0x0000:0x000a       ; call IO.SYS  ?      
+   299 000001FD 9A0A00                      db 0x9a,0x0a,0x00          ; missing two bytes here for call . Are those bytes outside the bootsector?
+   300                                  
+   301                                  ; %assign num $-$$
+   302                                  ; times 368640-num db 0
+   303                                  
+   304 00000200 <bin 59E00h>            incbin "Sanyo-MS-DOS-2.11-minimal.img",($-$$)  ; include default disk image skipping first 512 bytes
+   305                                  
+   306                                  
+   307                                  
+   308                                  
