@@ -22,48 +22,48 @@
     20                                  ; col: db 0
     21                                  
     22                                  setup:
-    23 0000001D B005                      mov al,5
-    24 0000001F E610                      out 0x10,al ; set video page green to 1C00:0000. Needed to get MAME and Sanyo on the same 'page'
-    25 00000021 E83A00                    call clear_green_channel ; needed for MAME
+    23 0000001D E83E00                    call clear_green_channel
+    24 00000020 B005                      mov al,5
+    25 00000022 E610                      out 0x10,al
     26                                  
     27 00000024 0E                        push cs
     28 00000025 1F                        pop ds      ; ds=cs
     29                                  
-    30 00000026 8D36[6D00]                lea si, img
-    31 0000002A B704                      mov bh,4 ; cols 
-    32 0000002C B304                      mov bl,4 ; rows
-    33 0000002E E80100                    call draw_pic
-    34                                  
-    35 00000031 F4                        hlt
-    36                                  
-    37                                  draw_pic:
-    38 00000032 B800F0                    mov ax, RED
-    39 00000035 E80D00                    call draw_channel
-    40 00000038 B8001C                    mov ax, GREEN
-    41 0000003B E80700                    call draw_channel
-    42 0000003E B800F4                    mov ax, BLUE
-    43 00000041 E80100                    call draw_channel
-    44 00000044 C3                        ret
-    45                                  
-    46                                  draw_channel:
-    47 00000045 8EC0                      mov es,ax
-    48 00000047 31FF                      xor di,di
-    49                                  
-    50 00000049 31C9                      xor cx,cx
-    51 0000004B 88D9                      mov cl,bl        ; rows (bl)
-    52                                  rows_loop:
-    53 0000004D 51                        push cx
-    54 0000004E 31C9                      xor cx,cx
-    55 00000050 88F9                      mov cl,bh        ; cols (bh)
-    56                                  cols_loop:
-    57 00000052 A5                        movsw
-    58 00000053 A5                        movsw
-    59 00000054 E2FC                      loop cols_loop
-    60 00000056 81C71001                  add di,COLS*4 - 4*4
-    61 0000005A 59                        pop cx
-    62 0000005B E2F0                      loop rows_loop
-    63 0000005D C3                        ret
-    64                                  
+    30 00000026 BE[6D00]                  mov si, img
+    31                                  
+    32 00000029 F4                        hlt
+    33                                    
+    34 0000002A B704                      mov bh,4 ; cols 
+    35 0000002C B304                      mov bl,4 ; rows
+    36 0000002E E80100                    call draw_pic
+    37                                  
+    38 00000031 F4                        hlt
+    39                                  
+    40                                  draw_pic:
+    41 00000032 B800F0                    mov ax, RED
+    42 00000035 E80D00                    call draw_channel
+    43 00000038 B8001C                    mov ax, GREEN
+    44 0000003B E80700                    call draw_channel
+    45 0000003E B800F4                    mov ax, BLUE
+    46 00000041 E80100                    call draw_channel
+    47 00000044 C3                        ret
+    48                                  draw_channel:
+    49 00000045 8EC0                      mov es,ax
+    50 00000047 31FF                      xor di,di
+    51 00000049 31C9                      xor cx,cx
+    52 0000004B 88D9                      mov cl,bl        ; rows (bl)
+    53                                  rows_loop:
+    54 0000004D 51                        push cx
+    55 0000004E 31C9                      xor cx,cx
+    56 00000050 88F9                      mov cl,bh        ; cols (bh)
+    57                                  cols_loop:
+    58 00000052 A5                        movsw
+    59 00000053 A5                        movsw
+    60 00000054 E2FC                      loop cols_loop
+    61 00000056 81C71001                  add di,COLS*4 - 4*4
+    62 0000005A 59                        pop cx
+    63 0000005B E2F0                      loop rows_loop
+    64 0000005D C3                        ret
     65                                  
     66                                  clear_green_channel:
     67 0000005E B8001C                    mov ax,GREEN
@@ -75,10 +75,34 @@
     73 0000006C C3                        ret
     74                                  
     75                                  img: 
-    76 0000006D <bin C0h>                 incbin "snapshot.bin"
-    77                                  
-    78                                  %assign num $-$$
-    79                                  %warning num
-    79          ******************       warning: 301 [-w+user]
-    80                                  
-    81 0000012D 00<rep 59ED3h>          times 368640-num db  0
+    76 0000006D 00707F70FFFFFFFFF5-       db 0,112,127,112,255,255,255,255,245,250,253,250,0,14,254,14
+    76 00000076 FAFDFA000EFE0E     
+    77 0000007D 381C0700FF7FFFFFFD-       db 56,28,7,0,255,127,255,255,253,250,245,255,28,56,224,0
+    77 00000086 FAF5FF1C38E000     
+    78 0000008D 000000000F030303F0-       db 0,0,0,0,15,3,3,3,240,192,192,128,0,0,0,0
+    78 00000096 C0C08000000000     
+    79 0000009D 0000000003073F7FC0-       db 0,0,0,0,3,7,63,127,192,176,212,234,0,0,0,0
+    79 000000A6 B0D4EA00000000     
+    80 000000AD 00607560FFFFFFFFA0-       db 0,96,117,96,255,255,255,255,160,208,232,208,0,4,234,4
+    80 000000B6 D0E8D00004EA04     
+    81 000000BD 30180700FF7F7FBFE8-       db 48,24,7,0,255,127,127,191,232,208,224,215,8,16,224,0
+    81 000000C6 D0E0D70810E000     
+    82 000000CD 000000000F030303A0-       db 0,0,0,0,15,3,3,3,160,192,128,128,0,0,0,0
+    82 000000D6 C0808000000000     
+    83 000000DD 0000000003073F7F80-       db 0,0,0,0,3,7,63,127,128,144,196,226,0,0,0,0
+    83 000000E6 90C4E200000000     
+    84 000000ED 000000000000000000-       db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    84 000000F6 00000000000000     
+    85 000000FD 000000000000000000-       db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    85 00000106 00000000000000     
+    86 0000010D 000000000000000000-       db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    86 00000116 00000000000000     
+    87 0000011D 000000000000000000-       db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    87 00000126 00000000000000     
+    88                                  
+    89                                    
+    90                                  %assign num $-$$
+    91                                  %warning num
+    91          ******************       warning: 301 [-w+user]
+    92                                  
+    93 0000012D 00<rep 59ED3h>          times 368640-num db  0

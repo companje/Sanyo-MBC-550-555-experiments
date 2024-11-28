@@ -36,170 +36,191 @@
     34 00000020 8EC0                      mov es,ax                  ; segment for data from floppy
     35 00000022 31FF                      xor di,di
     36                                  
-    37                                  
-    38                                  
-    39                                  DISK_STATUS equ 0x08
-    40                                  DISK_CMD equ 0x08
-    41                                  DISK_TRACK equ 0x0A
-    42                                  DISK_SECTOR equ 0x0C
-    43                                  DISK_DATA equ 0x0E
+    37                                  DISK_STATUS equ 0x08
+    38                                  DISK_CMD equ 0x08
+    39                                  DISK_TRACK equ 0x0A
+    40                                  DISK_SECTOR equ 0x0C
+    41                                  DISK_DATA equ 0x0E
+    42                                  
+    43                                  DISK_DRIVE equ 0x1C
     44                                  
-    45 00000024 B098                    mov al,0x98
-    46 00000026 E61E                    out PPI,al                ; PPI control: 0b10011000 (0x98) 'strobe'
+    45 00000024 FA                      cli
+    46 00000025 FC                      cld
     47                                  
-    48                                  
-    49 00000028 B800F0                  MOV AX, RED         ; Zet de segment van de schermbuffer
-    50 0000002B 8EC0                    MOV ES, AX          ; Zet ES naar 0xF400 (segment voor buffer)
-    51 0000002D 31FF                    XOR DI, DI          ; Zet offset in de buffer op 0
-    52                                  
-    53 0000002F B000                    MOV AL, 0           ; Selecteer Track 0
-    54 00000031 E60A                    OUT DISK_TRACK, AL  ; Schrijf track naar floppy controller
-    55                                  
-    56 00000033 B001                    MOV AL, 1           ; Selecteer Sector 1
-    57 00000035 E60C                    OUT DISK_SECTOR, AL ; Schrijf sector naar floppy controller
+    48 00000026 B098                    mov al,0x98
+    49 00000028 E61E                    out PPI,al                  ; PPI control: 0b10011000 (0x98) 'strobe'
+    50                                  
+    51 0000002A B004                    mov al,4
+    52 0000002C E61C                      out DISK_DRIVE,al          ; set drive/head
+    53                                  
+    54 0000002E B001                      mov al,1
+    55 00000030 E60C                      out DISK_SECTOR,al          ; set sector
+    56 00000032 D40A<rep 4h>              times 4 aam                 ; delay
+    57                                  
     58                                  
-    59 00000037 B080                    MOV AL, 0x80        ; Commando: Read sector
-    60 00000039 E608                    OUT DISK_CMD, AL    ; Start lezen
-    61                                  
-    62                                  .wait_read:
-    63 0000003B E408                    IN AL, DISK_STATUS  ; Lees de status
-    64 0000003D A801                    TEST AL, 0x01       ; Controleer of data beschikbaar is
-    65 0000003F 74FA                    JZ .wait_read       ; Wacht tot de data beschikbaar is
+    59 0000003A B91E00                  mov cx,30
+    60                                  readAllSectors:
+    61                                    
+    62                                  
+    63 0000003D 88C8                      mov al,cl
+    64 0000003F E60E                      out DISK_DATA,al            ; set track
+    65 00000041 D40A<rep 4h>              times 4 aam                 ; delay
     66                                  
-    67 00000041 B90002                  MOV CX, 512         ; Sector grootte: 512 bytes
-    68                                  .read_byte:
-    69 00000044 E40E                    IN AL, DISK_DATA    ; Lees een byte van de floppy
-    70 00000046 268805                  MOV [ES:DI], AL     ; Sla de byte op in de buffer
-    71 00000049 47                      INC DI              ; Verhoog de offset
-    72 0000004A E2F8                    LOOP .read_byte     ; Herhaal totdat de sector gelezen is
+    67                                    
+    68                                  
+    69                                  ; wait1:
+    70                                  ;   in al,DISK_STATUS
+    71                                  ;   and al,0xff
+    72                                  ;   jz wait1
     73                                  
-    74 0000004C F4                      HLT                 ; Stop de uitvoering
-    75                                  
-    76                                  
-    77                                  
+    74                                  
+    75 00000049 B080                      mov al,0x80                 ; read sector (to buffer of floppy controller?)
+    76 0000004B E608                      out DISK_CMD,al
+    77                                    ; times 4 aam                 ; delay
     78                                  
-    79                                  ; _1E4A:
-    80                                  ;   mov al,0xD8
-    81                                  ;   out DISK_CMD,al           ; floppy command: 0b11011000 (0xD8)
+    79 0000004D E80300                    call readSector
+    80                                  
+    81 00000050 E2EB                      loop readAllSectors
     82                                  
-    83                                  ;   mov al,0x98
-    84                                  ;   out PPI,al                ; PPI control: 0b10011000 (0x98) 'strobe'
-    85                                  
-    86                                  ; _1E52:
-    87                                  ; mov ax,0xffff
-    88                                  ;   stosw
-    89                                  ;   stosw
-    90                                  
-    91                                  ;   in al,DISK_STATUS         ; floppy status
-    92                                  ;   test al,0x01
-    93                                  ;   jnz _1E52                 ; loop until bit 1 is high
-    94                                  
-    95                                  ; _1E58:
-    96                                  ;   mov al,0x08
-    97                                  ;   out DISK_CMD,al           ; floppy command 0b00001000
-    98                                  ;   aam                       ; wait?
-    99                                  ;   aam                       ; wait?
-   100                                  ;   aam                       ; wait?
-   101                                  ;   aam                       ; wait?
+    83 00000052 F4                      hlt
+    84                                  
+    85                                  readSector:
+    86 00000053 51                        push cx
+    87 00000054 B90002                    mov cx,512
+    88                                    loadByte:
+    89 00000057 E40E                        in al,DISK_DATA
+    90                                      ; in al,DISK_STATUS
+    91 00000059 AA                          stosb
+    92 0000005A D40A<rep 4h>                times 4 aam                 ; delay
+    93 00000062 E2F3                        loop loadByte
+    94 00000064 59                        pop cx
+    95 00000065 C3                        ret
+    96                                  
+    97                                  
+    98                                  %assign num1 $-$$
+    99 00000066 00<rep 59F9Ah>          times 368640-num1 db 0
+   100                                  
+   101                                  ; db 1
    102                                  
-   103                                  ; _1E64:
-   104                                  ;   in al,DISK_STATUS          ; floppy status dx=0x08
-   105                                  ;   test al,0x01
-   106                                  ;   jnz _1E64                  ; wait until bit 1 is high
-   107                                  ;   test al,0x80
-   108                                  ;   jnz _1E58                  ; wait until bit 7 is high
+   103                                  ; _1E4A:
+   104                                  ;   mov al,0xD8
+   105                                  ;   out DISK_CMD,al           ; floppy command: 0b11011000 (0xD8)
+   106                                  
+   107                                  ;   mov al,0x98
+   108                                  ;   out PPI,al                ; PPI control: 0b10011000 (0x98) 'strobe'
    109                                  
-   110                                  ; _1E6E:
-   111                                  ;   cld                        ; clear direction flag
-   112                                  ;   mov al,0x01
-   113                                  ;   out DISK_SECTOR,al         ; floppy set sector bit 1
-   114                                    
-   115                                    
-   116                                    
-   117                                  ;   mov dx,DISK_STATUS              ; used to read floppy status
-   118                                  ;   mov si,_1EA0               ; used for local jmp later on
-   119                                    
-   120                                  ;   mov bh,0
-   121                                  ;   mov ah,0
-   122                                  ;   mov al,0
-   123                                  ;   out DISK_CMD,al            ; floppy
-   124                                    
-   125                                  ;   aam
-   126                                  ;   aam
-   127                                  ;   aam
-   128                                  ;   aam
-   129                                  
-   130                                  
-   131                                  
-   132                                  ; _1E91:
-   133                                    
-   134                                  
-   135                                  ;   in al,dx
-   136                                  ;   ; in al,DISK_STATUS              ; floppy status dx=0x08
-   137                                  ;   sar al,1
-   138                                  
-   139                                  ;   jnc _1EB2            ; floppy
-   140                                  ;   jnz _1E91            ; floppy
-   141                                  
-   142                                   
+   110                                  ; _1E52:
+   111                                  ; mov ax,0xffff
+   112                                  ;   stosw
+   113                                  ;   stosw
+   114                                  
+   115                                  ;   in al,DISK_STATUS         ; floppy status
+   116                                  ;   test al,0x01
+   117                                  ;   jnz _1E52                 ; loop until bit 1 is high
+   118                                  
+   119                                  ; _1E58:
+   120                                  ;   mov al,0x08
+   121                                  ;   out DISK_CMD,al           ; floppy command 0b00001000
+   122                                  ;   aam                       ; wait?
+   123                                  ;   aam                       ; wait?
+   124                                  ;   aam                       ; wait?
+   125                                  ;   aam                       ; wait?
+   126                                  
+   127                                  ; _1E64:
+   128                                  ;   in al,DISK_STATUS          ; floppy status dx=0x08
+   129                                  ;   test al,0x01
+   130                                  ;   jnz _1E64                  ; wait until bit 1 is high
+   131                                  ;   test al,0x80
+   132                                  ;   jnz _1E58                  ; wait until bit 7 is high
+   133                                  
+   134                                  ; _1E6E:
+   135                                  ;   cld                        ; clear direction flag
+   136                                  ;   mov al,0x01
+   137                                  ;   out DISK_SECTOR,al         ; floppy set sector bit 1
+   138                                    
+   139                                    
+   140                                    
+   141                                  ;   mov dx,DISK_STATUS              ; used to read floppy status
+   142                                  ;   mov si,_1EA0               ; used for local jmp later on
    143                                    
-   144                                    
-   145                                  
-   146                                  ;   ; mov cx,10*2*72
-   147                                  ;   ; rep stosw
-   148                                  
-   149                                  ;   ; hlt
-   150                                  
-   151                                  
-   152                                  ; _1E98:
-   153                                  ;   in al,dx              ; floppy dx=0x08
-   154                                  ;   and al,bh             ; bit 2 (?)
-   155                                  ;   jz _1E98  
-   156                                  
-   157                                  ; _1E9D:
-   158                                  ;   in al,DISK_DATA            ; read data from floppy
-   159                                  ;   stosb                 ; store in es:di++    
-   160                                  
-   161                                  ; _1EA0:
-   162                                  ;   in al,dx              ; floppy dx=0x08
-   163                                  ;   dec ax
-   164                                  ;   cmp al,bh             ; bh = 2 ?
-   165                                  ;   jnz _1EB2
-   166                                  
-   167                                  ; _1EA8:
-   168                                  ;   in al,DISK_DATA            ; read data from floppy
-   169                                  ;   stosb                 ; store in es:di++
-   170                                  
-   171                                  ;   in al,dx
-   172                                  ;   cmp al,bh
-   173                                  ;   jz _1EA8
+   144                                  ;   mov bh,0
+   145                                  ;   mov ah,0
+   146                                  ;   mov al,0
+   147                                  ;   out DISK_CMD,al            ; floppy
+   148                                    
+   149                                  ;   aam
+   150                                  ;   aam
+   151                                  ;   aam
+   152                                  ;   aam
+   153                                  
+   154                                  
+   155                                  
+   156                                  ; _1E91:
+   157                                    
+   158                                  
+   159                                  ;   in al,dx
+   160                                  ;   ; in al,DISK_STATUS              ; floppy status dx=0x08
+   161                                  ;   sar al,1
+   162                                  
+   163                                  ;   jnc _1EB2            ; floppy
+   164                                  ;   jnz _1E91            ; floppy
+   165                                  
+   166                                   
+   167                                    
+   168                                    
+   169                                  
+   170                                  ;   ; mov cx,10*2*72
+   171                                  ;   ; rep stosw
+   172                                  
+   173                                  ;   ; hlt
    174                                  
-   175                                  ; _1EB0:
-   176                                  ; ; hlt
-   177                                  ;   jmp si                ; jump to 0x1EA0
-   178                                  
-   179                                  ; _1EB2:
-   180                                    
-   181                                  ;   mov ax,0xff00
-   182                                  ;   stosw
-   183                                  ;   stosw
+   175                                  
+   176                                  ; _1E98:
+   177                                  ;   in al,dx              ; floppy dx=0x08
+   178                                  ;   and al,bh             ; bit 2 (?)
+   179                                  ;   jz _1E98  
+   180                                  
+   181                                  ; _1E9D:
+   182                                  ;   in al,DISK_DATA            ; read data from floppy
+   183                                  ;   stosb                 ; store in es:di++    
    184                                  
-   185                                  ;   ; in al,dx              ; floppy status dx=0x08
-   186                                  ;   ; test al,0x1C           
-   187                                  ;   ; jnz _1E52            ; floppy status
-   188                                  
-   189                                  ; _1EBC:
-   190                                    
-   191                                  
-   192                                  ;   ; jmp 0x0038:0
-   193                                  ;   ; hlt
+   185                                  ; _1EA0:
+   186                                  ;   in al,dx              ; floppy dx=0x08
+   187                                  ;   dec ax
+   188                                  ;   cmp al,bh             ; bh = 2 ?
+   189                                  ;   jnz _1EB2
+   190                                  
+   191                                  ; _1EA8:
+   192                                  ;   in al,DISK_DATA            ; read data from floppy
+   193                                  ;   stosb                 ; store in es:di++
    194                                  
-   195                                  
-   196                                  img: 
-   197 0000004D <bin 4E769h>              incbin "zwembad.jpg"
+   195                                  ;   in al,dx
+   196                                  ;   cmp al,bh
+   197                                  ;   jz _1EA8
    198                                  
-   199                                  %assign num $-$$
-   200                                  %warning num
-   200          ******************       warning: 321462 [-w+user]
-   201                                  
-   202 0004E7B6 00<rep B84Ah>           times 368640-num db  0
+   199                                  ; _1EB0:
+   200                                  ; ; hlt
+   201                                  ;   jmp si                ; jump to 0x1EA0
+   202                                  
+   203                                  ; _1EB2:
+   204                                    
+   205                                  ;   mov ax,0xff00
+   206                                  ;   stosw
+   207                                  ;   stosw
+   208                                  
+   209                                  ;   ; in al,dx              ; floppy status dx=0x08
+   210                                  ;   ; test al,0x1C           
+   211                                  ;   ; jnz _1E52            ; floppy status
+   212                                  
+   213                                  ; _1EBC:
+   214                                    
+   215                                  
+   216                                  ;   ; jmp 0x0038:0
+   217                                  ;   ; hlt
+   218                                  
+   219                                  
+   220                                  ; img: 
+   221                                    ; incbin "zwembad.jpg"
+   222                                  
+   223                                  %assign num $-$$
+   224                                  times 368640-num db  0

@@ -28,10 +28,11 @@ void draw() {
   setImageFromMemory(img);
   image(img, 0, 0, width, height);
     
-  saveBytes("/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/bootpic/snapshot.bin", getSnapshot(16,0,4*8,4*11)); //(col,row,cols,rows) 1 col=8px, 1 row=4px
+    ///Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/bootpic/
+  saveBytes("snapshot.bin", getSnapshot(16,0,4*8,4*11)); //(col,row,cols,rows) 1 col=8px, 1 row=4px
 }
 
-byte[] getSnapshot(int col, int row, int cols, int rows) {
+byte[] getSnapshot(int col, int row, int cols, int rows) { //row=4px, col=8px
   byte[] bin = new byte[rows * cols * 4 * 3];
   for (int r = 0; r < rows; r++) {
     for (int c = 0; c < cols; c++) {

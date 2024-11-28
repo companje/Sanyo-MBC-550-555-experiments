@@ -34,47 +34,71 @@ setup:
   mov es,ax                  ; segment for data from floppy
   xor di,di
 
-
-
 DISK_STATUS equ 0x08
 DISK_CMD equ 0x08
 DISK_TRACK equ 0x0A
 DISK_SECTOR equ 0x0C
 DISK_DATA equ 0x0E
 
+DISK_DRIVE equ 0x1C
+
+cli
+cld
+
 mov al,0x98
-out PPI,al                ; PPI control: 0b10011000 (0x98) 'strobe'
+out PPI,al                  ; PPI control: 0b10011000 (0x98) 'strobe'
+
+mov al,4
+  out DISK_DRIVE,al          ; set drive/head
+
+  mov al,1
+  out DISK_SECTOR,al          ; set sector
+  times 4 aam                 ; delay
 
 
-MOV AX, RED         ; Zet de segment van de schermbuffer
-MOV ES, AX          ; Zet ES naar 0xF400 (segment voor buffer)
-XOR DI, DI          ; Zet offset in de buffer op 0
+mov cx,2
+readAllSectors:
+  
 
-MOV AL, 0           ; Selecteer Track 0
-OUT DISK_TRACK, AL  ; Schrijf track naar floppy controller
+  mov al,cl
+  out DISK_DATA,al            ; set track
+  times 4 aam                 ; delay
 
-MOV AL, 1           ; Selecteer Sector 1
-OUT DISK_SECTOR, AL ; Schrijf sector naar floppy controller
+  
 
-MOV AL, 0x80        ; Commando: Read sector
-OUT DISK_CMD, AL    ; Start lezen
-
-.wait_read:
-IN AL, DISK_STATUS  ; Lees de status
-TEST AL, 0x01       ; Controleer of data beschikbaar is
-JZ .wait_read       ; Wacht tot de data beschikbaar is
-
-MOV CX, 512         ; Sector grootte: 512 bytes
-.read_byte:
-IN AL, DISK_DATA    ; Lees een byte van de floppy
-MOV [ES:DI], AL     ; Sla de byte op in de buffer
-INC DI              ; Verhoog de offset
-LOOP .read_byte     ; Herhaal totdat de sector gelezen is
-
-HLT                 ; Stop de uitvoering
+; wait1:
+;   in al,DISK_STATUS
+;   and al,0xff
+;   jz wait1
 
 
+  mov al,0x80                 ; read sector (to buffer of floppy controller?)
+  out DISK_CMD,al
+  ; times 4 aam                 ; delay
 
+  call readSector
+
+  loop readAllSectors
+
+hlt
+
+readSector:
+  push cx
+  mov cx,512
+  loadByte:
+    in al,DISK_DATA
+    ; in al,DISK_STATUS
+    stosb
+    times 4 aam                 ; delay
+    loop loadByte
+  pop cx
+  ret
+
+
+%assign num1 $-$$
+times 368640-num1 db 0
+
+; db 1
 
 ; _1E4A:
 ;   mov al,0xD8
@@ -193,10 +217,8 @@ HLT                 ; Stop de uitvoering
 ;   ; hlt
 
 
-img: 
-  incbin "zwembad.jpg"
+; img: 
+  ; incbin "zwembad.jpg"
 
 %assign num $-$$
-%warning num
-
 times 368640-num db  0

@@ -2,6 +2,7 @@ base=mbc555-floppy-bootsector-disassembled
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
 flashfloppy_image_prefix="0278. "
 
+exit
 set -e
 
 nasm -w-label-orphan $base.asm -o $base.img -l $base.lst

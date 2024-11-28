@@ -41,8 +41,7 @@ _FE00_1E39:
   mov al,bl             ; goes from 0 to 0x10
   out 0x30,al           ; CRT address 
 
-  CS:
-  mov al,[bx+si+0]      ; si=1ECC
+  mov al,[cs:bx+si+0]   ; si=1ECC
   out 0x32,al           ; al contains current byte of CRT data
   inc bx                ; increase data pointer
   cmp bl,0x10           
@@ -52,7 +51,7 @@ _FE00_1E4A:
   mov al,0xD8           
   out 0x08,al           ; floppy command: 0b11011000 (0xD8)
   mov al,0x98           
-  out 0x1E,al           ; PPI control: 0b10011000 (0x98) 'strobe'
+  out 0x1E,al           ; PPI control: 0b10011000 (0x98) 'strobe' / disk select?
 
 _FE00_1E52:
   in al,0x08            ; floppy status
@@ -62,10 +61,10 @@ _FE00_1E52:
 _FE00_1E58:
   mov al,0x08
   out 0x08,al           ; floppy command 0b00001000
-  aam                   ; wait?
-  aam                   ; wait?
-  aam                   ; wait?
-  aam                   ; wait?
+  aam                   ; wait
+  aam                   ; wait
+  aam                   ; wait
+  aam                   ; wait
 
 _FE00_1E64:
   in al,0x08            ; floppy status dx=0x08

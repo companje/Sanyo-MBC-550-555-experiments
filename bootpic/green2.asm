@@ -20,14 +20,14 @@ db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
 ; col: db 0
 
 setup:
+  call clear_green_channel
   mov al,5
-  out 0x10,al ; set video page green to 1C00:0000. Needed to get MAME and Sanyo on the same 'page'
-  call clear_green_channel ; needed for MAME
+  out 0x10,al
 
   push cs
   pop ds      ; ds=cs
 
-  lea si, img
+  mov si, img
   mov bh,4 ; cols 
   mov bl,4 ; rows
   call draw_pic
@@ -42,11 +42,9 @@ draw_pic:
   mov ax, BLUE
   call draw_channel
   ret
-
 draw_channel:
   mov es,ax
   xor di,di
-
   xor cx,cx
   mov cl,bl        ; rows (bl)
 rows_loop:
@@ -62,7 +60,6 @@ cols_loop:
   loop rows_loop
   ret
 
-
 clear_green_channel:
   mov ax,GREEN
   mov es,ax
@@ -73,8 +70,20 @@ clear_green_channel:
   ret
 
 img: 
-  incbin "snapshot.bin"
+  db 0,112,127,112,255,255,255,255,245,250,253,250,0,14,254,14
+  db 56,28,7,0,255,127,255,255,253,250,245,255,28,56,224,0
+  db 0,0,0,0,15,3,3,3,240,192,192,128,0,0,0,0
+  db 0,0,0,0,3,7,63,127,192,176,212,234,0,0,0,0
+  db 0,96,117,96,255,255,255,255,160,208,232,208,0,4,234,4
+  db 48,24,7,0,255,127,127,191,232,208,224,215,8,16,224,0
+  db 0,0,0,0,15,3,3,3,160,192,128,128,0,0,0,0
+  db 0,0,0,0,3,7,63,127,128,144,196,226,0,0,0,0
+  db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
+  
 %assign num $-$$
 %warning num
 

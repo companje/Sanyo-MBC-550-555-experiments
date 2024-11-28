@@ -8,34 +8,26 @@
 cpu 8086
 org 0x00
 
-PORT_DISK_STATUS equ 0x08
-PORT_DISK_CMD equ 0x08
-PORT_DISK_SECTOR equ 0x0C
-PORT_DISK_DATA equ 0x0E
-PORT_DISK_CONTROL equ 0x1C     ; 1C: parallel/drive control
-PORT_VIDEO_PAGE equ 0x10
+PORT_DISK_STATUS_0x08 equ 0x08
+PORT_DISK_CMD_0x08 equ 0x08
+PORT_DISK_SECTOR_0x0C equ 0x0C
+PORT_DISK_DATA_0x0E equ 0x0E
+PORT_DISK_CONTROL_0x1C equ 0x1C     ; 1C: parallel/drive control
+PORT_VIDEO_PAGE_0x10 equ 0x10
 
 SCREEN_CENTER equ 0x1b50
+
+; een standaard 5,25" floppy van 360KB heeft doorgaans:
+; Tracks: 40 tracks per zijde
+; Sectors per track: 9 sectoren per track
+; Bytes per sector: 512 bytes
+; (40 tracks × 9 sectoren × 512 bytes × 2 zijden = 360KB).
+
+; Op een 360KB 5,25" floppy wordt vaak een cluster gevormd door 1 of 2 sectoren.
 
 jmp begin
 
 db 'Sanyo1.2'
-
-;OB: 00 02   ; bytes per sector
-;0D: 02      ; sectors per cluster
-;0E: 01 00   ; reserved sectors
-;10: 02      ; number of FATs
-;11: 70 00   ; max number of root dir
-;13: D0 02   ; total sector count
-;15: FD      ; ignore
-;16: 02 00   ; sectors per FAT
-;18: 09 00   ; sectors per track
-;1A: 02 00   ; number of heads
-;1C: 00      ; -
-;1D: 00      ; -
-;1E: 00      ; -
-;1F 00 1C    ; GREEN PLANE
-;21: 00 FF   ; FONT
 
 _0x0b:dw 512     ; bytes per sector
 _0x0d:db 2       ; sectors per cluster
@@ -43,12 +35,10 @@ _0x0e:dw 256     ; reserved sectors
 _0x10:db 2       ; number of FATs
 _0x11:dw 112     ; max number of root directory entries (0x70)
 _0x13:dw 720     ; total sector count
-
 _0x15:db 0xfd    ; ??? 'ignore according to docs' but used for something: maybe FAT ID 0xFD to indicate 360 KB?
 _0x16:dw 2       ; sectors per FAT
 _0x18:dw 9       ; sectors per track
 _0x1a:dw 2       ; number of heads
-
 _0x1c:db 0       ; -
 _0x1d:db 0       ; -
 _0x1e:db 0       ; - used but for what? is set to 1 
@@ -74,7 +64,7 @@ _0x54:
     shr al,1   ; divide al by 2 ?
 _0x60:
     ; al=0x61 ??
-    out PORT_DISK_DATA,al                       ; 0xE  set track number?
+    out PORT_DISK_DATA_0x0E,al                       ; 0xE  set track number?
     mov al,0x18
     out PORT_DISK_CMD,al                        ; floppy command
 
@@ -82,31 +72,32 @@ _0x60:
     jnc setDiskControl
     mov al,4
 setDiskControl:
-    out PORT_DISK_CONTROL,al                    ; 0 of 4
+    out PORT_DISK_CONTROL,al                    ; 0 or 4 ?
     aam
+
 _0x70:
-    in al,PORT_DISK_STATUS                      ; floppy status
+    in al,PORT_DISK_STATUS      ; floppy status
     test al,1
     jnz _0x70
 _0x76:
     mov al,dh
-    out PORT_DISK_SECTOR,al                     ; floppy set sector
+    out PORT_DISK_SECTOR,al     ; floppy set sector number
     
     mov bp,dx
-    mov dx,0x8                                  ; prepare dx=8 for reading disk status with in al,dx
+    mov dx,0x8                  ; prepare dx=8 for reading disk status with in al,dx
     mov si,0xa5
     mov bh,0x2
     mov bl,0x96
     mov ah,0x0
 
-    mov al,0x80
+    mov al,0x80                  ; read sector
     out PORT_DISK_CMD,al
     mov sp,di
     times 4 aam      ; delay
 _0x96:
     in al,dx         ; dx=8  get disk status
     sar al,1
-    jnc _0xb7
+    jnc _0xb7    
     jnz _0x96
 _0x9d:
     in al,dx
@@ -194,7 +185,6 @@ _0x127:
     mov dl,0x0f    ; now dx=0x60f
 
 _find_IO_SYS:
-_0x135:
     mov si, _FILENAME_IO_SYS
     jmp short _filenameCompare
 _0x13a:

@@ -1,6 +1,7 @@
-base=green3-floppy
+base=green2
+# green4-floppy
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
-flashfloppy_image_prefix="0277. "
+flashfloppy_image_prefix="0278. "
 
 set -e
 
@@ -13,6 +14,13 @@ if [ -d $flashfloppy_image_folder ]; then
 else
   echo "$flashfloppy_image_folder not found. No file copied."
 fi
+
+# /Users/rick/bin/hxcfe -finput:"$base.img" \
+#    -conv:HXC_HFE -foutput:"$base.hfe" \
+#    -conv:BMP_DISK_IMAGE -foutput:"$base.bmp"
+
+# open "$base.bmp"
+
 
 # -debug -verbose -effect scanlines 
 if pgrep -x "mbc55xtest" > /dev/null; then

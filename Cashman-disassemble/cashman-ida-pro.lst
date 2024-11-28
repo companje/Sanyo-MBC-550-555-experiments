@@ -1,0 +1,186 @@
+     1                                  %include "bootloader.asm"
+     1                              <1> org 0
+     2                              <1> cpu 8086
+     3                              <1> 
+     4                              <1> RED   equ 0xf000
+     5                              <1> GREEN equ 0x1c00
+     6                              <1> BLUE  equ 0xf400
+     7                              <1> COLS  equ 72
+     8                              <1> DST   equ 7F5h                ; absolute addres: 32592
+     9                              <1> NUM_SECTORS equ 3    ; number of sectors for your user code
+    10                              <1> 
+    11 00000000 E99700              <1> jmp bootloader
+    12                              <1> 
+    13 00000003 53616E796F312E3202- <1> db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
+    13 0000000C 000100000270000000- <1>
+    13 00000015 0200FD020009000200  <1>
+    14                              <1> 
+    15                              <1> next_sector:
+    16 0000001E FEC6                <1>   inc dh                    ; sector++
+    17 00000020 80FE09              <1>   cmp dh, 9
+    18 00000023 7218                <1>   jb  read_sector           ; if (dh<9) read_sector
+    19 00000025 B601                <1>   mov dh, 1
+    20 00000027 FEC2                <1>   inc dl                    ; else track++          ; sector=1
+    21                              <1> 
+    22                              <1> move_head:
+    23 00000029 88D0                <1>   mov al, dl
+    24 0000002B E60E                <1>   out 0Eh, al               ; set track number
+    25 0000002D B018                <1>   mov al, 18h     
+    26 0000002F E608                <1>   out 8, al                 ; seek track, load head
+    27 00000031 B000                <1>   mov al, 0
+    28 00000033 E61C                <1>   out 1Ch, al               ; set desired drive/side
+    29 00000035 D40A                <1>   aam
+    30                              <1> 
+    31                              <1> .head_moving
+    32 00000037 E408                <1>   in al, 8
+    33 00000039 A801                <1>   test al, 1
+    34 0000003B 75FA                <1>   jnz .head_moving
+    35                              <1> 
+    36                              <1> read_sector:
+    37 0000003D 88F0                <1>   mov al, dh
+    38 0000003F E60C                <1>   out 0Ch, al               ; sector number
+    39 00000041 89D5                <1>   mov bp, dx                ; save dx. we use it tmp for status request
+    40 00000043 BA0800              <1>   mov dx, 8
+    41                              <1> 
+    42 00000046 B702                <1>   mov bh, 2                 ; 00000010b
+    43 00000048 B396                <1>   mov bl, 96h               ; 10010110b
+    44                              <1> 
+    45 0000004A B400                <1>   mov ah, 0
+    46 0000004C B080                <1>   mov al, 80h
+    47 0000004E E608                <1>   out 8, al                 ; read sector
+    48 00000050 89FC                <1>   mov sp, di                ; save di. we should not be using push/pop from now on
+    49 00000052 D40A<rep 4h>        <1>   times 4 aam               ; wait
+    50                              <1> 
+    51                              <1> check_status_1:
+    52 0000005A EC                  <1>   in  al, dx                ; read status
+    53 0000005B D0F8                <1>   sar al, 1                 ; status/=2
+    54 0000005D 731C                <1>   jnb check_status_3
+    55 0000005F 75F9                <1>   jnz check_status_1
+    56                              <1> 
+    57                              <1> wait_for_data:
+    58 00000061 EC                  <1>   in  al, dx                ; read status
+    59 00000062 20D8                <1>   and al, bl                ; 96h
+    60 00000064 74FB                <1>   jz  wait_for_data
+    61                              <1> 
+    62                              <1> store_byte_1:
+    63 00000066 E40E                <1>   in  al, 0Eh
+    64 00000068 AA                  <1>   stosb
+    65                              <1> 
+    66                              <1> check_status_2:
+    67 00000069 EC                  <1>   in  al, dx                ; read status
+    68 0000006A 48                  <1>   dec ax                    ; status--
+    69 0000006B 74FC                <1>   jz  check_status_2        ; if (status==0) repeat
+    70 0000006D 38F8                <1>   cmp al, bh                ; bh=2
+    71 0000006F 750A                <1>   jnz check_status_3        ; if (status==1) 
+    72                              <1> 
+    73                              <1> store_byte_2:
+    74 00000071 E40E                <1>   in  al, 0Eh
+    75 00000073 AA                  <1>   stosb
+    76                              <1> 
+    77                              <1> check_status_4:
+    78 00000074 EC                  <1>   in  al, dx                ; read status
+    79 00000075 38F8                <1>   cmp al, bh                ; bh=2
+    80 00000077 74F8                <1>   jz  store_byte_2          ; if (status==2) repeat
+    81 00000079 EBEE                <1>   jmp check_status_2        ; else: was jmp SI
+    82                              <1> 
+    83                              <1> ; ───────────────────────────────────────────────────────────────────────────
+    84                              <1> 
+    85                              <1> check_status_3:
+    86 0000007B EC                  <1>   in  al, dx                ; read status
+    87 0000007C 89EA                <1>   mov dx, bp                ; restore dx
+    88 0000007E A81C                <1>   test  al, 1Ch             ; 00011100
+    89 00000080 7404                <1>   jz  while_sectors
+    90 00000082 89E7                <1>   mov di, sp                ; restore di
+    91 00000084 EBB7                <1>   jmp read_sector
+    92                              <1> 
+    93                              <1> ; ───────────────────────────────────────────────────────────────────────────
+    94                              <1> 
+    95                              <1> while_sectors:
+    96 00000086 E296                <1>   loop next_sector
+    97                              <1> 
+    98                              <1> done_reading:
+    99                              <1> 
+   100 00000088 BF0000              <1>   mov di,0x0
+   101 0000008B 8EC7                <1>   mov es,di
+   102 0000008D B85000              <1>   mov ax,0x50
+   103 00000090 B90002              <1>   mov cx,0x200
+   104 00000093 F3AB                <1>   rep stosw
+   105                              <1> 
+   106                              <1> ;   mov ds,ax
+   107                              <1> ;   mov bx,ds
+   108                              <1> ;   mov byte [bx],0xcf
+   109                              <1> ;   mov di,0x3ec
+   110                              <1> ;   mov ax,0x2014
+   111                              <1> ;   stosw
+   112                              <1> ;   mov ax,DST
+   113                              <1> ;   stosw
+   114                              <1> 
+   115                              <1> ;   mov bx,0x3
+   116                              <1> ;   xor dx,dx
+   117                              <1> ; _b4:
+   118                              <1> ;   mov ax,[cs:bx]          ; first bytes of code, addresses of int functions?
+   119                              <1> ;   mov dl,ah
+   120                              <1> ;   out dx,al               ; PIC port 0
+   121                              <1> ;   add bx,byte +0x2
+   122                              <1> ;   cmp bx,byte +0x23
+   123                              <1> ;   jnz _b4
+   124                              <1> 
+   125                              <1> ;   mov ax,0x100
+   126                              <1> ;   mov ss,ax
+   127                              <1> ;   mov sp,0x50
+   128                              <1> 
+   129                              <1> ;   mov al,0x35
+   130                              <1> ;   out 0x3a,al             ; keyboard
+   131                              <1> ;   mov al,0xf0
+   132                              <1> ;   out 0x2,al              ; PIC port 2
+   133                              <1> ;   sti
+   134                              <1> 
+   135 00000095 EA0000F507          <1>   jmp DST:0
+   136                              <1> 
+   137                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   138                              <1> 
+   139                              <1> bootloader:
+   140 0000009A FA                  <1>   cli
+   141 0000009B FC                  <1>   cld
+   142                              <1> 
+   143 0000009C B8001C              <1>   mov ax, GREEN     ; green segment
+   144 0000009F 8EC0                <1>   mov es, ax
+   145 000000A1 BF0000              <1>   mov di, 0
+   146 000000A4 B80000              <1>   mov ax, 0
+   147 000000A7 B90020              <1>   mov cx, 2000h
+   148 000000AA F3AB                <1>   rep stosw         ; clear screen
+   149 000000AC B005                <1>   mov al, 5
+   150 000000AE E610                <1>   out 10h, al       ; set green video page
+   151                              <1>   
+   152 000000B0 8CC8                <1>   mov ax, cs
+   153 000000B2 8ED8                <1>   mov ds, ax
+   154 000000B4 B8F507              <1>   mov ax, DST       ; was 7F5h, destination segment for floppy data?
+   155 000000B7 8EC0                <1>   mov es, ax
+   156 000000B9 BF0000              <1>   mov di, 0
+   157                              <1> 
+   158 000000BC B201                <1>   mov dl, 1         ; track=1
+   159 000000BE B601                <1>   mov dh, 1         ; sector=1
+   160 000000C0 B90300              <1>   mov cx, NUM_SECTORS ;48h       ; read 48h (72) sectors (36864 bytes)
+   161 000000C3 E963FF              <1>   jmp move_head
+   162                              <1> 
+   163                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   164                              <1> 
+   165                              <1> 
+   166                              <1> %assign cnum $-$$
+   167 000000C6 00<rep 233Ah>       <1> times 9216-cnum db 0 ; =2400h/9/2 = 512 => de eerste 18 sectors op de disk (2 tracks) worden overgeslagen?
+   168                              <1> 
+     2                                  
+     3                                  setup:
+     4 00002400 B800F0                  	mov	ax, RED
+     5 00002403 8EC0                    	mov	es, ax
+     6 00002405 31FF                    	xor di, di
+     7 00002407 B8FFFF                  	mov ax, 0xffff
+     8 0000240A B90020                  	mov	cx, 2000h
+     9 0000240D F3AB                    	rep stosw
+    10                                  	
+    11                                  draw:
+    12                                  
+    13 0000240F EBFE                    	jmp draw
+    14                                  
+    15 00002411 00<rep 57BEFh>          times (360*1024)-($-$$) db 0
+    16                                  

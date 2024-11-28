@@ -1,0 +1,391 @@
+     1                                  %include "sanyo.asm"
+     1                              <1> org 0
+     2                              <1> cpu 8086
+     3                              <1> 
+     4                              <1> RED   equ 0xf000
+     5                              <1> GREEN equ 0x1c00
+     6                              <1> BLUE  equ 0xf400
+     7                              <1> COLS  equ 72
+     8                              <1> DST   equ 0x38 ; 7F5h                ; absolute addres: 32592
+     9                              <1> NUM_SECTORS equ 48h    ; number of sectors for your user code
+    10                              <1> 
+    11 00000000 EB1B                <1> jmp bootloader
+    12                              <1> 
+    13 00000002 53616E796F312E3202- <1> db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
+    13 0000000B 000100000270000000- <1>
+    13 00000014 0200FD020009000200  <1>
+    14                              <1> 
+    15                              <1> bootloader:
+    16 0000001D FA                  <1>   cli
+    17 0000001E FC                  <1>   cld
+    18                              <1> 
+    19                              <1>   ; mov ax, DST
+    20                              <1>   ; mov es, ax
+    21                              <1>   ; xor di, di
+    22                              <1>   ; add di, 512
+    23                              <1>   ; mov ax, 0xF4F4
+    24                              <1>   ; mov cx, 0xE000
+    25                              <1>   ; rep stosw
+    26                              <1> 
+    27                              <1> 
+    28 0000001F B8001C              <1>   mov ax, GREEN     ; green segment
+    29 00000022 8EC0                <1>   mov es, ax
+    30 00000024 BF0000              <1>   mov di, 0
+    31 00000027 B8FFFF              <1>   mov ax, -1
+    32 0000002A B90020              <1>   mov cx, 2000h
+    33 0000002D F3AB                <1>   rep stosw         ; clear screen
+    34 0000002F B005                <1>   mov al, 5
+    35 00000031 E610                <1>   out 10h, al       ; set green video page
+    36                              <1>   
+    37                              <1>   ; hlt
+    38                              <1> 
+    39 00000033 8CC8                <1>   mov ax, cs
+    40 00000035 8ED8                <1>   mov ds, ax
+    41 00000037 B83800              <1>   mov ax, DST       ; was 7F5h, destination segment for floppy data?
+    42 0000003A 8EC0                <1>   mov es, ax
+    43 0000003C BF0000              <1>   mov di, 0
+    44                              <1> 
+    45 0000003F B200                <1>   mov dl, 0         ; track=1
+    46 00000041 B601                <1>   mov dh, 1         ; sector=1
+    47 00000043 B94800              <1>   mov cx, NUM_SECTORS ;48h       ; read 48h (72) sectors (36864 bytes)
+    48 00000046 EB0B                <1>   jmp move_head
+    49                              <1> 
+    50                              <1> next_sector:
+    51 00000048 FEC6                <1>   inc dh                    ; sector++
+    52 0000004A 80FE09              <1>   cmp dh, 9
+    53 0000004D 7218                <1>   jb  read_sector           ; if (dh<9) read_sector
+    54 0000004F B601                <1>   mov dh, 1
+    55 00000051 FEC2                <1>   inc dl                    ; else track++          ; sector=1
+    56                              <1> 
+    57                              <1> move_head:
+    58 00000053 88D0                <1>   mov al, dl
+    59 00000055 E60E                <1>   out 0Eh, al               ; set track number
+    60 00000057 B018                <1>   mov al, 18h     
+    61 00000059 E608                <1>   out 8, al                 ; seek track, load head
+    62 0000005B B000                <1>   mov al, 0
+    63 0000005D E61C                <1>   out 1Ch, al               ; set desired drive/side
+    64 0000005F D40A                <1>   aam
+    65                              <1> 
+    66                              <1> .head_moving
+    67 00000061 E408                <1>   in al, 8
+    68 00000063 A801                <1>   test al, 1
+    69 00000065 75FA                <1>   jnz .head_moving
+    70                              <1> 
+    71                              <1> read_sector:
+    72 00000067 88F0                <1>   mov al, dh
+    73 00000069 E60C                <1>   out 0Ch, al               ; sector number
+    74 0000006B 89D5                <1>   mov bp, dx                ; save dx. we use it tmp for status request
+    75 0000006D BA0800              <1>   mov dx, 8
+    76                              <1> 
+    77 00000070 B702                <1>   mov bh, 2                 ; 00000010b
+    78 00000072 B396                <1>   mov bl, 96h               ; 10010110b
+    79                              <1> 
+    80 00000074 B400                <1>   mov ah, 0
+    81 00000076 B080                <1>   mov al, 80h
+    82 00000078 E608                <1>   out 8, al                 ; read sector
+    83 0000007A 89FC                <1>   mov sp, di                ; save di. we should not be using push/pop from now on
+    84 0000007C D40A<rep 4h>        <1>   times 4 aam               ; wait
+    85                              <1> 
+    86                              <1> check_status_1:
+    87 00000084 EC                  <1>   in  al, dx                ; read status
+    88 00000085 D0F8                <1>   sar al, 1                 ; status/=2
+    89 00000087 731C                <1>   jnb check_status_3
+    90 00000089 75F9                <1>   jnz check_status_1
+    91                              <1> 
+    92                              <1> wait_for_data:
+    93 0000008B EC                  <1>   in  al, dx                ; read status
+    94 0000008C 20D8                <1>   and al, bl                ; 96h
+    95 0000008E 74FB                <1>   jz  wait_for_data
+    96                              <1> 
+    97                              <1> store_byte_1:
+    98 00000090 E40E                <1>   in  al, 0Eh
+    99                              <1>   ; mov al, 0x20        ; debug > SPACE at every new sector
+   100 00000092 AA                  <1>   stosb
+   101                              <1> 
+   102                              <1> check_status_2:
+   103 00000093 EC                  <1>   in  al, dx                ; read status
+   104 00000094 48                  <1>   dec ax                    ; status--
+   105 00000095 74FC                <1>   jz  check_status_2        ; if (status==0) repeat
+   106 00000097 38F8                <1>   cmp al, bh                ; bh=2
+   107 00000099 750A                <1>   jnz check_status_3        ; if (status==1) 
+   108                              <1> 
+   109                              <1> store_byte_2:
+   110 0000009B E40E                <1>   in  al, 0Eh
+   111                              <1>   ; mov al, 0x11       ; debug > 0x11 for rest of the sector
+   112 0000009D AA                  <1>   stosb
+   113                              <1> 
+   114                              <1> check_status_4:
+   115 0000009E EC                  <1>   in  al, dx                ; read status
+   116 0000009F 38F8                <1>   cmp al, bh                ; bh=2
+   117 000000A1 74F8                <1>   jz  store_byte_2          ; if (status==2) repeat
+   118 000000A3 EBEE                <1>   jmp check_status_2        ; else: was jmp SI
+   119                              <1> 
+   120                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   121                              <1> 
+   122                              <1> check_status_3:
+   123 000000A5 EC                  <1>   in  al, dx                ; read status
+   124 000000A6 89EA                <1>   mov dx, bp                ; restore dx
+   125 000000A8 A81C                <1>   test  al, 1Ch             ; 00011100
+   126 000000AA 7404                <1>   jz  while_sectors
+   127 000000AC 89E7                <1>   mov di, sp                ; restore di
+   128 000000AE EBB7                <1>   jmp read_sector
+   129                              <1> 
+   130                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   131                              <1> 
+   132                              <1> while_sectors:
+   133 000000B0 E296                <1>   loop next_sector
+   134                              <1> 
+   135                              <1> done_reading:
+   136                              <1> 
+   137                              <1>   ; loop automatisch door naar setup
+   138                              <1> 
+   139                              <1>   ; mov ax, RED
+   140                              <1>   ; mov es, ax
+   141                              <1>   ; xor di, di
+   142                              <1>   ; mov ax, 0x0f0f
+   143                              <1>   ; mov cx, 2000h
+   144                              <1>   ; rep stosw
+   145                              <1> 
+   146                              <1>   ; hlt
+   147                              <1>   ; jmp 0x58:0
+   148                              <1>   
+   149                              <1>   ; jmp setup
+   150                              <1> 
+   151                              <1> 
+   152                              <1>   ; jmp 0x38:0
+   153                              <1> 
+   154                              <1> 
+   155                              <1> ;   mov ds,ax
+   156                              <1> ;   mov bx,ds
+   157                              <1> ;   mov byte [bx],0xcf
+   158                              <1> ;   mov di,0x3ec
+   159                              <1> ;   mov ax,0x2014
+   160                              <1> ;   stosw
+   161                              <1> ;   mov ax,DST
+   162                              <1> ;   stosw
+   163                              <1> 
+   164                              <1> ;   mov bx,0x3
+   165                              <1> ;   xor dx,dx
+   166                              <1> ; _b4:
+   167                              <1> ;   mov ax,[cs:bx]          ; first bytes of code, addresses of int functions?
+   168                              <1> ;   mov dl,ah
+   169                              <1> ;   out dx,al               ; PIC port 0
+   170                              <1> ;   add bx,byte +0x2
+   171                              <1> ;   cmp bx,byte +0x23
+   172                              <1> ;   jnz _b4
+   173                              <1> 
+   174                              <1>   ; mov ax,0x100
+   175                              <1>   ; mov ss,ax
+   176                              <1>   ; mov sp,0x50
+   177                              <1> 
+   178                              <1> ;   mov al,0x35
+   179                              <1> ;   out 0x3a,al             ; keyboard
+   180                              <1> ;   mov al,0xf0
+   181                              <1> ;   out 0x2,al              ; PIC port 2
+   182                              <1> ;   sti
+   183                              <1> 
+   184                              <1>   ; jmp DST:0
+   185                              <1>   ; jmp DST:setup
+   186                              <1> 
+   187                              <1> ;   mov ax, RED
+   188                              <1> ;   mov es, ax
+   189                              <1> ;   xor di, di
+   190                              <1> ;   mov ax, 0x0f0f
+   191                              <1> ;   mov cx, 2000h
+   192                              <1> ;   rep stosw
+   193                              <1> ; hlt
+   194                              <1> ;   mov bh,4 ; cols 
+   195                              <1> ;   mov bl,4 ; rows
+   196                              <1>   
+   197                              <1> ;   mov si,72
+   198                              <1> ;   push cs
+   199                              <1> ;   pop ds 
+   200                              <1> ;   call draw_pic
+   201                              <1> 
+   202                              <1> ;   hlt
+   203                              <1> 
+   204                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   205                              <1> 
+   206                              <1> 
+   207                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   208                              <1> 
+   209                              <1> 
+   210                              <1> ; %assign cnum $-$$
+   211                              <1> ; times 512-cnum db 0xf4
+   212                              <1> 
+   213                              <1> 
+   214                              <1> 
+   215                              <1> ; %assign cnum $-$$
+   216                              <1> ; times 9216-cnum db 0 ; =2400h/9/2 = 512 => de eerste 18 sectors op de disk (2 tracks want 2 heads?) worden overgeslagen?
+   217                              <1> 
+     2                                  
+     3                                  ; RED   equ 0xf000
+     4                                  ; GREEN equ 0x1c00
+     5                                  ; BLUE  equ 0xf400
+     6                                  
+     7                                  ; jmp bootloader
+     8                                  
+     9                                  ; db 'Sanyo1.2',2,0,1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0
+    10                                  
+    11                                  setup:
+    12 000000B2 B800F0                    mov ax, RED
+    13 000000B5 8EC0                      mov es, ax
+    14 000000B7 31FF                      xor di, di
+    15 000000B9 B80000                    mov ax, 0
+    16 000000BC B90020                    mov cx, 2000h
+    17 000000BF F3AB                      rep stosw
+    18                                  
+    19 000000C1 B8001C                    mov ax, GREEN
+    20 000000C4 8EC0                      mov es, ax
+    21 000000C6 31FF                      xor di, di
+    22 000000C8 B80000                    mov ax, 0
+    23 000000CB B90020                    mov cx, 2000h
+    24 000000CE F3AB                      rep stosw
+    25                                    
+    26 000000D0 B800F4                    mov ax, BLUE
+    27 000000D3 8EC0                      mov es, ax
+    28 000000D5 31FF                      xor di, di
+    29 000000D7 B8FFFF                    mov ax, 0xffff
+    30 000000DA B90020                    mov cx, 2000h
+    31 000000DD F3AB                      rep stosw
+    32 000000DF F4                        hlt
+    33                                  
+    34 000000E0 F5<rep 59F20h>          times (360*1024)-($-$$) db 0xf5
+    35                                  
+    36                                  
+    37                                  ; ; bootloader:
+    38                                  ; ; hlt
+    39                                  ;   ; mov ax, 0x38
+    40                                  ;   ; mov es, ax
+    41                                  ;   ; xor di, di
+    42                                  ;   ; add di,512
+    43                                  ;   ; mov ax, 0x0f0f
+    44                                  ;   ; mov cx, 1000h
+    45                                  ;   ; rep stosw
+    46                                    
+    47                                  ;   ; hlt
+    48                                  ; ;   jmp continue ;0x38:0x200
+    49                                  
+    50                                  ; ; %assign cnum $-$$
+    51                                  ; ; times 511-cnum db 1
+    52                                  
+    53                                  
+    54                                  ; continue:
+    55                                  ;   hlt
+    56                                  
+    57                                  ; 	mov	ax, GREEN
+    58                                  ; 	mov	es, ax
+    59                                  ; 	xor di, di
+    60                                  ; 	mov ax, 0xf4f4
+    61                                  ; 	mov	cx, 2000h
+    62                                  ; 	rep stosw
+    63                                  
+    64                                  ; 	hlt
+    65                                  	
+    66                                  ; ; 	push cs
+    67                                  ; ;   pop ds      ; ds=cs
+    68                                  
+    69                                  ; ; ; alle jumps zijn relatief dus die werken wel. 
+    70                                  ; ; ; De mov si,72 verwijst naar een absoluut adres binnen het DS segment
+    71                                  ; ; ; Je zou willen dat setup op DST:0 staat.. is dat ook zo? daar gaat wel de jmp naar toe vanuit de bootloader
+    72                                  ; ; ; maar de assembler maakt die een ander adres van het label img2. ja denk t wel
+    73                                  
+    74                                  ; ; ; maar waarom het er nu ook gek uitziet bij mov si,72.
+    75                                  ; ; ; dat lijkt alsof er code of stack over de afbeelding heen loopt..
+    76                                  
+    77                                  
+    78                                  ; ; 	; mov si, img2
+    79                                  ; ;   mov si, 72 ;ds:img2
+    80                                  ; ;   ; verschil tussen img2 adres en 72 is: 9620, dat komt bijna overeen (4 bytes verschil)
+    81                                  ; ;   ; met de onverklaarbaarbare serie nullen aan het eind van de bootloader...
+    82                                  ; ; ; hlt
+    83                                  
+    84                                  ; ;   mov bh,4 ; cols 
+    85                                  ; ;   mov bl,4 ; rows
+    86                                  ; ;   call draw_pic
+    87                                  
+    88                                  
+    89                                  ; ;   xor di,di
+    90                                  ; ;   add di,4*4
+    91                                  ; ;   mov si, 72 + 192 ;ds:img2
+    92                                  ; ; 	mov bh,4 ; cols 
+    93                                  ; ;   mov bl,4 ; rows
+    94                                  ; ;   call draw_pic
+    95                                  
+    96                                  ; ; 	hlt
+    97                                  
+    98                                  
+    99                                  ; ; ; img2: 
+   100                                  ; ; ;   db 0,112,127,112,255,255,255,255,245,250,253,250,0,14,254,14
+   101                                  ; ; ;   db 56,28,7,0,255,127,255,255,253,250,245,255,28,56,224,0
+   102                                  ; ; ;   db 0,0,0,0,15,3,3,3,240,192,192,128,0,0,0,0
+   103                                  ; ; ;   db 0,0,0,0,3,7,63,127,192,176,212,234,0,0,0,0
+   104                                  ; ; ;   db 0,96,117,96,255,255,255,255,160,208,232,208,0,4,234,4
+   105                                  ; ; ;   db 48,24,7,0,255,127,127,191,232,208,224,215,8,16,224,0
+   106                                  ; ; ;   db 0,0,0,0,15,3,3,3,160,192,128,128,0,0,0,0
+   107                                  ; ; ;   db 0,0,0,0,3,7,63,127,128,144,196,226,0,0,0,0
+   108                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   109                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   110                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   111                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   112                                  
+   113                                  
+   114                                  
+   115                                  ; ; draw_pic:
+   116                                  ; ;   mov ax, RED
+   117                                  ; ;   call draw_channel
+   118                                  ; ;   mov ax, GREEN
+   119                                  ; ;   call draw_channel
+   120                                  ; ;   mov ax, BLUE
+   121                                  ; ;   call draw_channel
+   122                                  ; ;   ret
+   123                                  
+   124                                  ; ; draw_channel:
+   125                                  ; ;   mov es,ax
+   126                                  ; ;   ; push di
+   127                                  ; ;   xor di,di
+   128                                  ; ;   xor cx,cx  
+   129                                  ; ;   mov cl,bl        ; rows (bl)
+   130                                  ; ; .rows push cx
+   131                                  ; ;   xor cx,cx
+   132                                  ; ;   mov cl,bh        ; cols (bh)
+   133                                  ; ; .cols times 2 movsw
+   134                                  ; ;   loop .cols
+   135                                  ; ;   add di,COLS*4-4*4
+   136                                  ; ;   pop cx
+   137                                  ; ;   loop .rows
+   138                                  ; ;   ; pop di
+   139                                  ; ;   ret	
+   140                                  
+   141                                  
+   142                                  ; ; img3: 
+   143                                  ; ;   db 0,112,127,112,255,255,255,255,245,250,253,250,0,14,254,14
+   144                                  ; ;   db 56,28,7,0,255,127,255,255,253,250,245,255,28,56,224,0
+   145                                  ; ;   db 0,0,0,0,15,3,3,3,240,192,192,128,0,0,0,0
+   146                                  ; ;   db 0,0,0,0,3,7,63,127,192,176,212,234,0,0,0,0
+   147                                  ; ;   db 0,96,117,96,255,255,255,255,160,208,232,208,0,4,234,4
+   148                                  ; ;   db 48,24,7,0,255,127,127,191,232,208,224,215,8,16,224,0
+   149                                  ; ;   db 0,0,0,0,15,3,3,3,160,192,128,128,0,0,0,0
+   150                                  ; ;   db 0,0,0,0,3,7,63,127,128,144,196,226,0,0,0,0
+   151                                  ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   152                                  ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   153                                  ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   154                                  ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   155                                  
+   156                                  ; ; ; img4: 
+   157                                  ; ; ;   db 0,112,127,112,255,255,255,255,245,250,253,250,0,14,254,14
+   158                                  ; ; ;   db 56,28,7,0,255,127,255,255,253,250,245,255,28,56,224,0
+   159                                  ; ; ;   db 0,0,0,0,15,3,3,3,240,192,192,128,0,0,0,0
+   160                                  ; ; ;   db 0,0,0,0,3,7,63,127,192,176,212,234,0,0,0,0
+   161                                  ; ; ;   db 0,96,117,96,255,255,255,255,160,208,232,208,0,4,234,4
+   162                                  ; ; ;   db 48,24,7,0,255,127,127,191,232,208,224,215,8,16,224,0
+   163                                  ; ; ;   db 0,0,0,0,15,3,3,3,160,192,128,128,0,0,0,0
+   164                                  ; ; ;   db 0,0,0,0,3,7,63,127,128,144,196,226,0,0,0,0
+   165                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   166                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   167                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   168                                  ; ; ;   db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+   169                                  
+   170                                  
+   171                                  
+   172                                  
