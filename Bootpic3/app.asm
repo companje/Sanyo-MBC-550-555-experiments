@@ -7,13 +7,104 @@ y: db 0
 w: db W
 h: db H
 
-db 0
+frame: db 2
 
 setup:
-  mov si,img.keylock    ; first image
-  xor bx,bx
+  jmp draw
 
-repeat:
+; ───────────────────────────────────────────────────────────────────────────
+
+draw:
+  call _wait
+
+  mov bl,0              ; col
+  mov bh,0              ; row
+  mov si,img.donut_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,4              ; col
+  mov bh,0              ; row
+  mov si,img.stars_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,8              ; col
+  mov bh,0              ; row
+  mov si,img.sqr_ani_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,12              ; col
+  mov bh,0              ; row
+  mov si,img.walk_bw_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,16              ; col
+  mov bh,0              ; row
+  mov si,img.stand_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,20              ; col
+  mov bh,0              ; row
+  mov si,img.walk_left_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,24              ; col
+  mov bh,0              ; row
+  mov si,img.walk_right_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,28              ; col
+  mov bh,0               ; row
+  mov si,img.flower_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,32              ; col
+  mov bh,0               ; row
+  mov si,img.explode_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,36              ; col
+  mov bh,0               ; row
+  mov si,img.creep_1    ; first image
+  call update_frame
+  call draw_animation
+
+  mov bl,40              ; col
+  mov bh,0               ; row
+  mov si,img.bouncer_1    ; first image
+  call update_frame
+  call draw_animation
+
+  ; after draw
+
+  inc byte [frame]
+  cmp byte [frame],3
+  jb draw
+  mov byte [frame],0
+
+  jmp draw
+
+; ───────────────────────────────────────────────────────────────────────────
+
+
+draw_animation:
+  call calc_di          ; calculates di from bh and bx
+  mov bh,4              ; width in cols (1 col = 8px)
+  mov bl,4              ; height in rows (1 row = 4px)
+  call draw_pic
+  ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
+draw4x12:               ; bx should be zero when called
   push bx
   call calc_di
   mov bh,4              ; width in cols (1 col = 8px)
@@ -22,14 +113,21 @@ repeat:
   pop bx
   add bl,4
   cmp bl,4*8
-  jl repeat
+  jl draw4x12
   mov bl,0
   add bh,4
   cmp bh,4*12
-  jl repeat
+  jl draw4x12
+  ret
 
-  
-  hlt
+update_frame:
+  mov cl,4*4*4*3
+  mov byte al,[frame]
+  mul cl
+  add si,ax
+  ret        
+
+; ───────────────────────────────────────────────────────────────────────────
 
 calc_di:          ; input bl,bh [0,0,71,49]
   mov ax,144      ; 2*72 cols
@@ -42,6 +140,8 @@ calc_di:          ; input bl,bh [0,0,71,49]
   add di,bx       ; di+=bl
   ret
 
+; ───────────────────────────────────────────────────────────────────────────
+
 draw_pic:          ; DI=offset, [BH,BL]=rows,cols
   mov ax, RED
   call draw_channel
@@ -50,6 +150,8 @@ draw_pic:          ; DI=offset, [BH,BL]=rows,cols
   mov ax, BLUE
   call draw_channel
   ret
+
+; ───────────────────────────────────────────────────────────────────────────
 
 draw_channel: 
   push di
@@ -67,15 +169,19 @@ draw_channel:
   pop di
   ret 
 
+; ───────────────────────────────────────────────────────────────────────────
 
+_wait:
+  push cx
+  mov cx,5000
+.lp 
+  aam
+  loop .lp
+  pop cx
+  ret
 
-; segment data
+; ───────────────────────────────────────────────────────────────────────────
 
-; times (1000)-($-$$) db 0
-
-; SECTION Assets
-
-startAssets:
 img:
   .keylock incbin "data/keylock.bin"
   .key incbin "data/key.bin"
@@ -173,159 +279,6 @@ img:
   .smurf_2 incbin "data/smurf_2.bin"
   .smurf_3 incbin "data/smurf_3.bin"
   .smurf_4 incbin "data/smurf_4.bin"
-endAssets:
-
-
-; segment .text
 
 times (180*1024)-($-$$) db 0
-
-
-
-
-  
-; times 512 db 65
-; times 512 db 66
-; times 512 db 67
-; times 512 db 68
-; times 512 db 69
-; times 512 db 70
-; times 512 db 71
-; times 512 db 72
-; times 512 db 73
-; times 512 db 74
-; times 512 db 75
-; times 512 db 76
-; times 512 db 77
-; times 512 db 78
-; times 512 db 79
-; times 512 db 80
-; times 512 db 81
-; times 512 db 82
-; times 512 db 83
-; times 512 db 84
-; times 512 db 85
-; times 512 db 86
-; times 512 db 87
-; times 512 db 88
-; times 512 db 89
-; times 512 db 90
-; times 512 db 91
-; times 512 db 92
-; times 512 db 93
-; times 512 db 94
-; times 512 db 95
-; times 512 db 96
-; times 512 db 97
-; times 512 db 98
-; times 512 db 99
-; times 512 db 100
-; times 512 db 101
-; times 512 db 102
-; times 512 db 103
-; times 512 db 104
-; times 512 db 105
-; times 512 db 106
-; times 512 db 107
-; times 512 db 108
-; times 512 db 109
-; times 512 db 110
-; times 512 db 111
-; times 512 db 112
-; times 512 db 113
-; times 512 db 114
-; times 512 db 115
-; times 512 db 116
-; times 512 db 117
-; times 512 db 118
-; times 512 db 119
-; times 512 db 120
-; times 512 db 121
-; times 512 db 122
-; times 512 db 123
-; times 512 db 124
-; times 512 db 125
-; times 512 db 126
-; times 512 db 127
-; times 512 db 128
-; times 512 db 129
-; times 512 db 130
-; times 512 db 131
-; times 512 db 132
-; times 512 db 133
-; times 512 db 134
-; times 512 db 135
-; times 512 db 136
-; times 512 db 137
-; times 512 db 138
-; times 512 db 139
-; times 512 db 140
-; times 512 db 141
-; times 512 db 142
-; times 512 db 143
-; times 512 db 144
-; times 512 db 145
-; times 512 db 146
-; times 512 db 147
-; times 512 db 148
-; times 512 db 149
-; times 512 db 150
-; times 512 db 151
-; times 512 db 152
-; times 512 db 153
-; times 512 db 154
-; times 512 db 155
-; times 512 db 156
-; times 512 db 157
-; times 512 db 158
-; times 512 db 159
-; times 512 db 160
-; times 512 db 161
-; times 512 db 162
-; times 512 db 163
-; times 512 db 164
-; times 512 db 165
-; times 512 db 166
-; times 512 db 167
-; times 512 db 168
-; times 512 db 169
-; times 512 db 170
-; times 512 db 171
-; times 512 db 172
-; times 512 db 173
-; times 512 db 174
-; times 512 db 175
-; times 512 db 176
-; times 512 db 177
-; times 512 db 178
-; times 512 db 179
-; times 512 db 180
-; times 512 db 181
-; times 512 db 182
-; times 512 db 183
-; times 512 db 184
-; times 512 db 185
-; times 512 db 186
-; times 512 db 187
-; times 512 db 188
-; times 512 db 189
-; times 512 db 190
-; times 512 db 191
-; times 512 db 192
-; times 512 db 193
-; times 512 db 194
-; times 512 db 195
-; times 512 db 196
-; times 512 db 197
-; times 512 db 198
-; times 512 db 199
-; times 512 db 200
-; times 512 db 201
-; times 512 db 202
-; times 512 db 203
-; times 512 db 204
-; times 512 db 205
-; times 512 db 206
-; times 512 db 207
-
 

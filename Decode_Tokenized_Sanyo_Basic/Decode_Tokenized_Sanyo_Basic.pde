@@ -14,8 +14,8 @@ void setup() {
 
   loadFunctions();
 
-  bytes = loadBytes("TUTOR.BAS"); //input
-  out = createWriter("TUTOR-detok.bas"); //output
+  bytes = loadBytes("bas/FIETS.BAS"); //input
+  out = createWriter("bas/FIETS-detok.bas"); //output
 
   readShort(); //ignore first 2 bytes
 
