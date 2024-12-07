@@ -7,110 +7,13 @@ y: db 0
 w: db W
 h: db H
 
-frame: db 2
-
-
-; donut ; db IMG,W,H,X,Y,FRAMES,FRAME 
-; .img dw img.donut_1
-; .x 
-
+db 0
 
 setup:
-  jmp draw
+  mov si,img.keylock    ; first image
+  xor bx,bx
 
-; ───────────────────────────────────────────────────────────────────────────
-
-draw:
-  call _wait
-
-  mov bl,0              ; col
-  mov bh,0              ; row
-  mov si,img.donut_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,4              ; col
-  mov bh,0              ; row
-  mov si,img.stars_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,8              ; col
-  mov bh,0              ; row
-  mov si,img.sqr_ani_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,12              ; col
-  mov bh,0              ; row
-  mov si,img.walk_bw_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,16              ; col
-  mov bh,0              ; row
-  mov si,img.stand_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,20              ; col
-  mov bh,0              ; row
-  mov si,img.walk_left_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,24              ; col
-  mov bh,0              ; row
-  mov si,img.walk_right_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,28              ; col
-  mov bh,0               ; row
-  mov si,img.flower_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,32              ; col
-  mov bh,0               ; row
-  mov si,img.explode_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,36              ; col
-  mov bh,0               ; row
-  mov si,img.creep_1    ; first image
-  call update_frame
-  call draw_animation
-
-  mov bl,40              ; col
-  mov bh,0               ; row
-  mov si,img.bouncer_1    ; first image
-  call update_frame
-  call draw_animation
-
-  ; after draw
-
-  inc byte [frame]
-  cmp byte [frame],3
-  jb draw
-  mov byte [frame],0
-
-  jmp draw
-
-; ───────────────────────────────────────────────────────────────────────────
-
-
-draw_animation:
-  call calc_di          ; calculates di from bh and bx
-  mov bh,4              ; width in cols (1 col = 8px)
-  mov bl,4              ; height in rows (1 row = 4px)
-  call draw_pic
-  ret
-
-; ───────────────────────────────────────────────────────────────────────────
-
-draw4x12:               ; bx should be zero when called
+repeat:
   push bx
   call calc_di
   mov bh,4              ; width in cols (1 col = 8px)
@@ -119,21 +22,29 @@ draw4x12:               ; bx should be zero when called
   pop bx
   add bl,4
   cmp bl,4*8
-  jl draw4x12
+  jl repeat
   mov bl,0
   add bh,4
   cmp bh,4*12
-  jl draw4x12
-  ret
+  jl repeat
 
-update_frame:
-  mov cl,4*4*4*3
-  mov byte al,[frame]
-  mul cl
-  add si,ax
-  ret        
+  
 
-; ───────────────────────────────────────────────────────────────────────────
+; ; PROBLEEM: omdat si>0xfff (4095) gaat er iets mis... greenwall_1 wordt niet of niet goed getekend.
+; ; heeft dat met addressering te maken of ligt het aan het laden van de floppy..
+; ; of nog iets anders?
+; ; je ziet een andere afbeelding in gekke kleuren.
+; ; volgens mij botst het met het groene videokanaal op 1C00:0000
+; ; hmmm das wel gek want dat is veel verder in het geheugen pas op absolute positie 1C000 ...
+; ; zou het kunnen dat de sectoren niet helemaal logisch doorlopen op de disk? voor/achterkant disk?
+; ; ik zou een diff doen op de LST-file en het werkelijke memory uit MAME?
+
+
+; zou het nog helpen als ik 1 bestand ipv kleine bestanden laadt
+; en daar langsloop door SI te verhogen. Dan kan ik uitsluiten dat het niet aan
+; de adressen ligt maar puur aan het lezen van de sectoren van de disk
+
+  hlt
 
 calc_di:          ; input bl,bh [0,0,71,49]
   mov ax,144      ; 2*72 cols
@@ -146,8 +57,6 @@ calc_di:          ; input bl,bh [0,0,71,49]
   add di,bx       ; di+=bl
   ret
 
-; ───────────────────────────────────────────────────────────────────────────
-
 draw_pic:          ; DI=offset, [BH,BL]=rows,cols
   mov ax, RED
   call draw_channel
@@ -156,8 +65,6 @@ draw_pic:          ; DI=offset, [BH,BL]=rows,cols
   mov ax, BLUE
   call draw_channel
   ret
-
-; ───────────────────────────────────────────────────────────────────────────
 
 draw_channel: 
   push di
@@ -173,21 +80,17 @@ draw_channel:
   pop cx
   loop .rows
   pop di
-  ret 
+  ret	
 
-; ───────────────────────────────────────────────────────────────────────────
 
-_wait:
-  push cx
-  mov cx,5000
-.lp 
-  aam
-  loop .lp
-  pop cx
-  ret
 
-; ───────────────────────────────────────────────────────────────────────────
+; segment data
 
+; times (1000)-($-$$) db 0
+
+; SECTION Assets
+
+startAssets:
 img:
   .keylock incbin "data/keylock.bin"
   .key incbin "data/key.bin"
@@ -285,6 +188,10 @@ img:
   .smurf_2 incbin "data/smurf_2.bin"
   .smurf_3 incbin "data/smurf_3.bin"
   .smurf_4 incbin "data/smurf_4.bin"
+endAssets:
 
-times (180*1024)-($-$$) db 0
+
+; segment .text
+
+times (360*1024)-($-$$) db 0
 

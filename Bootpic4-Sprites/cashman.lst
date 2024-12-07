@@ -1,0 +1,312 @@
+     1                                  org 0
+     2                                  cpu 8086
+     3                                  
+     4 00000000 EB6C                    jmp _0xd8_bootloader                          
+     5                                  
+     6                                  ; db 0x13,0x00           
+     7                                  ; db 0xF8             
+     8                                  ; db 0x02,0x0F           
+     9                                  ; db 0x02,0xFF           
+    10                                  ; db 0x02,0x25           
+    11                                  ; db 0x3A,0x34           
+    12                                  ; db 0x26,0x13,0x20      
+    13                                  ; db 0x03,0x20           
+    14                                  ; db 0x74,0x26           
+    15                                  ; db 0x60                
+    16                                  ; db 0x22,0xEA           
+    17                                  ; db 0x22,0xB6,0x26,0x5D 
+    18                                  ; db 0x24,0x00           
+    19                                  ; db 0x24,0x6E           
+    20                                  ; db 0x2A,0x18           
+    21                                  ; db 0x2A
+    22                                  
+    23                                  _0x23_next_sector:
+    24 00000002 FEC6                      inc dh
+    25 00000004 80FE0A                    cmp dh,10
+    26 00000007 7218                      jb _0x42_read_sector                                       ; db 0x72,0x18    ; jump
+    27 00000009 B601                      mov dh,1    ; sector
+    28 0000000B FEC2                      inc dl      ; track
+    29                                  
+    30                                  _0x2e_movehead:
+    31 0000000D 88D0                      mov al, dl                                     ; 0x8A,0xC2 
+    32 0000000F E60E                      out 0xe,al                                     ; 00000030  E60E              
+    33 00000011 B018                      mov al,0x18                                    ; 00000032  B018              
+    34 00000013 E608                      out 0x8,al                                     ; 00000034  E608              
+    35 00000015 B000                      mov al,0x0                                     ; 00000036  B000              
+    36 00000017 E61C                      out 0x1c,al                                    ; 00000038  E61C              
+    37 00000019 D40A                      aam                                            ; 0000003A  D40A              
+    38                                  
+    39                                  _0x3c_head_moving:
+    40 0000001B E408                      in al,0x8                                      ; E408  0000003C  
+    41 0000001D A801                      test al,0x1                                    ; A801  0000003E  
+    42 0000001F 75FA                      jnz _0x3c_head_moving                          ; 75FA  00000040  
+    43                                  
+    44                                  _0x42_read_sector:
+    45 00000021 88F0                      mov al,dh      ;sector                                ; 8AC6     00000042  
+    46 00000023 E60C                      out 0xc,al                                     ; E60C     00000044  
+    47 00000025 89D5                      mov bp,dx                                      ; 8BEA     00000046  
+    48 00000027 BA0800                    mov dx,0x8                                     ; BA0800   00000048  
+    49                                    ; mov si,0x71                                    ; BE7100   0000004B  
+    50 0000002A B702                      mov bh,0x2                                     ; B702     0000004E  
+    51 0000002C B396                      mov bl,0x96                                    ; B396     00000050  
+    52 0000002E B400                      mov ah,0x0                                     ; B400     00000052  
+    53 00000030 B080                      mov al,0x80                                    ; B080     00000054  
+    54 00000032 89FC                      mov sp,di                                      ; 8BE7     00000058  
+    55 00000034 E608                      out 0x8,al                                     ; E608     00000056  
+    56 00000036 D40A<rep 4h>              times 4 aam                                            ; D40A     0000005A  
+    57                                  
+    58                                  _0x62_check_status_1:
+    59 0000003E EC                        in al,dx                                      ; 00000062  EC                
+    60 0000003F D0F8                      sar al,1                                      ; 00000063  D0F8              
+    61 00000041 731C                      jnc _0x83                                     ; 00000065  731C              
+    62 00000043 75F9                      jnz _0x62_check_status_1                                     ; 00000067  75F9              
+    63                                  
+    64                                  _0x69_wait_for_data:
+    65 00000045 EC                        in al,dx                                      ; 00000069  EC                
+    66 00000046 20D8                      and al,bl                                     ; 0000006A  22C3              
+    67 00000048 74FB                      jz _0x69_wait_for_data                                      ; 0000006C  74FB              
+    68                                    
+    69                                  _0x6e_store_byte_1:
+    70 0000004A E40E                      in al,0xe                                     ; 0000006E  E40E              
+    71 0000004C AA                        stosb                                         ; 00000070  AA                
+    72                                  
+    73                                  _0x71_check_status_2:
+    74 0000004D EC                        in al,dx                                     ; 00000071  EC                
+    75 0000004E 48                        dec ax                                     ; 00000072  48                
+    76 0000004F 74FC                      jz _0x71_check_status_2                                     ; 00000073  74FC              
+    77 00000051 38F8                      cmp al,bh                                     ; 00000075  3AC7              
+    78 00000053 750A                      jnz _0x83                                     ; 00000077  750A              
+    79                                  
+    80                                  _0x79_store_byte_2:
+    81 00000055 E40E                      in al,0xe                                   ;00000079  E40E              
+    82 00000057 AA                        stosb                                   ;0000007B  AA    
+    83                                  
+    84 00000058 EC                        in al,dx                                    ;0000007C  EC                
+    85 00000059 38F8                      cmp al,bh                                   ;0000007D  3AC7              
+    86 0000005B 74F8                      jz _0x79_store_byte_2                                    ;0000007F  74F8              
+    87 0000005D EBEE                      jmp _0x71_check_status_2  ; was jmp si
+    88                                  
+    89                                  _0x83:
+    90 0000005F EC                        in al,dx                                   ;00000083  EC                
+    91 00000060 89EA                      mov dx,bp                                   ;00000084  8BD5              
+    92 00000062 A81C                      test al,0x1c                                   ;00000086  A81C              
+    93 00000064 7404                      jz _0x8e                                   ;00000088  7404              
+    94 00000066 89E7                      mov di,sp                                   ;0000008A  8BFC              
+    95 00000068 EBB7                      jmp short _0x42_read_sector                                   ;0000008C  EBB4              
+    96                                  
+    97                                  _0x8e:
+    98 0000006A E296                      loop _0x23_next_sector                                ;0000008E  E293
+    99                                  
+   100 0000006C F4                      hlt
+   101                                  
+   102                                    ; mov di,0x0                                ;00000090  BF0000
+   103                                    ; mov es,di                                ;00000093  8EC7
+   104                                    ; mov ax,0x50                                ;00000095  B85000
+   105                                    ; mov cx,0x200                                ;00000098  B90002
+   106                                    ; rep stosw                                ;0000009B  F3AB
+   107                                  
+   108                                    ; mov ds,ax                                ; 0000009D  8ED8              
+   109                                    ; mov bx,ds                                ; 0000009F  8CDB              
+   110                                    ; mov byte [bx],0xcf                                ; 000000A1  C607CF            
+   111                                    ; mov di,0x3ec                                ; 000000A4  BFEC03            
+   112                                    ; mov ax,0x2014                                ; 000000A7  B81420            
+   113                                    ; stosw                                ; 000000AA  AB                
+   114                                  
+   115                                    ; mov ax,0x7f5                  ;000000AB  B8F507     
+   116                                    ; stosw                  ;000000AE  AB         
+   117                                    ; mov bx,0x3                  ;000000AF  BB0300     
+   118                                    ; xor dx,dx                  ;000000B2  33D2       
+   119                                  
+   120                                  _0xb4:
+   121                                    ; mov ax,[cs:bx]      ;      000000B4  2E8B07            
+   122                                    ; mov dl,ah           ; 000000B7  8AD4              
+   123                                    ; out dx,al           ; 000000B9  EE                
+   124                                    ; add bx,byte +0x2    ;        000000BA  83C302            
+   125                                    ; cmp bx,byte +0x23   ;         000000BD  83FB23            
+   126                                    ; jnz _0xb4           ; 000000C0  75F2              
+   127                                  
+   128                                    ; mov ax,0x100        ;    000000C2  B80001            
+   129                                    ; mov ss,ax           ; 000000C5  8ED0              
+   130                                    ; mov sp,0x50         ;   000000C7  BC5000            
+   131                                    ; mov al,0x35         ;   000000CA  B035              
+   132                                    ; out 0x3a,al         ;   000000CC  E63A              
+   133                                    ; mov al,0xf0         ;   000000CE  B0F0              
+   134                                    ; out 0x2,al          ;  000000D0  E602              
+   135                                    ; sti                 ; 000000D2  FB                
+   136                                  
+   137 0000006D F4                        hlt
+   138                                    ; jmp 0x7f5:0x0       ;      000000D3  EA0000F507        
+   139                                  
+   140                                  _0xd8_bootloader:
+   141 0000006E FA                        cli               ;                   000000D8  FA                
+   142 0000006F FC                        cld               ;                   000000D9  FC                
+   143 00000070 B8001C                    mov ax,0x1c00     ;                   000000DA  B8001C            
+   144 00000073 8EC0                      mov es,ax         ;                   00000DD  8EC0              
+   145 00000075 BF0000                    mov di,0x0        ;                   000000DF  BF0000            
+   146 00000078 B80000                    mov ax,0x0        ;                   000000E2  B80000            
+   147 0000007B B90020                    mov cx,0x2000     ;                   000000E5  B90020            
+   148 0000007E F3AB                      rep stosw         ;                   00000E8  F3AB              
+   149                                  
+   150 00000080 B005                      mov al,0x5        ;                   000000EA  B005              
+   151 00000082 E610                      out 0x10,al       ;                   000000EC  E610              
+   152 00000084 8CC8                      mov ax,cs         ;                   00000EE  8CC8              
+   153 00000086 8ED8                      mov ds,ax         ;                   00000F0  8ED8              
+   154 00000088 B8F507                    mov ax,0x7f5      ;                   000000F2  B8F507            
+   155 0000008B 8EC0                      mov es,ax         ;                   00000F5  8EC0              
+   156 0000008D BF0000                    mov di,0x0        ;                   000000F7  BF0000            
+   157 00000090 B200                      mov dl,0        ; track             000000FA  B201              
+   158 00000092 B601                      mov dh,0x1        ; sector            000000FC  B601              
+   159 00000094 B94800                    mov cx,0x48       ; NUM_SECTORS       000000FE  B94800      
+   160                                  
+   161 00000097 E973FF                    jmp _0x2e_movehead ;                  00000101  E92AFF            
+   162                                  
+   163                                  
+   164 0000009A 00<rep 166h>            times (512)-($-$$) db 0  ; finish sector bootsector
+   165                                  
+   166                                  ;start of sector 2 on disk  
+   167 00000200 41<rep 200h>            times 512 db 65
+   168 00000400 42<rep 200h>            times 512 db 66
+   169 00000600 43<rep 200h>            times 512 db 67
+   170 00000800 44<rep 200h>            times 512 db 68
+   171 00000A00 45<rep 200h>            times 512 db 69
+   172 00000C00 46<rep 200h>            times 512 db 70
+   173 00000E00 47<rep 200h>            times 512 db 71
+   174 00001000 48<rep 200h>            times 512 db 72
+   175 00001200 49<rep 200h>            times 512 db 73
+   176 00001400 4A<rep 200h>            times 512 db 74
+   177 00001600 4B<rep 200h>            times 512 db 75
+   178 00001800 4C<rep 200h>            times 512 db 76
+   179 00001A00 4D<rep 200h>            times 512 db 77
+   180 00001C00 4E<rep 200h>            times 512 db 78
+   181 00001E00 4F<rep 200h>            times 512 db 79
+   182 00002000 50<rep 200h>            times 512 db 80
+   183 00002200 51<rep 200h>            times 512 db 81
+   184 00002400 52<rep 200h>            times 512 db 82
+   185 00002600 53<rep 200h>            times 512 db 83
+   186 00002800 54<rep 200h>            times 512 db 84
+   187 00002A00 55<rep 200h>            times 512 db 85
+   188 00002C00 56<rep 200h>            times 512 db 86
+   189 00002E00 57<rep 200h>            times 512 db 87
+   190 00003000 58<rep 200h>            times 512 db 88
+   191 00003200 59<rep 200h>            times 512 db 89
+   192 00003400 5A<rep 200h>            times 512 db 90
+   193 00003600 5B<rep 200h>            times 512 db 91
+   194 00003800 5C<rep 200h>            times 512 db 92
+   195 00003A00 5D<rep 200h>            times 512 db 93
+   196 00003C00 5E<rep 200h>            times 512 db 94
+   197 00003E00 5F<rep 200h>            times 512 db 95
+   198 00004000 60<rep 200h>            times 512 db 96
+   199 00004200 61<rep 200h>            times 512 db 97
+   200 00004400 62<rep 200h>            times 512 db 98
+   201 00004600 63<rep 200h>            times 512 db 99
+   202 00004800 64<rep 200h>            times 512 db 100
+   203 00004A00 65<rep 200h>            times 512 db 101
+   204 00004C00 66<rep 200h>            times 512 db 102
+   205 00004E00 67<rep 200h>            times 512 db 103
+   206 00005000 68<rep 200h>            times 512 db 104
+   207 00005200 69<rep 200h>            times 512 db 105
+   208 00005400 6A<rep 200h>            times 512 db 106
+   209 00005600 6B<rep 200h>            times 512 db 107
+   210 00005800 6C<rep 200h>            times 512 db 108
+   211 00005A00 6D<rep 200h>            times 512 db 109
+   212 00005C00 6E<rep 200h>            times 512 db 110
+   213 00005E00 6F<rep 200h>            times 512 db 111
+   214 00006000 70<rep 200h>            times 512 db 112
+   215 00006200 71<rep 200h>            times 512 db 113
+   216 00006400 72<rep 200h>            times 512 db 114
+   217 00006600 73<rep 200h>            times 512 db 115
+   218 00006800 74<rep 200h>            times 512 db 116
+   219 00006A00 75<rep 200h>            times 512 db 117
+   220 00006C00 76<rep 200h>            times 512 db 118
+   221 00006E00 77<rep 200h>            times 512 db 119
+   222 00007000 78<rep 200h>            times 512 db 120
+   223 00007200 79<rep 200h>            times 512 db 121
+   224 00007400 7A<rep 200h>            times 512 db 122
+   225 00007600 7B<rep 200h>            times 512 db 123
+   226 00007800 7C<rep 200h>            times 512 db 124
+   227 00007A00 7D<rep 200h>            times 512 db 125
+   228 00007C00 7E<rep 200h>            times 512 db 126
+   229 00007E00 7F<rep 200h>            times 512 db 127
+   230 00008000 80<rep 200h>            times 512 db 128
+   231 00008200 81<rep 200h>            times 512 db 129
+   232 00008400 82<rep 200h>            times 512 db 130
+   233 00008600 83<rep 200h>            times 512 db 131
+   234 00008800 84<rep 200h>            times 512 db 132
+   235 00008A00 85<rep 200h>            times 512 db 133
+   236 00008C00 86<rep 200h>            times 512 db 134
+   237 00008E00 87<rep 200h>            times 512 db 135
+   238 00009000 88<rep 200h>            times 512 db 136
+   239 00009200 89<rep 200h>            times 512 db 137
+   240 00009400 8A<rep 200h>            times 512 db 138
+   241 00009600 8B<rep 200h>            times 512 db 139
+   242 00009800 8C<rep 200h>            times 512 db 140
+   243 00009A00 8D<rep 200h>            times 512 db 141
+   244 00009C00 8E<rep 200h>            times 512 db 142
+   245 00009E00 8F<rep 200h>            times 512 db 143
+   246 0000A000 90<rep 200h>            times 512 db 144
+   247 0000A200 91<rep 200h>            times 512 db 145
+   248 0000A400 92<rep 200h>            times 512 db 146
+   249 0000A600 93<rep 200h>            times 512 db 147
+   250 0000A800 94<rep 200h>            times 512 db 148
+   251 0000AA00 95<rep 200h>            times 512 db 149
+   252 0000AC00 96<rep 200h>            times 512 db 150
+   253 0000AE00 97<rep 200h>            times 512 db 151
+   254 0000B000 98<rep 200h>            times 512 db 152
+   255 0000B200 99<rep 200h>            times 512 db 153
+   256 0000B400 9A<rep 200h>            times 512 db 154
+   257 0000B600 9B<rep 200h>            times 512 db 155
+   258 0000B800 9C<rep 200h>            times 512 db 156
+   259 0000BA00 9D<rep 200h>            times 512 db 157
+   260 0000BC00 9E<rep 200h>            times 512 db 158
+   261 0000BE00 9F<rep 200h>            times 512 db 159
+   262 0000C000 A0<rep 200h>            times 512 db 160
+   263 0000C200 A1<rep 200h>            times 512 db 161
+   264 0000C400 A2<rep 200h>            times 512 db 162
+   265 0000C600 A3<rep 200h>            times 512 db 163
+   266 0000C800 A4<rep 200h>            times 512 db 164
+   267 0000CA00 A5<rep 200h>            times 512 db 165
+   268 0000CC00 A6<rep 200h>            times 512 db 166
+   269 0000CE00 A7<rep 200h>            times 512 db 167
+   270 0000D000 A8<rep 200h>            times 512 db 168
+   271 0000D200 A9<rep 200h>            times 512 db 169
+   272 0000D400 AA<rep 200h>            times 512 db 170
+   273 0000D600 AB<rep 200h>            times 512 db 171
+   274 0000D800 AC<rep 200h>            times 512 db 172
+   275 0000DA00 AD<rep 200h>            times 512 db 173
+   276 0000DC00 AE<rep 200h>            times 512 db 174
+   277 0000DE00 AF<rep 200h>            times 512 db 175
+   278 0000E000 B0<rep 200h>            times 512 db 176
+   279 0000E200 B1<rep 200h>            times 512 db 177
+   280 0000E400 B2<rep 200h>            times 512 db 178
+   281 0000E600 B3<rep 200h>            times 512 db 179
+   282 0000E800 B4<rep 200h>            times 512 db 180
+   283 0000EA00 B5<rep 200h>            times 512 db 181
+   284 0000EC00 B6<rep 200h>            times 512 db 182
+   285 0000EE00 B7<rep 200h>            times 512 db 183
+   286 0000F000 B8<rep 200h>            times 512 db 184
+   287 0000F200 B9<rep 200h>            times 512 db 185
+   288 0000F400 BA<rep 200h>            times 512 db 186
+   289 0000F600 BB<rep 200h>            times 512 db 187
+   290 0000F800 BC<rep 200h>            times 512 db 188
+   291 0000FA00 BD<rep 200h>            times 512 db 189
+   292 0000FC00 BE<rep 200h>            times 512 db 190
+   293 0000FE00 BF<rep 200h>            times 512 db 191
+   294 00010000 C0<rep 200h>            times 512 db 192
+   295 00010200 C1<rep 200h>            times 512 db 193
+   296 00010400 C2<rep 200h>            times 512 db 194
+   297 00010600 C3<rep 200h>            times 512 db 195
+   298 00010800 C4<rep 200h>            times 512 db 196
+   299 00010A00 C5<rep 200h>            times 512 db 197
+   300 00010C00 C6<rep 200h>            times 512 db 198
+   301 00010E00 C7<rep 200h>            times 512 db 199
+   302 00011000 C8<rep 200h>            times 512 db 200
+   303 00011200 C9<rep 200h>            times 512 db 201
+   304 00011400 CA<rep 200h>            times 512 db 202
+   305 00011600 CB<rep 200h>            times 512 db 203
+   306 00011800 CC<rep 200h>            times 512 db 204
+   307 00011A00 CD<rep 200h>            times 512 db 205
+   308 00011C00 CE<rep 200h>            times 512 db 206
+   309 00011E00 CF<rep 200h>            times 512 db 207
+   310                                  
+   311 00012000 5F<rep 1B000h>          times (180*1024)-($-$$) db '_'
+   312                                  
