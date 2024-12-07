@@ -1,0 +1,246 @@
+  Intel 8088 ':maincpu' space program read:
+00000 - 0ffff: Bank ':bank0'
+10000 - 1ffff: Bank ':bank1'
+20000 - 2ffff: nop
+30000 - 3ffff: nop
+40000 - 4ffff: nop
+50000 - 5ffff: nop
+60000 - 6ffff: nop
+70000 - 7ffff: nop
+80000 - 8ffff: nop
+90000 - 9ffff: nop
+a0000 - affff: nop
+b0000 - bffff: nop
+c0000 - cffff: nop
+d0000 - dffff: nop
+e0000 - effff: nop
+f0000 - f3fff: Bank ':red'
+f4000 - f7fff: Bank ':blue'
+f8000 - fbfff: nop
+fc000 - fffff: memory@fc000
+
+  Intel 8088 ':maincpu' space program write:
+00000 - 0ffff: Bank ':bank0'
+10000 - 1ffff: Bank ':bank1'
+20000 - 2ffff: nop
+30000 - 3ffff: nop
+40000 - 4ffff: nop
+50000 - 5ffff: nop
+60000 - 6ffff: nop
+70000 - 7ffff: nop
+80000 - 8ffff: nop
+90000 - 9ffff: nop
+a0000 - affff: nop
+b0000 - bffff: nop
+c0000 - cffff: nop
+d0000 - dffff: nop
+e0000 - effff: nop
+f0000 - f3fff: Bank ':red'
+f4000 - f7fff: Bank ':blue'
+f8000 - fbfff: nop
+fc000 - fffff: nop
+
+  Intel 8088 ':maincpu' space io read:
+0000 - 0000: mbc55x_state::iodecode_r
+0001 - 0001: unmapped
+0002 - 0002: mbc55x_state::iodecode_r
+0003 - 0003: unmapped
+0004 - 0004: mbc55x_state::iodecode_r
+0005 - 0005: unmapped
+0006 - 0006: mbc55x_state::iodecode_r
+0007 - 0007: unmapped
+0008 - 0008: mbc55x_state::iodecode_r
+0009 - 0009: unmapped
+000a - 000a: mbc55x_state::iodecode_r
+000b - 000b: unmapped
+000c - 000c: mbc55x_state::iodecode_r
+000d - 000d: unmapped
+000e - 000e: mbc55x_state::iodecode_r
+000f - 000f: unmapped
+0010 - 0010: mbc55x_state::iodecode_r
+0011 - 0011: unmapped
+0012 - 0012: mbc55x_state::iodecode_r
+0013 - 0013: unmapped
+0014 - 0014: mbc55x_state::iodecode_r
+0015 - 0015: unmapped
+0016 - 0016: mbc55x_state::iodecode_r
+0017 - 0017: unmapped
+0018 - 0018: mbc55x_state::iodecode_r
+0019 - 0019: unmapped
+001a - 001a: mbc55x_state::iodecode_r
+001b - 001b: unmapped
+001c - 001c: mbc55x_state::iodecode_r
+001d - 001d: unmapped
+001e - 001e: mbc55x_state::iodecode_r
+001f - 001f: unmapped
+0020 - 0020: mbc55x_state::iodecode_r
+0021 - 0021: unmapped
+0022 - 0022: mbc55x_state::iodecode_r
+0023 - 0023: unmapped
+0024 - 0024: mbc55x_state::iodecode_r
+0025 - 0025: unmapped
+0026 - 0026: mbc55x_state::iodecode_r
+0027 - 0027: unmapped
+0028 - 0028: mbc55x_state::iodecode_r
+0029 - 0029: unmapped
+002a - 002a: mbc55x_state::iodecode_r
+002b - 002b: unmapped
+002c - 002c: mbc55x_state::iodecode_r
+002d - 002d: unmapped
+002e - 002e: mbc55x_state::iodecode_r
+002f - 002f: unmapped
+0030 - 0030: mbc55x_state::iodecode_r
+0031 - 0031: unmapped
+0032 - 0032: mbc55x_state::iodecode_r
+0033 - 0033: unmapped
+0034 - 0034: mbc55x_state::iodecode_r
+0035 - 0035: unmapped
+0036 - 0036: mbc55x_state::iodecode_r
+0037 - 0037: unmapped
+0038 - 0038: mbc55x_state::iodecode_r
+0039 - 0039: unmapped
+003a - 003a: mbc55x_state::iodecode_r
+003b - 003b: unmapped
+003c - 003c: mbc55x_state::iodecode_r
+003d - 003d: unmapped
+003e - 003e: mbc55x_state::iodecode_r
+003f - ffff: unmapped
+
+  Intel 8088 ':maincpu' space io write:
+0000 - 0000: mbc55x_state::iodecode_w
+0001 - 0001: unmapped
+0002 - 0002: mbc55x_state::iodecode_w
+0003 - 0003: unmapped
+0004 - 0004: mbc55x_state::iodecode_w
+0005 - 0005: unmapped
+0006 - 0006: mbc55x_state::iodecode_w
+0007 - 0007: unmapped
+0008 - 0008: mbc55x_state::iodecode_w
+0009 - 0009: unmapped
+000a - 000a: mbc55x_state::iodecode_w
+000b - 000b: unmapped
+000c - 000c: mbc55x_state::iodecode_w
+000d - 000d: unmapped
+000e - 000e: mbc55x_state::iodecode_w
+000f - 000f: unmapped
+0010 - 0010: mbc55x_state::iodecode_w
+0011 - 0011: unmapped
+0012 - 0012: mbc55x_state::iodecode_w
+0013 - 0013: unmapped
+0014 - 0014: mbc55x_state::iodecode_w
+0015 - 0015: unmapped
+0016 - 0016: mbc55x_state::iodecode_w
+0017 - 0017: unmapped
+0018 - 0018: mbc55x_state::iodecode_w
+0019 - 0019: unmapped
+001a - 001a: mbc55x_state::iodecode_w
+001b - 001b: unmapped
+001c - 001c: mbc55x_state::iodecode_w
+001d - 001d: unmapped
+001e - 001e: mbc55x_state::iodecode_w
+001f - 001f: unmapped
+0020 - 0020: mbc55x_state::iodecode_w
+0021 - 0021: unmapped
+0022 - 0022: mbc55x_state::iodecode_w
+0023 - 0023: unmapped
+0024 - 0024: mbc55x_state::iodecode_w
+0025 - 0025: unmapped
+0026 - 0026: mbc55x_state::iodecode_w
+0027 - 0027: unmapped
+0028 - 0028: mbc55x_state::iodecode_w
+0029 - 0029: unmapped
+002a - 002a: mbc55x_state::iodecode_w
+002b - 002b: unmapped
+002c - 002c: mbc55x_state::iodecode_w
+002d - 002d: unmapped
+002e - 002e: mbc55x_state::iodecode_w
+002f - 002f: unmapped
+0030 - 0030: mbc55x_state::iodecode_w
+0031 - 0031: unmapped
+0032 - 0032: mbc55x_state::iodecode_w
+0033 - 0033: unmapped
+0034 - 0034: mbc55x_state::iodecode_w
+0035 - 0035: unmapped
+0036 - 0036: mbc55x_state::iodecode_w
+0037 - 0037: unmapped
+0038 - 0038: mbc55x_state::iodecode_w
+0039 - 0039: unmapped
+003a - 003a: mbc55x_state::iodecode_w
+003b - 003b: unmapped
+003c - 003c: mbc55x_state::iodecode_w
+003d - 003d: unmapped
+003e - 003e: mbc55x_state::iodecode_w
+003f - ffff: unmapped
+
+  Address Map Bank ':iodecode' space program read:
+00 - 03: pic8259_device::read
+04 - 07: fd1793_device::read
+08 - 0b: mbc55x_state::vram_page_r
+0c - 0f: i8255_device::read
+10 - 13: pit8253_device::read
+14 - 17: i8251_device::read
+18 - 18: mc6845_device::status_r
+19 - 19: mc6845_device::register_r
+1a - 1a: mc6845_device::status_r
+1b - 1b: mc6845_device::register_r
+1c - 1f: i8251_device::read
+
+  Address Map Bank ':iodecode' space program write:
+00 - 03: pic8259_device::write
+04 - 07: fd1793_device::write
+08 - 0b: mbc55x_state::vram_page_w
+0c - 0f: i8255_device::write
+10 - 13: pit8253_device::write
+14 - 17: i8251_device::write
+18 - 18: mc6845_device::address_w
+19 - 19: mc6845_device::register_w
+1a - 1a: mc6845_device::address_w
+1b - 1b: mc6845_device::register_w
+1c - 1f: i8251_device::write
+
+  Intel 8049 ':keyboard:kbdc' space program read:
+000 - 7ff: rom_view[off] unmapped
+000 - 7ff: rom_view[0] memory@0
+800 - fff: unmapped
+
+  Intel 8049 ':keyboard:kbdc' space program write:
+000 - 7ff: rom_view[off] unmapped
+000 - 7ff: rom_view[0] unmapped
+800 - fff: unmapped
+
+  Intel 8049 ':keyboard:kbdc' space data read:
+00 - 7f: memory@0
+
+  Intel 8049 ':keyboard:kbdc' space data write:
+00 - 7f: memory@0
+
+  Intel 8049 ':keyboard:kbdc' space io read:
+00 - ff: unmapped
+
+  Intel 8049 ':keyboard:kbdc' space io write:
+00 - ff: unmapped
+
+  8-bit ISA bus ':isa' space mem8 read:
+000000 - ffffff: unmapped
+
+  8-bit ISA bus ':isa' space mem8 write:
+000000 - ffffff: unmapped
+
+  8-bit ISA bus ':isa' space io8 read:
+0000 - ffff: unmapped
+
+  8-bit ISA bus ':isa' space io8 write:
+0000 - ffff: unmapped
+
+  8-bit ISA bus ':isa' space mem16 read:
+000000 - ffffff: unmapped
+
+  8-bit ISA bus ':isa' space mem16 write:
+000000 - ffffff: unmapped
+
+  8-bit ISA bus ':isa' space io16 read:
+0000 - ffff: unmapped
+
+  8-bit ISA bus ':isa' space io16 write:
+0000 - ffff: unmapped
+

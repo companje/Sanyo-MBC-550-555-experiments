@@ -1,0 +1,24 @@
+q
+exit
+quit
+exit()
+print(emu.app_name() .. " " .. emu.app_version())
+print(s.width .. 'x' .. s.height)
+s = manager.machine.screens[':screen']
+print(s.width .. 'x' .. s.height)
+for tag, screen in pairs(manager.machine.screens) do print(tag) end
+function draw_overlay()
+s:draw_text(40, 40, 'foo') -- (x0, y0, msg)
+s:draw_box(20, 20, 80, 80, 0xff00ffff, 0)
+s:draw_line(20, 20, 80, 80, 0xff00ffff)
+end
+draw_overlay()
+emu.register_frame_done(draw_overlay, 'frame')
+cpu = manager.machine.devices[':maincpu']
+for k, v in pairs(cpu.state) do print(k) end
+emu.register_http("/memory", function(request, response)
+    -- Lees een geheugenadres (bijv. 0x1000) uit
+    local memory_value = emu:cpuread(0x1000, 1)
+    response:write(string.format("{ \\"memory\\": \\"0x%X\\", \\"value\\": %d }", 0x1000, memory_value))
+end)
+
