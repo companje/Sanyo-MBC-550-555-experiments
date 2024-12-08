@@ -45,6 +45,7 @@ next_frame:
 ; ───────────────────────────────────────────────────────────────────────────
 
 setup:
+  
   jmp draw
 
 ; ───────────────────────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ setup:
 draw:
   call _wait
 
-
+  ;animations
   draw_sprite donut
   draw_sprite stars
   draw_sprite sqr_ani
@@ -66,7 +67,39 @@ draw:
   draw_sprite explode
   draw_sprite creep
   draw_sprite bouncer
+  draw_sprite eye
+  draw_sprite smurf_left
+  draw_sprite smurf_right
+  draw_sprite ghost
+  draw_sprite lobster_left
+  draw_sprite lobster_right
 
+  ;stills
+  draw_sprite keylock
+  draw_sprite key
+  draw_sprite owl
+  draw_sprite crown
+  draw_sprite goblet
+  draw_sprite ring
+  draw_sprite globe
+  draw_sprite feather
+  draw_sprite totum
+  draw_sprite building
+  draw_sprite mirror
+  draw_sprite harp
+  draw_sprite nar
+  draw_sprite computer
+  draw_sprite way_down
+  draw_sprite way_left
+  draw_sprite way_up
+  draw_sprite way_right
+  draw_sprite pinkbox
+
+  draw_sprite box
+  draw_sprite vbar
+  draw_sprite hbar
+  draw_sprite house1
+  draw_sprite question
 
   jmp draw
 
@@ -146,5 +179,5 @@ _wait:
 
 %include "assets.asm"
 
-; times (180*1024)-($-$$) db 0
+times (180*1024)-($-$$) db 0
 

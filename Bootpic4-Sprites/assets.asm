@@ -133,7 +133,7 @@ creep:
 bouncer:
   .size.w db 4
   .size.h db 4
-  .pos.x db 40
+  .pos.x db 44
   .pos.y db 0
   .vel.vx db 0
   .vel.vy db 0
@@ -141,6 +141,407 @@ bouncer:
   .frames db 4
   .framesize db 192
   .data dw img.bouncer_1
+
+eye:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 48
+  .pos.y db 0
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 4
+  .framesize db 192
+  .data dw img.eye_1
+
+smurf_left:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 52
+  .pos.y db 0
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 2
+  .framesize db 192
+  .data dw img.smurf_1
+
+smurf_right:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 56
+  .pos.y db 0
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 2
+  .framesize db 192
+  .data dw img.smurf_3
+
+ghost:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 52
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 4
+  .framesize db 192
+  .data dw img.ghost_1
+
+lobster_right:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 48
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 2
+  .framesize db 192
+  .data dw img.lobster_3
+
+lobster_left:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 56
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 2
+  .framesize db 192
+  .data dw img.lobster_1
+
+keylock:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 0
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.keylock
+
+key:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 4
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.key
+
+owl:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 8
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.owl
+
+crown:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 12
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.crown
+
+goblet:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 16
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.goblet
+
+ring:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 20
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.ring
+
+globe:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 24
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.globe
+
+feather:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 28
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.feather
+
+totum:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 32
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.totum
+
+building:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 36
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.building
+
+mirror:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 40
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.mirror
+
+harp:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 44
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.harp
+
+nar:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 44
+  .pos.y db 4
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.harp
+
+computer:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 0
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.computer
+
+way_down:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 8
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.way_down
+
+way_left:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 4
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.way_left
+
+way_up:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 12
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.way_up
+
+way_right:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 16
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.way_right
+
+pinkbox:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 20
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.pinkbox
+
+box:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 24
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.box
+
+vbar:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 28
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.vbar
+
+hbar:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 32
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.hbar
+
+question:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 36
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.question
+
+house1:
+  .size.w db 4
+  .size.h db 4
+  .pos.x db 40
+  .pos.y db 8
+  .vel.vx db 0
+  .vel.vy db 0
+  .frame db 0
+  .frames db 1
+  .framesize db 192
+  .data dw img.house1
+
+
+
+greenwall_1:
+
+greenwall_2:
+
+greenwall_3:
+
+redwall_1:
+
+redwall_2:
+
+redwall_3:
+
+treetop_1:
+
+treetop_2:
+
+treetop_3:
+
+treething:
+
+treetop_a:
+
+treetop_b:
+
+treeroot_a:
+
+treeroot_b:
+
+cactus_top:
+
+cactus_bottom:
+
+roof_1:
+
+roof_2:
+
+roof_3:
+
 
 
 img:
@@ -240,3 +641,13 @@ img:
   .smurf_2 incbin "data/smurf_2.bin"
   .smurf_3 incbin "data/smurf_3.bin"
   .smurf_4 incbin "data/smurf_4.bin"
+
+  .ghost_1 incbin "data/ghost_1.bin"
+  .ghost_2 incbin "data/ghost_2.bin"
+  .ghost_3 incbin "data/ghost_3.bin"
+  .ghost_4 incbin "data/ghost_4.bin"
+
+  .lobster_1 incbin "data/lobster_1.bin"
+  .lobster_2 incbin "data/lobster_2.bin"
+  .lobster_3 incbin "data/lobster_3.bin"
+  .lobster_4 incbin "data/lobster_4.bin"

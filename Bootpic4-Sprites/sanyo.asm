@@ -1,7 +1,7 @@
 org 0
 cpu 8086
 
-NUM_SECTORS equ 40          ; number of sectors to read
+NUM_SECTORS equ 44          ; number of sectors to read
 BAR_WIDTH equ 30
 COLS  equ 72
 ROWS  equ 50

@@ -8,7 +8,7 @@ Viewport view;
 int rows,cols;
 
 void settings() {
-  size(1152, 800);
+  size(1152, 850);
   noSmooth();
 }
 
@@ -19,7 +19,7 @@ void setup() {
   surface.setLocation(755, 0);
   img = createImage(COLS*8, 200, RGB); //72*8=576
   pg = createGraphics(img.width, img.height); //fbo
-  bandit = loadImage("bandit3.png");
+  bandit = loadImage("bandit4.png");
   rows = bandit.height/4;
   cols = bandit.width/8;
   
@@ -34,7 +34,7 @@ void draw() {
 
   pg.beginDraw();
   pg.background(0);
-  pg.image(bandit, 0, 0);
+  pg.image(bandit, 0, -16*12);
   //pg.scale(1, 0.5);
   //pg.fill(255, 25, 0);
   //pg.ellipse(403, 98, 40, 40);
@@ -115,13 +115,14 @@ void setMemoryFromImage(PImage img) { //expects 3-bit full R,G,B,W,C,M,Y,K
 void keyPressed() {
   if (key=='s') {
     byte bytes[] = getSnapshot(0, 0, cols, rows);
-    saveBytes("/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Bootpic2/data/full.bin", bytes);
+    //saveBytes("/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Bootpic2/data/full.bin", bytes);
 
-    //for (int y=0, h=12; y<h; y++) {
-    //  for (int x=0, w=8; x<w; x++) {
-    //    saveBytes("/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Bootpic2/data/"+int(y*w+x)+".bin", getSnapshot(x*4, y*4, 4, 4));
-    //  }
-    //}
+    for (int y=0, h=12; y<h; y++) {
+      for (int x=0, w=8; x<w; x++) {
+        saveBytes("data/"+int(y*w+x)+".bin", getSnapshot(x*4, y*4, 4, 4));
+        ///Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Bootpic2/
+      }
+    }
     println("saved");
   }
 }

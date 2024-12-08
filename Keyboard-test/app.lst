@@ -1,0 +1,175 @@
+     1                                  cpu 8086
+     2                                  org 0
+     3                                  
+     4                                  GREEN equ 0x1c00
+     5                                  COLS equ 72
+     6                                  ROWS equ 50
+     7                                  FONT equ 0xFF00
+     8                                  
+     9 00000000 EB02                    jmp setup
+    10                                  
+    11                                  cursor:
+    12 00000002 00                      col: db 0
+    13 00000003 00                      row: db 0
+    14                                  
+    15                                  setup:
+    16 00000004 B000                      mov al,0
+    17 00000006 E63A                      out 0x3a,al           ; keyboard \force state/
+    18                                   
+    19 00000008 B000                      mov al,0
+    20 0000000A E63A                      out 0x3a,al           ; keyboard \force state/
+    21                                    
+    22 0000000C B0FF                      mov al,0xFF
+    23 0000000E E63A                      out 0x3a,al           ; keyboard \reset/
+    24                                    
+    25 00000010 B0FF                      mov al,0xFF
+    26 00000012 E63A                      out 0x3a,al           ; keyboard \mode/
+    27                                    
+    28 00000014 B037                      mov al,0x37
+    29 00000016 E63A                      out 0x3a,al           ; keyboard \set command
+    30                                  
+    31                                  
+    32                                  ;keyboard controller:
+    33                                      ; dw 0x3a00, 0x3a00, 0x3aff, 0x3aff, 0x3a37
+    34                                  ;       \force state/  \reset/ \mode/  \set command
+    35                                  
+    36                                  
+    37 00000018 B005                      mov al, 5
+    38 0000001A E610                      out 10h, al               ; select address 0x1c000 as green video page
+    39                                    
+    40 0000001C E87C00                    call clear_green
+    41                                  
+    42 0000001F E88A00                    call beep
+    43                                  
+    44                                  
+    45                                  
+    46                                    ; mov al,1
+    47                                    ; call draw_char
+    48                                    ; mov al,1
+    49                                    ; call draw_char
+    50                                    ; mov al,1
+    51                                    ; call draw_char
+    52                                  
+    53                                    ; call rom_to_vram
+    54                                    ; hlt
+    55                                  
+    56 00000022 FA                        cli
+    57                                    
+    58                                  draw:
+    59                                  
+    60                                  
+    61 00000023 B94900                    mov cx,73
+    62                                  .lp
+    63 00000026 B041                      mov al,65
+    64 00000028 E82300                    call draw_char  
+    65 0000002B E2F9                      loop .lp
+    66                                  
+    67 0000002D F4                        hlt
+    68                                  
+    69                                    ; in al,0x3a
+    70                                    ; test al,2
+    71                                  
+    72                                    ; ; jz .jiret
+    73                                  
+    74                                    ; in al,0x38  ;get data byte
+    75                                    
+    76                                    ; cmp al,0
+    77                                    ; je draw
+    78                                  
+    79                                    ; cmp al, 0b00011111
+    80                                    ; je draw
+    81                                  
+    82                                    ; ; call draw_char
+    83                                    ; call draw_char
+    84                                  
+    85                                    ; mov al,0x37
+    86                                    ; out 0x3a,al ; drop key
+    87                                  
+    88                                  
+    89 0000002E 81FF4038                  cmp di,14400
+    90 00000032 72EF                      jb draw
+    91 00000034 31FF                      xor di,di
+    92 00000036 EBEB                      jmp draw
+    93                                  
+    94                                  rom_to_vram:
+    95 00000038 B800FE                    mov ax, 0xFE00
+    96 0000003B 8ED8                      mov ds, ax       ; DS source segment
+    97 0000003D B8001C                    mov ax, GREEN
+    98 00000040 8EC0                      mov es, ax       ; ES dest segment
+    99 00000042 BE0010                    mov si, 0x1000   ; FONT offset in ROM
+   100 00000045 BF0000                    mov di, 0        ; dest index
+   101 00000048 B90040                    mov cx, 0x4000   ; 8000 bytes (0x4000 in hexadecimal)
+   102 0000004B F3A4                      rep movsb        ; Kopieer CX bytes van DS:SI naar ES:DI
+   103 0000004D C3                        ret
+   104                                  
+   105                                  
+   106                                  draw_char:   ; al=char, changes ax,di,si,ds
+   107 0000004E BE00FF                    mov si,FONT
+   108 00000051 8EDE                      mov ds,si
+   109                                  
+   110 00000053 D1E0                      shl ax,1
+   111 00000055 D1E0                      shl ax,1
+   112 00000057 D1E0                      shl ax,1
+   113 00000059 89C6                      mov si,ax
+   114 0000005B A5                        movsw
+   115 0000005C A5                        movsw
+   116 0000005D 57                        push di
+   117 0000005E 81C71C01                  add di,4*COLS-4
+   118 00000062 A5                        movsw
+   119 00000063 A5                        movsw
+   120 00000064 5F                        pop di
+   121                                  
+   122 00000065 0E                        push cs
+   123 00000066 1F                        pop ds
+   124                                  
+   125 00000067 FE06[0200]                inc byte [col]
+   126                                  
+   127 0000006B 803E[0200]19              cmp byte [col],25
+   128 00000070 7516                      jne .done
+   129                                  
+   130 00000072 C606[0200]00              mov byte [col],0
+   131 00000077 FE06[0300]                inc byte [row]     ; 1 row = 4 lines
+   132 0000007B FE06[0300]                inc byte [row]
+   133                                  
+   134 0000007F 53                        push bx
+   135 00000080 8B1E[0200]                mov bx,[cursor]
+   136 00000084 E80200                    call calc_di
+   137 00000087 5B                        pop bx
+   138                                  
+   139                                  
+   140                                  .done
+   141 00000088 C3                        ret
+   142                                  
+   143                                  calc_di:          ; input bl,bh [0,0,71,49]
+   144 00000089 B89000                    mov ax,144      ; 2*72 cols
+   145 0000008C F6E7                      mul bh          ; bh*=144 resultaat in AX
+   146 0000008E D1E0                      shl ax,1        ; verdubbel AX
+   147 00000090 89C7                      mov di,ax       ; di=ax (=bh*288)
+   148 00000092 D0E3                      shl bl,1        ; bl*=2
+   149 00000094 D0E3                      shl bl,1        ; bl*=2
+   150 00000096 B700                      mov bh,0
+   151 00000098 01DF                      add di,bx       ; di+=bl
+   152 0000009A C3                        ret
+   153                                  
+   154                                  clear_green:
+   155 0000009B B9201C                    mov cx,COLS*ROWS*2
+   156 0000009E B8001C                    mov ax,GREEN
+   157 000000A1 8EC0                      mov es,ax
+   158 000000A3 31FF                      xor di,di
+   159 000000A5 31C0                      xor ax,ax
+   160 000000A7 F3AB                      rep stosw         ; clear screen
+   161 000000A9 31FF                      xor di,di
+   162 000000AB C3                        ret
+   163                                  
+   164                                  beep:
+   165 000000AC B90300                    mov cx,3
+   166 000000AF E43A                    .lp in al,0x3a
+   167 000000B1 A801                      test al,1
+   168 000000B3 74FA                      jz .lp
+   169 000000B5 B018                      mov al,0x18
+   170 000000B7 E638                      out 0x38,al
+   171 000000B9 E2F4                      loop .lp
+   172 000000BB C3                        ret
+   173                                  
+   174 000000BC 00<rep 2CF44h>          times (180*1024)-($-$$) db 0
+   175                                  
