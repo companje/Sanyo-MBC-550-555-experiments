@@ -6,3 +6,4 @@ emulator/Sanyo_MBC_555/frames/*
 *.mov
 .aider*
 /Cashman-disassemble/oud
+mbc555-bootsector-disassembled/Sanyo-MS-DOS-2.11-minimal.img
