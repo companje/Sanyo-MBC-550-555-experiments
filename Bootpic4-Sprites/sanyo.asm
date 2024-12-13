@@ -1,7 +1,7 @@
 org 0
 cpu 8086
 
-NUM_SECTORS equ 44          ; number of sectors to read
+NUM_SECTORS equ 48          ; number of sectors to read
 BAR_WIDTH equ 30
 COLS  equ 72
 ROWS  equ 50
@@ -35,7 +35,7 @@ boot:
 next_sector:
   inc dh                    ; sector++
   cmp dh,10
-  jb read_sector           ; if (dh<9) read_sector
+  jb read_sector            ; if (dh<9) read_sector
   mov dh,1
   inc dl                    ; else track++ ; sector=1
 
@@ -139,10 +139,30 @@ progress_bar:
   mov byte [ds:bp],-1
   ret
 
+clear_red:
+  mov ax,RED
+  call clear_channel
+  ret
+
 clear_green:
-  mov cx,COLS*ROWS*2
   mov ax,GREEN
+  call clear_channel
+  ret
+
+clear_blue:
+  mov ax,BLUE
+  call clear_channel
+  ret
+
+clear_screen:
+  call clear_red
+  call clear_green
+  call clear_blue
+  ret
+
+clear_channel:
   mov es,ax
+  mov cx,COLS*ROWS*2
   xor di,di
   xor ax,ax
   rep stosw         ; clear screen
