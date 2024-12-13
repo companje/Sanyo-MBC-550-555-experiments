@@ -61,7 +61,7 @@ with open(input_binary_file, 'rb') as bin_file, \
         with open(asset_text_file, 'w') as atf:
             asset_bits = ''.join(format(byte, '08b') for byte in asset)
             for j in range(0, len(asset_bits), 16):
-                blocks = asset_bits[j:j+16].replace("0"," ").replace("1","█")
+                blocks = asset_bits[j:j+16] #.replace("0"," ").replace("1","█")
                 atf.write(blocks + '\n')
 
         # Teken het karakter in de afbeelding

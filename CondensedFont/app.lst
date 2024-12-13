@@ -1,0 +1,1578 @@
+     1                                  %include "sanyo.asm"
+     1                              <1> org 0
+     2                              <1> cpu 8086
+     3                              <1> 
+     4                              <1> NUM_SECTORS equ 30          ; number of sectors to read
+     5                              <1> BAR_WIDTH equ 30
+     6                              <1> COLS  equ 72
+     7                              <1> ROWS  equ 50
+     8                              <1> LINES equ 200
+     9                              <1> CENTER equ COLS*LINES/2+COLS*4/2
+    10                              <1> RED   equ 0xf000
+    11                              <1> GREEN equ 0x1c00
+    12                              <1> BLUE  equ 0xf400
+    13                              <1> DST   equ 0x38              ; absolute addres: 32592
+    14                              <1> XD    equ 4
+    15                              <1> YD    equ COLS*XD
+    16                              <1> 
+    17                              <1> boot:
+    18 00000000 FA                  <1>   cli
+    19 00000001 FC                  <1>   cld
+    20 00000002 E8B600              <1>   call clear_green          
+    21 00000005 B005                <1>   mov al, 5
+    22 00000007 E610                <1>   out 10h, al               ; select address 0x1c000 as green video page
+    23 00000009 B8001C              <1>   mov ax,GREEN      
+    24 0000000C 8ED8                <1>   mov ds,ax                 ; GREEN video segment used for progress bar
+    25 0000000E B83800              <1>   mov ax,DST                
+    26 00000011 8EC0                <1>   mov es,ax                 ; DST segment used for storing data read from disk
+    27 00000013 BF0000              <1>   mov di,0                  ;
+    28 00000016 B200                <1>   mov dl,0                  ; track=0
+    29 00000018 B601                <1>   mov dh,1                  ; sector=1
+    30 0000001A B91E00              <1>   mov cx,NUM_SECTORS        ; read 48h (72) sectors (36864 bytes)
+    31 0000001D EB0B                <1>   jmp move_head
+    32                              <1> 
+    33                              <1> ; ───────────────────────────────────────────────────────────────────────────
+    34                              <1> 
+    35                              <1> next_sector:
+    36 0000001F FEC6                <1>   inc dh                    ; sector++
+    37 00000021 80FE0A              <1>   cmp dh,10
+    38 00000024 7218                <1>   jb read_sector            ; if (dh<9) read_sector
+    39 00000026 B601                <1>   mov dh,1
+    40 00000028 FEC2                <1>   inc dl                    ; else track++ ; sector=1
+    41                              <1> 
+    42                              <1> move_head:
+    43 0000002A 88D0                <1>   mov al,dl
+    44 0000002C E60E                <1>   out 0Eh,al               ; set track number
+    45 0000002E B018                <1>   mov al,18h     
+    46 00000030 E608                <1>   out 8,al                 ; seek track, load head
+    47 00000032 B000                <1>   mov al,0
+    48 00000034 E61C                <1>   out 1Ch,al               ; set desired drive/side
+    49 00000036 D40A                <1>   aam
+    50                              <1> 
+    51                              <1> head_moving:
+    52 00000038 E408                <1>   in al,8
+    53 0000003A A801                <1>   test al,1
+    54 0000003C 75FA                <1>   jnz head_moving
+    55                              <1> 
+    56                              <1> read_sector:
+    57 0000003E 88F0                <1>   mov al,dh
+    58 00000040 E60C                <1>   out 0Ch,al                ; sector number
+    59 00000042 B702                <1>   mov bh,2                  ; 00000010b
+    60 00000044 B396                <1>   mov bl,96h                ; 10010110b
+    61 00000046 B400                <1>   mov ah,0
+    62 00000048 B080                <1>   mov al,80h
+    63 0000004A E608                <1>   out 8,al                  ; read sector
+    64 0000004C D40A<rep 4h>        <1>   times 4 aam               ; wait
+    65                              <1> 
+    66                              <1> check_status_1:
+    67 00000054 E408                <1>   in al,8                   ; read status
+    68 00000056 D0F8                <1>   sar al,1                  ; status/=2
+    69 00000058 731F                <1>   jnb check_status_3
+    70 0000005A 75F8                <1>   jnz check_status_1
+    71                              <1> 
+    72                              <1> wait_for_data:
+    73 0000005C E408                <1>   in al,8                   ; read status
+    74 0000005E 20D8                <1>   and al,bl                 ; 96h
+    75 00000060 74FA                <1>   jz wait_for_data
+    76                              <1> 
+    77                              <1> store_byte_1:
+    78 00000062 E40E                <1>   in al,0Eh
+    79 00000064 AA                  <1>   stosb
+    80                              <1> 
+    81                              <1> check_status_2:
+    82 00000065 E408                <1>   in al,8                   ; read status
+    83 00000067 48                  <1>   dec ax                    ; status--
+    84 00000068 74FB                <1>   jz check_status_2         ; if (status==0) repeat
+    85 0000006A 38F8                <1>   cmp al, bh                ; bh=2
+    86 0000006C 750B                <1>   jnz check_status_3        ; if (status==1) 
+    87                              <1> 
+    88                              <1> store_byte_2:
+    89 0000006E E40E                <1>   in al,0Eh  
+    90 00000070 AA                  <1>   stosb
+    91                              <1> 
+    92                              <1> check_status_4:
+    93 00000071 E408                <1>   in al,8                   ; read status
+    94 00000073 38F8                <1>   cmp al, bh                ; bh=2
+    95 00000075 74F7                <1>   jz store_byte_2           ; if (status==2) repeat
+    96 00000077 EBEC                <1>   jmp check_status_2        ; else: was jmp SI
+    97                              <1> 
+    98                              <1> ; ───────────────────────────────────────────────────────────────────────────
+    99                              <1> 
+   100                              <1> check_status_3:
+   101 00000079 E408                <1>   in al, 8                  ; read status
+   102 0000007B A81C                <1>   test al, 1Ch              ; 00011100
+   103 0000007D 7402                <1>   jz while_sectors
+   104 0000007F EBBD                <1>   jmp read_sector
+   105                              <1> 
+   106                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   107                              <1> 
+   108                              <1> while_sectors:
+   109 00000081 E80F00              <1>   call progress_bar
+   110 00000084 E299                <1>   loop next_sector
+   111                              <1> 
+   112                              <1> done_reading:
+   113 00000086 0E                  <1>   push cs
+   114 00000087 17                  <1>   pop ss
+   115 00000088 BC0000              <1>   mov sp,0
+   116 0000008B E82D00              <1>   call clear_green
+   117 0000008E 0E                  <1>   push cs
+   118 0000008F 1F                  <1>   pop ds
+   119 00000090 E97501              <1>   jmp setup
+   120                              <1> 
+   121                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   122                              <1> 
+   123                              <1> progress_bar:
+   124                              <1>   ;dit kan veel korter als NUM_SECTORS een vaste waarde heeft.
+   125 00000093 52                  <1>   push dx
+   126 00000094 53                  <1>   push bx
+   127 00000095 31D2                <1>   xor dx,dx
+   128 00000097 B81E00              <1>   mov ax,BAR_WIDTH
+   129 0000009A BB1E00              <1>   mov bx,NUM_SECTORS    
+   130 0000009D F7E1                <1>   mul cx
+   131 0000009F F7F3                <1>   div bx
+   132 000000A1 5B                  <1>   pop bx
+   133 000000A2 5A                  <1>   pop dx
+   134 000000A3 89C6                <1>   mov si,ax                 ; ax is nu 0..BAR_WIDTH
+   135 000000A5 D1E6                <1>   shl si,1                  ; *=2
+   136 000000A7 D1E6                <1>   shl si,1                  ; *=2  
+   137 000000A9 BDEC1C              <1>   mov bp,CENTER+BAR_WIDTH*2
+   138 000000AC 29F5                <1>   sub bp,si
+   139 000000AE 3EC64600FF          <1>   mov byte [ds:bp],-1
+   140 000000B3 C3                  <1>   ret
+   141                              <1> 
+   142                              <1> clear_red:
+   143 000000B4 B800F0              <1>   mov ax,RED
+   144 000000B7 E81900              <1>   call clear_channel
+   145 000000BA C3                  <1>   ret
+   146                              <1> 
+   147                              <1> clear_green:
+   148 000000BB B8001C              <1>   mov ax,GREEN
+   149 000000BE E81200              <1>   call clear_channel
+   150 000000C1 C3                  <1>   ret
+   151                              <1> 
+   152                              <1> clear_blue:
+   153 000000C2 B800F4              <1>   mov ax,BLUE
+   154 000000C5 E80B00              <1>   call clear_channel
+   155 000000C8 C3                  <1>   ret
+   156                              <1> 
+   157                              <1> clear_screen:
+   158 000000C9 E8E8FF              <1>   call clear_red
+   159 000000CC E8ECFF              <1>   call clear_green
+   160 000000CF E8F0FF              <1>   call clear_blue
+   161 000000D2 C3                  <1>   ret
+   162                              <1> 
+   163                              <1> clear_channel:
+   164 000000D3 8EC0                <1>   mov es,ax
+   165 000000D5 B9201C              <1>   mov cx,COLS*ROWS*2
+   166 000000D8 31FF                <1>   xor di,di
+   167 000000DA 31C0                <1>   xor ax,ax
+   168 000000DC F3AB                <1>   rep stosw         ; clear screen
+   169 000000DE C3                  <1>   ret
+   170                              <1> 
+   171                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   172                              <1> 
+   173 000000DF 00<rep 121h>        <1> times (512)-($-$$) db 0
+   174                              <1> 
+     2                                  
+     3 00000200 48454C4C4F2100          msg: db "HELLO!",0
+     4                                   
+     5                                  Color.R equ 100
+     6                                  Color.G equ 010
+     7                                  Color.B equ 001
+     8                                  Color.W equ 111
+     9                                  Color.C equ 011
+    10                                  Color.M equ 101
+    11                                  Color.Y equ 110
+    12                                  Color.K equ 000
+    13                                  
+    14 00000207 0A                      color: db Color.G
+    15                                  
+    16                                  setup:
+    17 00000208 EB57                      jmp draw
+    18                                  
+    19                                  ; ───────────────────────────────────────────────────────────────────────────
+    20                                  
+    21                                  ; draw_bitmap:
+    22                                  
+    23                                  ;   ; mov ax,0b0111111111000000
+    24                                  
+    25                                  ;   xor bp,bp
+    26                                  
+    27                                  ;   mov cx,4
+    28                                  ; .lp1
+    29                                  ;   lodsw
+    30                                  ;   xor [es:di+bp+0],al
+    31                                  ;   xor [es:di+bp+4],ah
+    32                                  ;   inc bp
+    33                                  ;   loop .lp1
+    34                                  
+    35                                  ;   add bp,COLS*4-4
+    36                                  
+    37                                  ;   mov cx,4
+    38                                  ; .lp2
+    39                                  ;   lodsw
+    40                                  ;   xor [es:di+bp+0],al
+    41                                  ;   xor [es:di+bp+4],ah
+    42                                  ;   inc bp
+    43                                  ;   loop .lp2
+    44                                  
+    45                                  ;   add bp,COLS*4-4
+    46                                  
+    47                                  ;   mov cx,4
+    48                                  ; .lp3
+    49                                  ;   lodsw
+    50                                  ;   xor [es:di+bp+0],al
+    51                                  ;   xor [es:di+bp+4],ah
+    52                                  ;   inc bp
+    53                                  ;   loop .lp3
+    54                                  
+    55                                  ;   ret
+    56                                  
+    57                                  ; set_pixel: # bl,bh = x,y     al=3 bit color 
+    58                                    
+    59                                  ;   ret
+    60                                  
+    61                                  draw_bitmap:
+    62                                  ;   ; mov ax,0b0111111111000000
+    63                                  
+    64                                  update_pix_in_channel:
+    65 0000020A 88D0                      mov al,dl       ; restore al
+    66 0000020C 8EC5                      mov es,bp
+    67 0000020E 8436[0702]                test [color], dh    ; deze checkt of de gewenste kleur rood bevat en of deze pixel in het rode kanaal dus aan of uit moet staan.
+    68 00000212 7507                      jnz .on
+    69 00000214 F6D0                      not al
+    70 00000216 262005                    and [es:di],al
+    71 00000219 EB03                      jmp .done
+    72                                  .on
+    73 0000021B 260805                    or [es:di],al   ; turn on pixel
+    74                                  .done
+    75 0000021E C3                        ret
+    76                                  
+    77                                  setpix: 
+    78                                    ;bx,dx = x,y
+    79                                    ;di = (y\4)*(4*COLS) + (y%4) + (x\8)*4
+    80                                    ;[es:di] |= 2^(7-(x mod 8))
+    81 0000021F 89D0                      mov ax,dx        ; y
+    82 00000221 31D2                      xor dx,dx        ; dx=0
+    83 00000223 B104                      mov cl,4         
+    84 00000225 F7F1                      div cx           ; ax=y/4, dx=y%4
+    85 00000227 89D7                      mov di,dx        ; vram offset (dx=y%4)
+    86 00000229 B92001                    mov cx,4*COLS    ; 4 rows * num_cols
+    87 0000022C F7E1                      mul cx           
+    88 0000022E 01C7                      add di,ax        ; di+=(y/4)*320
+    89 00000230 89D8                      mov ax,bx        ; x
+    90 00000232 31D2                      xor dx,dx        ; dx=0
+    91 00000234 B90800                    mov cx,8         
+    92 00000237 F7F1                      div cx           ; 8 bits per col
+    93 00000239 B90200                    mov cx,2 
+    94 0000023C D3E0                      shl ax,cl        ; ax*=4       
+    95 0000023E 01C7                      add di,ax        ; di+=(x/8)*4
+    96 00000240 B080                      mov al,128       ; highest bit
+    97 00000242 88D1                      mov cl,dl        ; dl contains x%8
+    98 00000244 D2E8                      shr al,cl        ; shift right number of bits to the correct pixel in char
+    99                                  
+   100 00000246 88C2                      mov dl,al   ; save al in dl for later
+   101                                  
+   102                                  
+   103 00000248 BD00F0                    mov bp,RED
+   104 0000024B B664                      mov dh,Color.R
+   105 0000024D E8BAFF                    call update_pix_in_channel
+   106                                  
+   107 00000250 BD001C                    mov bp,GREEN
+   108 00000253 B60A                      mov dh,Color.G
+   109 00000255 E8B2FF                    call update_pix_in_channel
+   110                                  
+   111 00000258 BD00F4                    mov bp,BLUE
+   112 0000025B B601                      mov dh,Color.B
+   113 0000025D E8AAFF                    call update_pix_in_channel
+   114                                  
+   115 00000260 C3                        ret 
+   116                                  
+   117                                  
+   118                                  draw:
+   119                                  
+   120 00000261 B800F4                    mov ax,BLUE
+   121 00000264 8EC0                      mov es,ax
+   122                                  
+   123 00000266 31FF                      xor di,di
+   124 00000268 B8FFFF                    mov ax,-1
+   125 0000026B B9201C                    mov cx,14400/2
+   126 0000026E F3AB                      rep stosw
+   127                                  
+   128 00000270 C606[0702]6E              mov byte [color], Color.Y
+   129 00000275 BB3200                    mov bx,50      ; x
+   130 00000278 BA0500                    mov dx,5       ; y
+   131 0000027B E8A1FF                    call setpix
+   132                                  
+   133                                  
+   134                                    
+   135                                  
+   136                                  
+   137                                    ; di=(y\4)*(4*COLS) + (y mod 4) + (x\8)*4
+   138                                  
+   139                                  
+   140                                  
+   141                                    ; mov bx,0x0f0f
+   142                                    
+   143                                    ; mov si,font+24*('A'-32)
+   144                                    ; call draw_bitmap
+   145                                  
+   146                                    ; mov bx,0x0f11
+   147                                    ; call calc_di_from_bx  
+   148                                  
+   149                                    ; mov si,font+24*('B'-32)
+   150                                    ; call draw_bitmap
+   151                                  
+   152                                  
+   153 0000027E F4                        hlt
+   154                                    
+   155                                  
+   156                                  ; ───────────────────────────────────────────────────────────────────────────
+   157                                  
+   158                                  calc_di_from_bx:  ; input bl,bh [0,0,71,49]
+   159 0000027F B89000                    mov ax,144      ; 2*72 cols
+   160 00000282 F6E7                      mul bh          ; bh*=144 resultaat in AX
+   161 00000284 D1E0                      shl ax,1        ; verdubbel AX
+   162 00000286 89C7                      mov di,ax       ; di=ax (=bh*288)
+   163 00000288 D0E3                      shl bl,1        ; bl*=2
+   164 0000028A D0E3                      shl bl,1        ; bl*=2
+   165 0000028C B700                      mov bh,0
+   166 0000028E 01DF                      add di,bx       ; di+=bl
+   167 00000290 C3                        ret
+   168                                  
+   169                                  ; ───────────────────────────────────────────────────────────────────────────
+   170                                  
+   171                                  _wait:
+   172 00000291 51                        push cx
+   173 00000292 B9E803                    mov cx,1000
+   174                                  .lp 
+   175 00000295 D40A                      aam
+   176 00000297 E2FC                      loop .lp
+   177 00000299 59                        pop cx
+   178 0000029A C3                        ret
+   179                                  
+   180                                  ; ───────────────────────────────────────────────────────────────────────────
+   181                                  
+   182                                  %include "assets.asm"
+     1                              <1> font:
+     2 0000029B <bin 18h>           <1>   incbin "data/font/chr32.bin"
+     3 000002B3 <bin 18h>           <1>   incbin "data/font/chr33.bin"
+     4 000002CB <bin 18h>           <1>   incbin "data/font/chr34.bin"
+     5 000002E3 <bin 18h>           <1>   incbin "data/font/chr35.bin"
+     6 000002FB <bin 18h>           <1>   incbin "data/font/chr36.bin"
+     7 00000313 <bin 18h>           <1>   incbin "data/font/chr37.bin"
+     8 0000032B <bin 18h>           <1>   incbin "data/font/chr38.bin"
+     9 00000343 <bin 18h>           <1>   incbin "data/font/chr39.bin"
+    10 0000035B <bin 18h>           <1>   incbin "data/font/chr40.bin"
+    11 00000373 <bin 18h>           <1>   incbin "data/font/chr41.bin"
+    12 0000038B <bin 18h>           <1>   incbin "data/font/chr42.bin"
+    13 000003A3 <bin 18h>           <1>   incbin "data/font/chr43.bin"
+    14 000003BB <bin 18h>           <1>   incbin "data/font/chr44.bin"
+    15 000003D3 <bin 18h>           <1>   incbin "data/font/chr45.bin"
+    16 000003EB <bin 18h>           <1>   incbin "data/font/chr46.bin"
+    17 00000403 <bin 18h>           <1>   incbin "data/font/chr47.bin"
+    18 0000041B <bin 18h>           <1>   incbin "data/font/chr48.bin"
+    19 00000433 <bin 18h>           <1>   incbin "data/font/chr49.bin"
+    20 0000044B <bin 18h>           <1>   incbin "data/font/chr50.bin"
+    21 00000463 <bin 18h>           <1>   incbin "data/font/chr51.bin"
+    22 0000047B <bin 18h>           <1>   incbin "data/font/chr52.bin"
+    23 00000493 <bin 18h>           <1>   incbin "data/font/chr53.bin"
+    24 000004AB <bin 18h>           <1>   incbin "data/font/chr54.bin"
+    25 000004C3 <bin 18h>           <1>   incbin "data/font/chr55.bin"
+    26 000004DB <bin 18h>           <1>   incbin "data/font/chr56.bin"
+    27 000004F3 <bin 18h>           <1>   incbin "data/font/chr57.bin"
+    28 0000050B <bin 18h>           <1>   incbin "data/font/chr58.bin"
+    29 00000523 <bin 18h>           <1>   incbin "data/font/chr59.bin"
+    30 0000053B <bin 18h>           <1>   incbin "data/font/chr60.bin"
+    31 00000553 <bin 18h>           <1>   incbin "data/font/chr61.bin"
+    32 0000056B <bin 18h>           <1>   incbin "data/font/chr62.bin"
+    33 00000583 <bin 18h>           <1>   incbin "data/font/chr63.bin"
+    34 0000059B <bin 18h>           <1>   incbin "data/font/chr64.bin"
+    35 000005B3 <bin 18h>           <1>   incbin "data/font/chr65.bin"
+    36 000005CB <bin 18h>           <1>   incbin "data/font/chr66.bin"
+    37 000005E3 <bin 18h>           <1>   incbin "data/font/chr67.bin"
+    38 000005FB <bin 18h>           <1>   incbin "data/font/chr68.bin"
+    39 00000613 <bin 18h>           <1>   incbin "data/font/chr69.bin"
+    40 0000062B <bin 18h>           <1>   incbin "data/font/chr70.bin"
+    41 00000643 <bin 18h>           <1>   incbin "data/font/chr71.bin"
+    42 0000065B <bin 18h>           <1>   incbin "data/font/chr72.bin"
+    43 00000673 <bin 18h>           <1>   incbin "data/font/chr73.bin"
+    44 0000068B <bin 18h>           <1>   incbin "data/font/chr74.bin"
+    45 000006A3 <bin 18h>           <1>   incbin "data/font/chr75.bin"
+    46 000006BB <bin 18h>           <1>   incbin "data/font/chr76.bin"
+    47 000006D3 <bin 18h>           <1>   incbin "data/font/chr77.bin"
+    48 000006EB <bin 18h>           <1>   incbin "data/font/chr78.bin"
+    49 00000703 <bin 18h>           <1>   incbin "data/font/chr79.bin"
+    50 0000071B <bin 18h>           <1>   incbin "data/font/chr80.bin"
+    51 00000733 <bin 18h>           <1>   incbin "data/font/chr81.bin"
+    52 0000074B <bin 18h>           <1>   incbin "data/font/chr82.bin"
+    53 00000763 <bin 18h>           <1>   incbin "data/font/chr83.bin"
+    54 0000077B <bin 18h>           <1>   incbin "data/font/chr84.bin"
+    55 00000793 <bin 18h>           <1>   incbin "data/font/chr85.bin"
+    56 000007AB <bin 18h>           <1>   incbin "data/font/chr86.bin"
+    57 000007C3 <bin 18h>           <1>   incbin "data/font/chr87.bin"
+    58 000007DB <bin 18h>           <1>   incbin "data/font/chr88.bin"
+    59 000007F3 <bin 18h>           <1>   incbin "data/font/chr89.bin"
+    60                              <1> 
+    61                              <1> ; donut: 
+    62                              <1> ;   .size.w db 4
+    63                              <1> ;   .size.h db 4
+    64                              <1> ;   .pos.x db 0
+    65                              <1> ;   .pos.y db 0
+    66                              <1> ;   .vel.vx db -1
+    67                              <1> ;   .vel.vy db 1
+    68                              <1> ;   .frame db 0
+    69                              <1> ;   .frames db 4
+    70                              <1> ;   .framesize db 192
+    71                              <1> ;   .data dw img.donut_1
+    72                              <1> 
+    73                              <1> ; stars:
+    74                              <1> ;   .size.w db 4
+    75                              <1> ;   .size.h db 4
+    76                              <1> ;   .pos.x db 4
+    77                              <1> ;   .pos.y db 0
+    78                              <1> ;   .vel.vx db 1
+    79                              <1> ;   .vel.vy db 1
+    80                              <1> ;   .frame db 0
+    81                              <1> ;   .frames db 4
+    82                              <1> ;   .framesize db 192
+    83                              <1> ;   .data dw img.stars_1
+    84                              <1> 
+    85                              <1> ; sqr_ani:
+    86                              <1> ;   .size.w db 4
+    87                              <1> ;   .size.h db 4
+    88                              <1> ;   .pos.x db 8
+    89                              <1> ;   .pos.y db 0
+    90                              <1> ;   .vel.vx db 1
+    91                              <1> ;   .vel.vy db -1
+    92                              <1> ;   .frame db 0
+    93                              <1> ;   .frames db 4
+    94                              <1> ;   .framesize db 192
+    95                              <1> ;   .data dw img.sqr_ani_1
+    96                              <1> 
+    97                              <1> ; walk_fw:
+    98                              <1> ;   .size.w db 4
+    99                              <1> ;   .size.h db 4
+   100                              <1> ;   .pos.x db 12
+   101                              <1> ;   .pos.y db 0
+   102                              <1> ;   .vel.vx db -1
+   103                              <1> ;   .vel.vy db 1
+   104                              <1> ;   .frame db 0
+   105                              <1> ;   .frames db 2
+   106                              <1> ;   .framesize db 192
+   107                              <1> ;   .data dw img.walk_fw_1
+   108                              <1> 
+   109                              <1> ; walk_bw:
+   110                              <1> ;   .size.w db 4
+   111                              <1> ;   .size.h db 4
+   112                              <1> ;   .pos.x db 16
+   113                              <1> ;   .pos.y db 0
+   114                              <1> ;   .vel.vx db -1
+   115                              <1> ;   .vel.vy db 1
+   116                              <1> ;   .frame db 0
+   117                              <1> ;   .frames db 2
+   118                              <1> ;   .framesize db 192
+   119                              <1> ;   .data dw img.walk_bw_1
+   120                              <1> 
+   121                              <1> ; stand:
+   122                              <1> ;   .size.w db 4
+   123                              <1> ;   .size.h db 4
+   124                              <1> ;   .pos.x db 20
+   125                              <1> ;   .pos.y db 0
+   126                              <1> ;   .vel.vx db 1
+   127                              <1> ;   .vel.vy db -1
+   128                              <1> ;   .frame db 0
+   129                              <1> ;   .frames db 4
+   130                              <1> ;   .framesize db 192
+   131                              <1> ;   .data dw img.stand_1
+   132                              <1> 
+   133                              <1> ; walk_left:
+   134                              <1> ;   .size.w db 4
+   135                              <1> ;   .size.h db 4
+   136                              <1> ;   .pos.x db 24
+   137                              <1> ;   .pos.y db 0
+   138                              <1> ;   .vel.vx db 1
+   139                              <1> ;   .vel.vy db 1
+   140                              <1> ;   .frame db 0
+   141                              <1> ;   .frames db 4
+   142                              <1> ;   .framesize db 192
+   143                              <1> ;   .data dw img.walk_left_1
+   144                              <1> 
+   145                              <1> ; walk_right:
+   146                              <1> ;   .size.w db 4
+   147                              <1> ;   .size.h db 4
+   148                              <1> ;   .pos.x db 28
+   149                              <1> ;   .pos.y db 0
+   150                              <1> ;   .vel.vx db 1
+   151                              <1> ;   .vel.vy db -1
+   152                              <1> ;   .frame db 0
+   153                              <1> ;   .frames db 4
+   154                              <1> ;   .framesize db 192
+   155                              <1> ;   .data dw img.walk_right_1
+   156                              <1> 
+   157                              <1> ; flower:
+   158                              <1> ;   .size.w db 4
+   159                              <1> ;   .size.h db 4
+   160                              <1> ;   .pos.x db 32
+   161                              <1> ;   .pos.y db 0
+   162                              <1> ;   .vel.vx db 1
+   163                              <1> ;   .vel.vy db 1
+   164                              <1> ;   .frame db 0
+   165                              <1> ;   .frames db 4
+   166                              <1> ;   .framesize db 192
+   167                              <1> ;   .data dw img.flower_1
+   168                              <1> 
+   169                              <1> ; explode:
+   170                              <1> ;   .size.w db 4
+   171                              <1> ;   .size.h db 4
+   172                              <1> ;   .pos.x db 36
+   173                              <1> ;   .pos.y db 0
+   174                              <1> ;   .vel.vx db 1
+   175                              <1> ;   .vel.vy db 1
+   176                              <1> ;   .frame db 0
+   177                              <1> ;   .frames db 4
+   178                              <1> ;   .framesize db 192
+   179                              <1> ;   .data dw img.explode_1
+   180                              <1> 
+   181                              <1> ; creep:
+   182                              <1> ;   .size.w db 4
+   183                              <1> ;   .size.h db 4
+   184                              <1> ;   .pos.x db 40
+   185                              <1> ;   .pos.y db 0
+   186                              <1> ;   .vel.vx db -1
+   187                              <1> ;   .vel.vy db -1
+   188                              <1> ;   .frame db 0
+   189                              <1> ;   .frames db 4
+   190                              <1> ;   .framesize db 192
+   191                              <1> ;   .data dw img.creep_1
+   192                              <1> 
+   193                              <1> ; bouncer:
+   194                              <1> ;   .size.w db 4
+   195                              <1> ;   .size.h db 4
+   196                              <1> ;   .pos.x db 44
+   197                              <1> ;   .pos.y db 0
+   198                              <1> ;   .vel.vx db 1
+   199                              <1> ;   .vel.vy db 1
+   200                              <1> ;   .frame db 0
+   201                              <1> ;   .frames db 4
+   202                              <1> ;   .framesize db 192
+   203                              <1> ;   .data dw img.bouncer_1
+   204                              <1> 
+   205                              <1> ; eye:
+   206                              <1> ;   .size.w db 4
+   207                              <1> ;   .size.h db 4
+   208                              <1> ;   .pos.x db 48
+   209                              <1> ;   .pos.y db 0
+   210                              <1> ;   .vel.vx db -1
+   211                              <1> ;   .vel.vy db 1
+   212                              <1> ;   .frame db 0
+   213                              <1> ;   .frames db 4
+   214                              <1> ;   .framesize db 192
+   215                              <1> ;   .data dw img.eye_1
+   216                              <1> 
+   217                              <1> ; smurf_left:
+   218                              <1> ;   .size.w db 4
+   219                              <1> ;   .size.h db 4
+   220                              <1> ;   .pos.x db 52
+   221                              <1> ;   .pos.y db 0
+   222                              <1> ;   .vel.vx db 1
+   223                              <1> ;   .vel.vy db 1
+   224                              <1> ;   .frame db 0
+   225                              <1> ;   .frames db 2
+   226                              <1> ;   .framesize db 192
+   227                              <1> ;   .data dw img.smurf_1
+   228                              <1> 
+   229                              <1> ; smurf_right:
+   230                              <1> ;   .size.w db 4
+   231                              <1> ;   .size.h db 4
+   232                              <1> ;   .pos.x db 56
+   233                              <1> ;   .pos.y db 0
+   234                              <1> ;   .vel.vx db 1
+   235                              <1> ;   .vel.vy db 1
+   236                              <1> ;   .frame db 0
+   237                              <1> ;   .frames db 2
+   238                              <1> ;   .framesize db 192
+   239                              <1> ;   .data dw img.smurf_3
+   240                              <1> 
+   241                              <1> ; ghost:
+   242                              <1> ;   .size.w db 4
+   243                              <1> ;   .size.h db 4
+   244                              <1> ;   .pos.x db 52
+   245                              <1> ;   .pos.y db 4
+   246                              <1> ;   .vel.vx db -1
+   247                              <1> ;   .vel.vy db 1
+   248                              <1> ;   .frame db 0
+   249                              <1> ;   .frames db 4
+   250                              <1> ;   .framesize db 192
+   251                              <1> ;   .data dw img.ghost_1
+   252                              <1> 
+   253                              <1> ; lobster_right:
+   254                              <1> ;   .size.w db 4
+   255                              <1> ;   .size.h db 4
+   256                              <1> ;   .pos.x db 48
+   257                              <1> ;   .pos.y db 4
+   258                              <1> ;   .vel.vx db 1
+   259                              <1> ;   .vel.vy db 1
+   260                              <1> ;   .frame db 0
+   261                              <1> ;   .frames db 2
+   262                              <1> ;   .framesize db 192
+   263                              <1> ;   .data dw img.lobster_3
+   264                              <1> 
+   265                              <1> ; lobster_left:
+   266                              <1> ;   .size.w db 4
+   267                              <1> ;   .size.h db 4
+   268                              <1> ;   .pos.x db 56
+   269                              <1> ;   .pos.y db 4
+   270                              <1> ;   .vel.vx db -1
+   271                              <1> ;   .vel.vy db 1
+   272                              <1> ;   .frame db 0
+   273                              <1> ;   .frames db 2
+   274                              <1> ;   .framesize db 192
+   275                              <1> ;   .data dw img.lobster_1
+   276                              <1> 
+   277                              <1> ; keylock:
+   278                              <1> ;   .size.w db 4
+   279                              <1> ;   .size.h db 4
+   280                              <1> ;   .pos.x db 0
+   281                              <1> ;   .pos.y db 4
+   282                              <1> ;   .vel.vx db 1
+   283                              <1> ;   .vel.vy db -1
+   284                              <1> ;   .frame db 0
+   285                              <1> ;   .frames db 1
+   286                              <1> ;   .framesize db 192
+   287                              <1> ;   .data dw img.keylock
+   288                              <1> 
+   289                              <1> ; key:
+   290                              <1> ;   .size.w db 4
+   291                              <1> ;   .size.h db 4
+   292                              <1> ;   .pos.x db 4
+   293                              <1> ;   .pos.y db 4
+   294                              <1> ;   .vel.vx db 1
+   295                              <1> ;   .vel.vy db 1
+   296                              <1> ;   .frame db 0
+   297                              <1> ;   .frames db 1
+   298                              <1> ;   .framesize db 192
+   299                              <1> ;   .data dw img.key
+   300                              <1> 
+   301                              <1> ; owl:
+   302                              <1> ;   .size.w db 4
+   303                              <1> ;   .size.h db 4
+   304                              <1> ;   .pos.x db 8
+   305                              <1> ;   .pos.y db 4
+   306                              <1> ;   .vel.vx db 1
+   307                              <1> ;   .vel.vy db 1
+   308                              <1> ;   .frame db 0
+   309                              <1> ;   .frames db 1
+   310                              <1> ;   .framesize db 192
+   311                              <1> ;   .data dw img.owl
+   312                              <1> 
+   313                              <1> ; crown:
+   314                              <1> ;   .size.w db 4
+   315                              <1> ;   .size.h db 4
+   316                              <1> ;   .pos.x db 12
+   317                              <1> ;   .pos.y db 4
+   318                              <1> ;   .vel.vx db -1
+   319                              <1> ;   .vel.vy db 1
+   320                              <1> ;   .frame db 0
+   321                              <1> ;   .frames db 1
+   322                              <1> ;   .framesize db 192
+   323                              <1> ;   .data dw img.crown
+   324                              <1> 
+   325                              <1> ; goblet:
+   326                              <1> ;   .size.w db 4
+   327                              <1> ;   .size.h db 4
+   328                              <1> ;   .pos.x db 16
+   329                              <1> ;   .pos.y db 4
+   330                              <1> ;   .vel.vx db 1
+   331                              <1> ;   .vel.vy db -1
+   332                              <1> ;   .frame db 0
+   333                              <1> ;   .frames db 1
+   334                              <1> ;   .framesize db 192
+   335                              <1> ;   .data dw img.goblet
+   336                              <1> 
+   337                              <1> ; ring:
+   338                              <1> ;   .size.w db 4
+   339                              <1> ;   .size.h db 4
+   340                              <1> ;   .pos.x db 20
+   341                              <1> ;   .pos.y db 4
+   342                              <1> ;   .vel.vx db 1
+   343                              <1> ;   .vel.vy db 1
+   344                              <1> ;   .frame db 0
+   345                              <1> ;   .frames db 1
+   346                              <1> ;   .framesize db 192
+   347                              <1> ;   .data dw img.ring
+   348                              <1> 
+   349                              <1> ; globe:
+   350                              <1> ;   .size.w db 4
+   351                              <1> ;   .size.h db 4
+   352                              <1> ;   .pos.x db 24
+   353                              <1> ;   .pos.y db 4
+   354                              <1> ;   .vel.vx db 1
+   355                              <1> ;   .vel.vy db 1
+   356                              <1> ;   .frame db 0
+   357                              <1> ;   .frames db 1
+   358                              <1> ;   .framesize db 192
+   359                              <1> ;   .data dw img.globe
+   360                              <1> 
+   361                              <1> ; feather:
+   362                              <1> ;   .size.w db 4
+   363                              <1> ;   .size.h db 4
+   364                              <1> ;   .pos.x db 28
+   365                              <1> ;   .pos.y db 4
+   366                              <1> ;   .vel.vx db -1
+   367                              <1> ;   .vel.vy db 1
+   368                              <1> ;   .frame db 0
+   369                              <1> ;   .frames db 1
+   370                              <1> ;   .framesize db 192
+   371                              <1> ;   .data dw img.feather
+   372                              <1> 
+   373                              <1> ; totum:
+   374                              <1> ;   .size.w db 4
+   375                              <1> ;   .size.h db 4
+   376                              <1> ;   .pos.x db 32
+   377                              <1> ;   .pos.y db 4
+   378                              <1> ;   .vel.vx db 1
+   379                              <1> ;   .vel.vy db 1
+   380                              <1> ;   .frame db 0
+   381                              <1> ;   .frames db 1
+   382                              <1> ;   .framesize db 192
+   383                              <1> ;   .data dw img.totum
+   384                              <1> 
+   385                              <1> ; building:
+   386                              <1> ;   .size.w db 4
+   387                              <1> ;   .size.h db 4
+   388                              <1> ;   .pos.x db 36
+   389                              <1> ;   .pos.y db 4
+   390                              <1> ;   .vel.vx db 1
+   391                              <1> ;   .vel.vy db 1
+   392                              <1> ;   .frame db 0
+   393                              <1> ;   .frames db 1
+   394                              <1> ;   .framesize db 192
+   395                              <1> ;   .data dw img.building
+   396                              <1> 
+   397                              <1> ; mirror:
+   398                              <1> ;   .size.w db 4
+   399                              <1> ;   .size.h db 4
+   400                              <1> ;   .pos.x db 40
+   401                              <1> ;   .pos.y db 4
+   402                              <1> ;   .vel.vx db 1
+   403                              <1> ;   .vel.vy db -1
+   404                              <1> ;   .frame db 0
+   405                              <1> ;   .frames db 1
+   406                              <1> ;   .framesize db 192
+   407                              <1> ;   .data dw img.mirror
+   408                              <1> 
+   409                              <1> ; harp:
+   410                              <1> ;   .size.w db 4
+   411                              <1> ;   .size.h db 4
+   412                              <1> ;   .pos.x db 44
+   413                              <1> ;   .pos.y db 4
+   414                              <1> ;   .vel.vx db 1
+   415                              <1> ;   .vel.vy db 1
+   416                              <1> ;   .frame db 0
+   417                              <1> ;   .frames db 1
+   418                              <1> ;   .framesize db 192
+   419                              <1> ;   .data dw img.harp
+   420                              <1> 
+   421                              <1> ; nar:
+   422                              <1> ;   .size.w db 4
+   423                              <1> ;   .size.h db 4
+   424                              <1> ;   .pos.x db 44
+   425                              <1> ;   .pos.y db 4
+   426                              <1> ;   .vel.vx db 1
+   427                              <1> ;   .vel.vy db 1
+   428                              <1> ;   .frame db 0
+   429                              <1> ;   .frames db 1
+   430                              <1> ;   .framesize db 192
+   431                              <1> ;   .data dw img.harp
+   432                              <1> 
+   433                              <1> ; computer:
+   434                              <1> ;   .size.w db 4
+   435                              <1> ;   .size.h db 4
+   436                              <1> ;   .pos.x db 0
+   437                              <1> ;   .pos.y db 8
+   438                              <1> ;   .vel.vx db -1
+   439                              <1> ;   .vel.vy db 1
+   440                              <1> ;   .frame db 0
+   441                              <1> ;   .frames db 1
+   442                              <1> ;   .framesize db 192
+   443                              <1> ;   .data dw img.computer
+   444                              <1> 
+   445                              <1> ; way_down:
+   446                              <1> ;   .size.w db 4
+   447                              <1> ;   .size.h db 4
+   448                              <1> ;   .pos.x db 8
+   449                              <1> ;   .pos.y db 8
+   450                              <1> ;   .vel.vx db -1
+   451                              <1> ;   .vel.vy db -1
+   452                              <1> ;   .frame db 0
+   453                              <1> ;   .frames db 1
+   454                              <1> ;   .framesize db 192
+   455                              <1> ;   .data dw img.way_down
+   456                              <1> 
+   457                              <1> ; way_left:
+   458                              <1> ;   .size.w db 4
+   459                              <1> ;   .size.h db 4
+   460                              <1> ;   .pos.x db 4
+   461                              <1> ;   .pos.y db 8
+   462                              <1> ;   .vel.vx db 1
+   463                              <1> ;   .vel.vy db 1
+   464                              <1> ;   .frame db 0
+   465                              <1> ;   .frames db 1
+   466                              <1> ;   .framesize db 192
+   467                              <1> ;   .data dw img.way_left
+   468                              <1> 
+   469                              <1> ; way_up:
+   470                              <1> ;   .size.w db 4
+   471                              <1> ;   .size.h db 4
+   472                              <1> ;   .pos.x db 12
+   473                              <1> ;   .pos.y db 8
+   474                              <1> ;   .vel.vx db 1
+   475                              <1> ;   .vel.vy db 1
+   476                              <1> ;   .frame db 0
+   477                              <1> ;   .frames db 1
+   478                              <1> ;   .framesize db 192
+   479                              <1> ;   .data dw img.way_up
+   480                              <1> 
+   481                              <1> ; way_right:
+   482                              <1> ;   .size.w db 4
+   483                              <1> ;   .size.h db 4
+   484                              <1> ;   .pos.x db 16
+   485                              <1> ;   .pos.y db 8
+   486                              <1> ;   .vel.vx db -1
+   487                              <1> ;   .vel.vy db 1
+   488                              <1> ;   .frame db 0
+   489                              <1> ;   .frames db 1
+   490                              <1> ;   .framesize db 192
+   491                              <1> ;   .data dw img.way_right
+   492                              <1> 
+   493                              <1> ; pinkbox:
+   494                              <1> ;   .size.w db 4
+   495                              <1> ;   .size.h db 4
+   496                              <1> ;   .pos.x db 20
+   497                              <1> ;   .pos.y db 8
+   498                              <1> ;   .vel.vx db 1
+   499                              <1> ;   .vel.vy db 1
+   500                              <1> ;   .frame db 0
+   501                              <1> ;   .frames db 1
+   502                              <1> ;   .framesize db 192
+   503                              <1> ;   .data dw img.pinkbox
+   504                              <1> 
+   505                              <1> ; box:
+   506                              <1> ;   .size.w db 4
+   507                              <1> ;   .size.h db 4
+   508                              <1> ;   .pos.x db 24
+   509                              <1> ;   .pos.y db 8
+   510                              <1> ;   .vel.vx db 1
+   511                              <1> ;   .vel.vy db 1
+   512                              <1> ;   .frame db 0
+   513                              <1> ;   .frames db 1
+   514                              <1> ;   .framesize db 192
+   515                              <1> ;   .data dw img.box
+   516                              <1> 
+   517                              <1> ; vbar:
+   518                              <1> ;   .size.w db 4
+   519                              <1> ;   .size.h db 4
+   520                              <1> ;   .pos.x db 28
+   521                              <1> ;   .pos.y db 8
+   522                              <1> ;   .vel.vx db 1
+   523                              <1> ;   .vel.vy db 1
+   524                              <1> ;   .frame db 0
+   525                              <1> ;   .frames db 1
+   526                              <1> ;   .framesize db 192
+   527                              <1> ;   .data dw img.vbar
+   528                              <1> 
+   529                              <1> ; hbar:
+   530                              <1> ;   .size.w db 4
+   531                              <1> ;   .size.h db 4
+   532                              <1> ;   .pos.x db 32
+   533                              <1> ;   .pos.y db 8
+   534                              <1> ;   .vel.vx db -1
+   535                              <1> ;   .vel.vy db -1
+   536                              <1> ;   .frame db 0
+   537                              <1> ;   .frames db 1
+   538                              <1> ;   .framesize db 192
+   539                              <1> ;   .data dw img.hbar
+   540                              <1> 
+   541                              <1> ; question:
+   542                              <1> ;   .size.w db 4
+   543                              <1> ;   .size.h db 4
+   544                              <1> ;   .pos.x db 36
+   545                              <1> ;   .pos.y db 8
+   546                              <1> ;   .vel.vx db 1
+   547                              <1> ;   .vel.vy db 1
+   548                              <1> ;   .frame db 0
+   549                              <1> ;   .frames db 1
+   550                              <1> ;   .framesize db 192
+   551                              <1> ;   .data dw img.question
+   552                              <1> 
+   553                              <1> ; house1:
+   554                              <1> ;   .size.w db 4
+   555                              <1> ;   .size.h db 4
+   556                              <1> ;   .pos.x db 40
+   557                              <1> ;   .pos.y db 8
+   558                              <1> ;   .vel.vx db 1
+   559                              <1> ;   .vel.vy db 1
+   560                              <1> ;   .frame db 0
+   561                              <1> ;   .frames db 1
+   562                              <1> ;   .framesize db 192
+   563                              <1> ;   .data dw img.house1
+   564                              <1> 
+   565                              <1> 
+   566                              <1> donut: 
+   567 0000080B 04                  <1>   .size.w db 4
+   568 0000080C 04                  <1>   .size.h db 4
+   569 0000080D 0C                  <1>   .pos.x db 12
+   570 0000080E 17                  <1>   .pos.y db 23
+   571 0000080F FF                  <1>   .vel.vx db -1
+   572 00000810 01                  <1>   .vel.vy db 1
+   573 00000811 00                  <1>   .frame db 0
+   574 00000812 04                  <1>   .frames db 4
+   575 00000813 C0                  <1>   .framesize db 192
+   576 00000814 [D939]              <1>   .data dw img.donut_1
+   577                              <1> 
+   578                              <1> stars:
+   579 00000816 04                  <1>   .size.w db 4
+   580 00000817 04                  <1>   .size.h db 4
+   581 00000818 21                  <1>   .pos.x db 33
+   582 00000819 08                  <1>   .pos.y db 8
+   583 0000081A 01                  <1>   .vel.vx db 1
+   584 0000081B 01                  <1>   .vel.vy db 1
+   585 0000081C 00                  <1>   .frame db 0
+   586 0000081D 04                  <1>   .frames db 4
+   587 0000081E C0                  <1>   .framesize db 192
+   588 0000081F [D92A]              <1>   .data dw img.stars_1
+   589                              <1> 
+   590                              <1> sqr_ani:
+   591 00000821 04                  <1>   .size.w db 4
+   592 00000822 04                  <1>   .size.h db 4
+   593 00000823 14                  <1>   .pos.x db 20
+   594 00000824 11                  <1>   .pos.y db 17
+   595 00000825 01                  <1>   .vel.vx db 1
+   596 00000826 FF                  <1>   .vel.vy db -1
+   597 00000827 00                  <1>   .frame db 0
+   598 00000828 04                  <1>   .frames db 4
+   599 00000829 C0                  <1>   .framesize db 192
+   600 0000082A [D93C]              <1>   .data dw img.sqr_ani_1
+   601                              <1> 
+   602                              <1> walk_fw:
+   603 0000082C 04                  <1>   .size.w db 4
+   604 0000082D 04                  <1>   .size.h db 4
+   605 0000082E 2A                  <1>   .pos.x db 42
+   606 0000082F 05                  <1>   .pos.y db 5
+   607 00000830 FF                  <1>   .vel.vx db -1
+   608 00000831 01                  <1>   .vel.vy db 1
+   609 00000832 00                  <1>   .frame db 0
+   610 00000833 02                  <1>   .frames db 2
+   611 00000834 C0                  <1>   .framesize db 192
+   612 00000835 [592F]              <1>   .data dw img.walk_fw_1
+   613                              <1> 
+   614                              <1> walk_bw:
+   615 00000837 04                  <1>   .size.w db 4
+   616 00000838 04                  <1>   .size.h db 4
+   617 00000839 26                  <1>   .pos.x db 38
+   618 0000083A 1D                  <1>   .pos.y db 29
+   619 0000083B FF                  <1>   .vel.vx db -1
+   620 0000083C 01                  <1>   .vel.vy db 1
+   621 0000083D 00                  <1>   .frame db 0
+   622 0000083E 02                  <1>   .frames db 2
+   623 0000083F C0                  <1>   .framesize db 192
+   624 00000840 [D92D]              <1>   .data dw img.walk_bw_1
+   625                              <1> 
+   626                              <1> stand:
+   627 00000842 04                  <1>   .size.w db 4
+   628 00000843 04                  <1>   .size.h db 4
+   629 00000844 05                  <1>   .pos.x db 5
+   630 00000845 24                  <1>   .pos.y db 36
+   631 00000846 01                  <1>   .vel.vx db 1
+   632 00000847 FF                  <1>   .vel.vy db -1
+   633 00000848 00                  <1>   .frame db 0
+   634 00000849 04                  <1>   .frames db 4
+   635 0000084A C0                  <1>   .framesize db 192
+   636 0000084B [D936]              <1>   .data dw img.stand_1
+   637                              <1> 
+   638                              <1> walk_left:
+   639 0000084D 04                  <1>   .size.w db 4
+   640 0000084E 04                  <1>   .size.h db 4
+   641 0000084F 1F                  <1>   .pos.x db 31
+   642 00000850 13                  <1>   .pos.y db 19
+   643 00000851 01                  <1>   .vel.vx db 1
+   644 00000852 01                  <1>   .vel.vy db 1
+   645 00000853 00                  <1>   .frame db 0
+   646 00000854 04                  <1>   .frames db 4
+   647 00000855 C0                  <1>   .framesize db 192
+   648 00000856 [D930]              <1>   .data dw img.walk_left_1
+   649                              <1> 
+   650                              <1> walk_right:
+   651 00000858 04                  <1>   .size.w db 4
+   652 00000859 04                  <1>   .size.h db 4
+   653 0000085A 1D                  <1>   .pos.x db 29
+   654 0000085B 0D                  <1>   .pos.y db 13
+   655 0000085C 01                  <1>   .vel.vx db 1
+   656 0000085D FF                  <1>   .vel.vy db -1
+   657 0000085E 00                  <1>   .frame db 0
+   658 0000085F 04                  <1>   .frames db 4
+   659 00000860 C0                  <1>   .framesize db 192
+   660 00000861 [D933]              <1>   .data dw img.walk_right_1
+   661                              <1> 
+   662                              <1> flower:
+   663 00000863 04                  <1>   .size.w db 4
+   664 00000864 04                  <1>   .size.h db 4
+   665 00000865 3C                  <1>   .pos.x db 60
+   666 00000866 22                  <1>   .pos.y db 34
+   667 00000867 01                  <1>   .vel.vx db 1
+   668 00000868 01                  <1>   .vel.vy db 1
+   669 00000869 00                  <1>   .frame db 0
+   670 0000086A 04                  <1>   .frames db 4
+   671 0000086B C0                  <1>   .framesize db 192
+   672 0000086C [D93F]              <1>   .data dw img.flower_1
+   673                              <1> 
+   674                              <1> explode:
+   675 0000086E 04                  <1>   .size.w db 4
+   676 0000086F 04                  <1>   .size.h db 4
+   677 00000870 2F                  <1>   .pos.x db 47
+   678 00000871 0B                  <1>   .pos.y db 11
+   679 00000872 01                  <1>   .vel.vx db 1
+   680 00000873 01                  <1>   .vel.vy db 1
+   681 00000874 00                  <1>   .frame db 0
+   682 00000875 04                  <1>   .frames db 4
+   683 00000876 C0                  <1>   .framesize db 192
+   684 00000877 [D942]              <1>   .data dw img.explode_1
+   685                              <1> 
+   686                              <1> creep:
+   687 00000879 04                  <1>   .size.w db 4
+   688 0000087A 04                  <1>   .size.h db 4
+   689 0000087B 32                  <1>   .pos.x db 50
+   690 0000087C 15                  <1>   .pos.y db 21
+   691 0000087D FF                  <1>   .vel.vx db -1
+   692 0000087E FF                  <1>   .vel.vy db -1
+   693 0000087F 00                  <1>   .frame db 0
+   694 00000880 04                  <1>   .frames db 4
+   695 00000881 C0                  <1>   .framesize db 192
+   696 00000882 [D945]              <1>   .data dw img.creep_1
+   697                              <1> 
+   698                              <1> bouncer:
+   699 00000884 04                  <1>   .size.w db 4
+   700 00000885 04                  <1>   .size.h db 4
+   701 00000886 27                  <1>   .pos.x db 39
+   702 00000887 0E                  <1>   .pos.y db 14
+   703 00000888 01                  <1>   .vel.vx db 1
+   704 00000889 01                  <1>   .vel.vy db 1
+   705 0000088A 00                  <1>   .frame db 0
+   706 0000088B 04                  <1>   .frames db 4
+   707 0000088C C0                  <1>   .framesize db 192
+   708 0000088D [D948]              <1>   .data dw img.bouncer_1
+   709                              <1> 
+   710                              <1> eye:
+   711 0000088F 04                  <1>   .size.w db 4
+   712 00000890 04                  <1>   .size.h db 4
+   713 00000891 16                  <1>   .pos.x db 22
+   714 00000892 09                  <1>   .pos.y db 9
+   715 00000893 FF                  <1>   .vel.vx db -1
+   716 00000894 01                  <1>   .vel.vy db 1
+   717 00000895 00                  <1>   .frame db 0
+   718 00000896 04                  <1>   .frames db 4
+   719 00000897 C0                  <1>   .framesize db 192
+   720 00000898 [D94B]              <1>   .data dw img.eye_1
+   721                              <1> 
+   722                              <1> smurf_left:
+   723 0000089A 04                  <1>   .size.w db 4
+   724 0000089B 04                  <1>   .size.h db 4
+   725 0000089C 0E                  <1>   .pos.x db 14
+   726 0000089D 1C                  <1>   .pos.y db 28
+   727 0000089E 01                  <1>   .vel.vx db 1
+   728 0000089F 01                  <1>   .vel.vy db 1
+   729 000008A0 00                  <1>   .frame db 0
+   730 000008A1 02                  <1>   .frames db 2
+   731 000008A2 C0                  <1>   .framesize db 192
+   732 000008A3 [D94E]              <1>   .data dw img.smurf_1
+   733                              <1> 
+   734                              <1> smurf_right:
+   735 000008A5 04                  <1>   .size.w db 4
+   736 000008A6 04                  <1>   .size.h db 4
+   737 000008A7 3D                  <1>   .pos.x db 61
+   738 000008A8 0F                  <1>   .pos.y db 15
+   739 000008A9 01                  <1>   .vel.vx db 1
+   740 000008AA 01                  <1>   .vel.vy db 1
+   741 000008AB 00                  <1>   .frame db 0
+   742 000008AC 02                  <1>   .frames db 2
+   743 000008AD C0                  <1>   .framesize db 192
+   744 000008AE [5950]              <1>   .data dw img.smurf_3
+   745                              <1> 
+   746                              <1> ghost:
+   747 000008B0 04                  <1>   .size.w db 4
+   748 000008B1 04                  <1>   .size.h db 4
+   749 000008B2 2E                  <1>   .pos.x db 46
+   750 000008B3 1F                  <1>   .pos.y db 31
+   751 000008B4 FF                  <1>   .vel.vx db -1
+   752 000008B5 01                  <1>   .vel.vy db 1
+   753 000008B6 00                  <1>   .frame db 0
+   754 000008B7 04                  <1>   .frames db 4
+   755 000008B8 C0                  <1>   .framesize db 192
+   756 000008B9 [D951]              <1>   .data dw img.ghost_1
+   757                              <1> 
+   758                              <1> lobster_right:
+   759 000008BB 04                  <1>   .size.w db 4
+   760 000008BC 04                  <1>   .size.h db 4
+   761 000008BD 23                  <1>   .pos.x db 35
+   762 000008BE 28                  <1>   .pos.y db 40
+   763 000008BF 01                  <1>   .vel.vx db 1
+   764 000008C0 01                  <1>   .vel.vy db 1
+   765 000008C1 00                  <1>   .frame db 0
+   766 000008C2 02                  <1>   .frames db 2
+   767 000008C3 C0                  <1>   .framesize db 192
+   768 000008C4 [5956]              <1>   .data dw img.lobster_3
+   769                              <1> 
+   770                              <1> lobster_left:
+   771 000008C6 04                  <1>   .size.w db 4
+   772 000008C7 04                  <1>   .size.h db 4
+   773 000008C8 09                  <1>   .pos.x db 9
+   774 000008C9 0C                  <1>   .pos.y db 12
+   775 000008CA FF                  <1>   .vel.vx db -1
+   776 000008CB 01                  <1>   .vel.vy db 1
+   777 000008CC 00                  <1>   .frame db 0
+   778 000008CD 02                  <1>   .frames db 2
+   779 000008CE C0                  <1>   .framesize db 192
+   780 000008CF [D954]              <1>   .data dw img.lobster_1
+   781                              <1> 
+   782                              <1> keylock:
+   783 000008D1 04                  <1>   .size.w db 4
+   784 000008D2 04                  <1>   .size.h db 4
+   785 000008D3 11                  <1>   .pos.x db 17
+   786 000008D4 19                  <1>   .pos.y db 25
+   787 000008D5 01                  <1>   .vel.vx db 1
+   788 000008D6 FF                  <1>   .vel.vy db -1
+   789 000008D7 00                  <1>   .frame db 0
+   790 000008D8 01                  <1>   .frames db 1
+   791 000008D9 C0                  <1>   .framesize db 192
+   792 000008DA [D909]              <1>   .data dw img.keylock
+   793                              <1> 
+   794                              <1> key:
+   795 000008DC 04                  <1>   .size.w db 4
+   796 000008DD 04                  <1>   .size.h db 4
+   797 000008DE 1B                  <1>   .pos.x db 27
+   798 000008DF 25                  <1>   .pos.y db 37
+   799 000008E0 01                  <1>   .vel.vx db 1
+   800 000008E1 01                  <1>   .vel.vy db 1
+   801 000008E2 00                  <1>   .frame db 0
+   802 000008E3 01                  <1>   .frames db 1
+   803 000008E4 C0                  <1>   .framesize db 192
+   804 000008E5 [990A]              <1>   .data dw img.key
+   805                              <1> 
+   806                              <1> owl:
+   807 000008E7 04                  <1>   .size.w db 4
+   808 000008E8 04                  <1>   .size.h db 4
+   809 000008E9 1F                  <1>   .pos.x db 31
+   810 000008EA 05                  <1>   .pos.y db 5
+   811 000008EB 01                  <1>   .vel.vx db 1
+   812 000008EC 01                  <1>   .vel.vy db 1
+   813 000008ED 00                  <1>   .frame db 0
+   814 000008EE 01                  <1>   .frames db 1
+   815 000008EF C0                  <1>   .framesize db 192
+   816 000008F0 [590B]              <1>   .data dw img.owl
+   817                              <1> 
+   818                              <1> crown:
+   819 000008F2 04                  <1>   .size.w db 4
+   820 000008F3 04                  <1>   .size.h db 4
+   821 000008F4 28                  <1>   .pos.x db 40
+   822 000008F5 12                  <1>   .pos.y db 18
+   823 000008F6 FF                  <1>   .vel.vx db -1
+   824 000008F7 01                  <1>   .vel.vy db 1
+   825 000008F8 00                  <1>   .frame db 0
+   826 000008F9 01                  <1>   .frames db 1
+   827 000008FA C0                  <1>   .framesize db 192
+   828 000008FB [190C]              <1>   .data dw img.crown
+   829                              <1> 
+   830                              <1> goblet:
+   831 000008FD 04                  <1>   .size.w db 4
+   832 000008FE 04                  <1>   .size.h db 4
+   833 000008FF 0D                  <1>   .pos.x db 13
+   834 00000900 27                  <1>   .pos.y db 39
+   835 00000901 01                  <1>   .vel.vx db 1
+   836 00000902 FF                  <1>   .vel.vy db -1
+   837 00000903 00                  <1>   .frame db 0
+   838 00000904 01                  <1>   .frames db 1
+   839 00000905 C0                  <1>   .framesize db 192
+   840 00000906 [D90C]              <1>   .data dw img.goblet
+   841                              <1> 
+   842                              <1> ring:
+   843 00000908 04                  <1>   .size.w db 4
+   844 00000909 04                  <1>   .size.h db 4
+   845 0000090A 08                  <1>   .pos.x db 8
+   846 0000090B 14                  <1>   .pos.y db 20
+   847 0000090C 01                  <1>   .vel.vx db 1
+   848 0000090D 01                  <1>   .vel.vy db 1
+   849 0000090E 00                  <1>   .frame db 0
+   850 0000090F 01                  <1>   .frames db 1
+   851 00000910 C0                  <1>   .framesize db 192
+   852 00000911 [990D]              <1>   .data dw img.ring
+   853                              <1> 
+   854                              <1> globe:
+   855 00000913 04                  <1>   .size.w db 4
+   856 00000914 04                  <1>   .size.h db 4
+   857 00000915 05                  <1>   .pos.x db 5
+   858 00000916 23                  <1>   .pos.y db 35
+   859 00000917 01                  <1>   .vel.vx db 1
+   860 00000918 01                  <1>   .vel.vy db 1
+   861 00000919 00                  <1>   .frame db 0
+   862 0000091A 01                  <1>   .frames db 1
+   863 0000091B C0                  <1>   .framesize db 192
+   864 0000091C [590E]              <1>   .data dw img.globe
+   865                              <1> 
+   866                              <1> feather:
+   867 0000091E 04                  <1>   .size.w db 4
+   868 0000091F 04                  <1>   .size.h db 4
+   869 00000920 20                  <1>   .pos.x db 32
+   870 00000921 08                  <1>   .pos.y db 8
+   871 00000922 FF                  <1>   .vel.vx db -1
+   872 00000923 01                  <1>   .vel.vy db 1
+   873 00000924 00                  <1>   .frame db 0
+   874 00000925 01                  <1>   .frames db 1
+   875 00000926 C0                  <1>   .framesize db 192
+   876 00000927 [190F]              <1>   .data dw img.feather
+   877                              <1> 
+   878                              <1> totum:
+   879 00000929 04                  <1>   .size.w db 4
+   880 0000092A 04                  <1>   .size.h db 4
+   881 0000092B 19                  <1>   .pos.x db 25
+   882 0000092C 0D                  <1>   .pos.y db 13
+   883 0000092D 01                  <1>   .vel.vx db 1
+   884 0000092E 01                  <1>   .vel.vy db 1
+   885 0000092F 00                  <1>   .frame db 0
+   886 00000930 01                  <1>   .frames db 1
+   887 00000931 C0                  <1>   .framesize db 192
+   888 00000932 [D90F]              <1>   .data dw img.totum
+   889                              <1> 
+   890                              <1> building:
+   891 00000934 04                  <1>   .size.w db 4
+   892 00000935 04                  <1>   .size.h db 4
+   893 00000936 12                  <1>   .pos.x db 18
+   894 00000937 1E                  <1>   .pos.y db 30
+   895 00000938 01                  <1>   .vel.vx db 1
+   896 00000939 01                  <1>   .vel.vy db 1
+   897 0000093A 00                  <1>   .frame db 0
+   898 0000093B 01                  <1>   .frames db 1
+   899 0000093C C0                  <1>   .framesize db 192
+   900 0000093D [5911]              <1>   .data dw img.building
+   901                              <1> 
+   902                              <1> mirror:
+   903 0000093F 04                  <1>   .size.w db 4
+   904 00000940 04                  <1>   .size.h db 4
+   905 00000941 0C                  <1>   .pos.x db 12
+   906 00000942 1D                  <1>   .pos.y db 29
+   907 00000943 01                  <1>   .vel.vx db 1
+   908 00000944 FF                  <1>   .vel.vy db -1
+   909 00000945 00                  <1>   .frame db 0
+   910 00000946 01                  <1>   .frames db 1
+   911 00000947 C0                  <1>   .framesize db 192
+   912 00000948 [1912]              <1>   .data dw img.mirror
+   913                              <1> 
+   914                              <1> harp:
+   915 0000094A 04                  <1>   .size.w db 4
+   916 0000094B 04                  <1>   .size.h db 4
+   917 0000094C 24                  <1>   .pos.x db 36
+   918 0000094D 1B                  <1>   .pos.y db 27
+   919 0000094E 01                  <1>   .vel.vx db 1
+   920 0000094F 01                  <1>   .vel.vy db 1
+   921 00000950 00                  <1>   .frame db 0
+   922 00000951 01                  <1>   .frames db 1
+   923 00000952 C0                  <1>   .framesize db 192
+   924 00000953 [D912]              <1>   .data dw img.harp
+   925                              <1> 
+   926                              <1> nar:
+   927 00000955 04                  <1>   .size.w db 4
+   928 00000956 04                  <1>   .size.h db 4
+   929 00000957 18                  <1>   .pos.x db 24
+   930 00000958 1F                  <1>   .pos.y db 31
+   931 00000959 01                  <1>   .vel.vx db 1
+   932 0000095A 01                  <1>   .vel.vy db 1
+   933 0000095B 00                  <1>   .frame db 0
+   934 0000095C 01                  <1>   .frames db 1
+   935 0000095D C0                  <1>   .framesize db 192
+   936 0000095E [D912]              <1>   .data dw img.harp
+   937                              <1> 
+   938                              <1> computer:
+   939 00000960 04                  <1>   .size.w db 4
+   940 00000961 04                  <1>   .size.h db 4
+   941 00000962 07                  <1>   .pos.x db 7
+   942 00000963 28                  <1>   .pos.y db 40
+   943 00000964 FF                  <1>   .vel.vx db -1
+   944 00000965 01                  <1>   .vel.vy db 1
+   945 00000966 00                  <1>   .frame db 0
+   946 00000967 01                  <1>   .frames db 1
+   947 00000968 C0                  <1>   .framesize db 192
+   948 00000969 [5914]              <1>   .data dw img.computer
+   949                              <1> 
+   950                              <1> way_down:
+   951 0000096B 04                  <1>   .size.w db 4
+   952 0000096C 04                  <1>   .size.h db 4
+   953 0000096D 2C                  <1>   .pos.x db 44
+   954 0000096E 09                  <1>   .pos.y db 9
+   955 0000096F FF                  <1>   .vel.vx db -1
+   956 00000970 FF                  <1>   .vel.vy db -1
+   957 00000971 00                  <1>   .frame db 0
+   958 00000972 01                  <1>   .frames db 1
+   959 00000973 C0                  <1>   .framesize db 192
+   960 00000974 [1915]              <1>   .data dw img.way_down
+   961                              <1> 
+   962                              <1> way_left:
+   963 00000976 04                  <1>   .size.w db 4
+   964 00000977 04                  <1>   .size.h db 4
+   965 00000978 23                  <1>   .pos.x db 35
+   966 00000979 1A                  <1>   .pos.y db 26
+   967 0000097A 01                  <1>   .vel.vx db 1
+   968 0000097B 01                  <1>   .vel.vy db 1
+   969 0000097C 00                  <1>   .frame db 0
+   970 0000097D 01                  <1>   .frames db 1
+   971 0000097E C0                  <1>   .framesize db 192
+   972 0000097F [D915]              <1>   .data dw img.way_left
+   973                              <1> 
+   974                              <1> way_up:
+   975 00000981 04                  <1>   .size.w db 4
+   976 00000982 04                  <1>   .size.h db 4
+   977 00000983 16                  <1>   .pos.x db 22
+   978 00000984 1E                  <1>   .pos.y db 30
+   979 00000985 01                  <1>   .vel.vx db 1
+   980 00000986 01                  <1>   .vel.vy db 1
+   981 00000987 00                  <1>   .frame db 0
+   982 00000988 01                  <1>   .frames db 1
+   983 00000989 C0                  <1>   .framesize db 192
+   984 0000098A [9916]              <1>   .data dw img.way_up
+   985                              <1> 
+   986                              <1> way_right:
+   987 0000098C 04                  <1>   .size.w db 4
+   988 0000098D 04                  <1>   .size.h db 4
+   989 0000098E 09                  <1>   .pos.x db 9
+   990 0000098F 19                  <1>   .pos.y db 25
+   991 00000990 FF                  <1>   .vel.vx db -1
+   992 00000991 01                  <1>   .vel.vy db 1
+   993 00000992 00                  <1>   .frame db 0
+   994 00000993 01                  <1>   .frames db 1
+   995 00000994 C0                  <1>   .framesize db 192
+   996 00000995 [5917]              <1>   .data dw img.way_right
+   997                              <1> 
+   998                              <1> pinkbox:
+   999 00000997 04                  <1>   .size.w db 4
+  1000 00000998 04                  <1>   .size.h db 4
+  1001 00000999 10                  <1>   .pos.x db 16
+  1002 0000099A 0D                  <1>   .pos.y db 13
+  1003 0000099B 00                  <1>   .vel.vx db 0
+  1004 0000099C 00                  <1>   .vel.vy db 0
+  1005 0000099D 00                  <1>   .frame db 0
+  1006 0000099E 01                  <1>   .frames db 1
+  1007 0000099F C0                  <1>   .framesize db 192
+  1008 000009A0 [1918]              <1>   .data dw img.pinkbox
+  1009                              <1> 
+  1010                              <1> box:
+  1011 000009A2 04                  <1>   .size.w db 4
+  1012 000009A3 04                  <1>   .size.h db 4
+  1013 000009A4 17                  <1>   .pos.x db 23
+  1014 000009A5 10                  <1>   .pos.y db 16
+  1015 000009A6 01                  <1>   .vel.vx db 1
+  1016 000009A7 01                  <1>   .vel.vy db 1
+  1017 000009A8 00                  <1>   .frame db 0
+  1018 000009A9 01                  <1>   .frames db 1
+  1019 000009AA C0                  <1>   .framesize db 192
+  1020 000009AB [591D]              <1>   .data dw img.box
+  1021                              <1> 
+  1022                              <1> vbar:
+  1023 000009AD 04                  <1>   .size.w db 4
+  1024 000009AE 04                  <1>   .size.h db 4
+  1025 000009AF 0B                  <1>   .pos.x db 11
+  1026 000009B0 1C                  <1>   .pos.y db 28
+  1027 000009B1 01                  <1>   .vel.vx db 1
+  1028 000009B2 01                  <1>   .vel.vy db 1
+  1029 000009B3 00                  <1>   .frame db 0
+  1030 000009B4 01                  <1>   .frames db 1
+  1031 000009B5 C0                  <1>   .framesize db 192
+  1032 000009B6 [191E]              <1>   .data dw img.vbar
+  1033                              <1> 
+  1034                              <1> hbar:
+  1035 000009B8 04                  <1>   .size.w db 4
+  1036 000009B9 04                  <1>   .size.h db 4
+  1037 000009BA 1E                  <1>   .pos.x db 30
+  1038 000009BB 08                  <1>   .pos.y db 8
+  1039 000009BC FF                  <1>   .vel.vx db -1
+  1040 000009BD FF                  <1>   .vel.vy db -1
+  1041 000009BE 00                  <1>   .frame db 0
+  1042 000009BF 01                  <1>   .frames db 1
+  1043 000009C0 C0                  <1>   .framesize db 192
+  1044 000009C1 [D91E]              <1>   .data dw img.hbar
+  1045                              <1> 
+  1046                              <1> question:
+  1047 000009C3 04                  <1>   .size.w db 4
+  1048 000009C4 04                  <1>   .size.h db 4
+  1049 000009C5 08                  <1>   .pos.x db 8
+  1050 000009C6 24                  <1>   .pos.y db 36
+  1051 000009C7 01                  <1>   .vel.vx db 1
+  1052 000009C8 01                  <1>   .vel.vy db 1
+  1053 000009C9 00                  <1>   .frame db 0
+  1054 000009CA 01                  <1>   .frames db 1
+  1055 000009CB C0                  <1>   .framesize db 192
+  1056 000009CC [192A]              <1>   .data dw img.question
+  1057                              <1> 
+  1058                              <1> house1:
+  1059 000009CE 04                  <1>   .size.w db 4
+  1060 000009CF 04                  <1>   .size.h db 4
+  1061 000009D0 12                  <1>   .pos.x db 18
+  1062 000009D1 0F                  <1>   .pos.y db 15
+  1063 000009D2 01                  <1>   .vel.vx db 1
+  1064 000009D3 01                  <1>   .vel.vy db 1
+  1065 000009D4 00                  <1>   .frame db 0
+  1066 000009D5 01                  <1>   .frames db 1
+  1067 000009D6 C0                  <1>   .framesize db 192
+  1068 000009D7 [5929]              <1>   .data dw img.house1
+  1069                              <1> 
+  1070                              <1> 
+  1071                              <1> 
+  1072                              <1> greenwall_1:
+  1073                              <1> 
+  1074                              <1> greenwall_2:
+  1075                              <1> 
+  1076                              <1> greenwall_3:
+  1077                              <1> 
+  1078                              <1> redwall_1:
+  1079                              <1> 
+  1080                              <1> redwall_2:
+  1081                              <1> 
+  1082                              <1> redwall_3:
+  1083                              <1> 
+  1084                              <1> treetop_1:
+  1085                              <1> 
+  1086                              <1> treetop_2:
+  1087                              <1> 
+  1088                              <1> treetop_3:
+  1089                              <1> 
+  1090                              <1> treething:
+  1091                              <1> 
+  1092                              <1> treetop_a:
+  1093                              <1> 
+  1094                              <1> treetop_b:
+  1095                              <1> 
+  1096                              <1> treeroot_a:
+  1097                              <1> 
+  1098                              <1> treeroot_b:
+  1099                              <1> 
+  1100                              <1> cactus_top:
+  1101                              <1> 
+  1102                              <1> cactus_bottom:
+  1103                              <1> 
+  1104                              <1> roof_1:
+  1105                              <1> 
+  1106                              <1> roof_2:
+  1107                              <1> 
+  1108                              <1> roof_3:
+  1109                              <1> 
+  1110                              <1> 
+  1111                              <1> 
+  1112                              <1> img:
+  1113 000009D9 <bin C0h>           <1>   .keylock incbin "data/sprites/keylock.bin"
+  1114 00000A99 <bin C0h>           <1>   .key incbin "data/sprites/key.bin"
+  1115 00000B59 <bin C0h>           <1>   .owl incbin "data/sprites/owl.bin"
+  1116 00000C19 <bin C0h>           <1>   .crown incbin "data/sprites/crown.bin"
+  1117 00000CD9 <bin C0h>           <1>   .goblet incbin "data/sprites/goblet.bin"
+  1118 00000D99 <bin C0h>           <1>   .ring incbin "data/sprites/ring.bin"
+  1119 00000E59 <bin C0h>           <1>   .globe incbin "data/sprites/globe.bin"
+  1120 00000F19 <bin C0h>           <1>   .feather incbin "data/sprites/feather.bin"
+  1121 00000FD9 <bin C0h>           <1>   .totum incbin "data/sprites/totum.bin"
+  1122 00001099 <bin C0h>           <1>   .scroll incbin "data/sprites/scroll.bin"
+  1123 00001159 <bin C0h>           <1>   .building incbin "data/sprites/building.bin"
+  1124 00001219 <bin C0h>           <1>   .mirror incbin "data/sprites/mirror.bin"
+  1125 000012D9 <bin C0h>           <1>   .harp incbin "data/sprites/harp.bin"
+  1126 00001399 <bin C0h>           <1>   .nar incbin "data/sprites/nar.bin"
+  1127 00001459 <bin C0h>           <1>   .computer incbin "data/sprites/computer.bin"
+  1128 00001519 <bin C0h>           <1>   .way_down incbin "data/sprites/way_down.bin"
+  1129 000015D9 <bin C0h>           <1>   .way_left incbin "data/sprites/way_left.bin"
+  1130 00001699 <bin C0h>           <1>   .way_up incbin "data/sprites/way_up.bin"
+  1131 00001759 <bin C0h>           <1>   .way_right incbin "data/sprites/way_right.bin"
+  1132 00001819 <bin C0h>           <1>   .pinkbox incbin "data/sprites/pinkbox.bin"
+  1133 000018D9 <bin C0h>           <1>   .greenwall_1 incbin "data/sprites/greenwall_1.bin"
+  1134 00001999 <bin C0h>           <1>   .greenwall_2 incbin "data/sprites/greenwall_2.bin"
+  1135 00001A59 <bin C0h>           <1>   .greenwall_3 incbin "data/sprites/greenwall_3.bin"
+  1136 00001B19 <bin C0h>           <1>   .redwall_1 incbin "data/sprites/redwall_1.bin"
+  1137 00001BD9 <bin C0h>           <1>   .redwall_2 incbin "data/sprites/redwall_2.bin"
+  1138 00001C99 <bin C0h>           <1>   .redwall_3 incbin "data/sprites/redwall_3.bin"
+  1139 00001D59 <bin C0h>           <1>   .box incbin "data/sprites/box.bin"
+  1140 00001E19 <bin C0h>           <1>   .vbar incbin "data/sprites/vbar.bin"
+  1141 00001ED9 <bin C0h>           <1>   .hbar incbin "data/sprites/hbar.bin"
+  1142 00001F99 <bin C0h>           <1>   .treetop_1 incbin "data/sprites/treetop_1.bin"
+  1143 00002059 <bin C0h>           <1>   .treetop_2 incbin "data/sprites/treetop_2.bin"
+  1144 00002119 <bin C0h>           <1>   .treetop_3 incbin "data/sprites/treetop_3.bin"
+  1145 000021D9 <bin C0h>           <1>   .treething incbin "data/sprites/treething.bin"
+  1146 00002299 <bin C0h>           <1>   .treetop_a incbin "data/sprites/treetop_a.bin"
+  1147 00002359 <bin C0h>           <1>   .treetop_b incbin "data/sprites/treetop_b.bin"
+  1148 00002419 <bin C0h>           <1>   .treeroot_a incbin "data/sprites/treeroot_a.bin"
+  1149 000024D9 <bin C0h>           <1>   .treeroot_b incbin "data/sprites/treeroot_b.bin"
+  1150 00002599 <bin C0h>           <1>   .cactus_top incbin "data/sprites/cactus_top.bin"
+  1151 00002659 <bin C0h>           <1>   .cactus_bottom incbin "data/sprites/cactus_bottom.bin"
+  1152 00002719 <bin C0h>           <1>   .roof_1 incbin "data/sprites/roof_1.bin"
+  1153 000027D9 <bin C0h>           <1>   .roof_2 incbin "data/sprites/roof_2.bin"
+  1154 00002899 <bin C0h>           <1>   .roof_3 incbin "data/sprites/roof_3.bin"
+  1155 00002959 <bin C0h>           <1>   .house1 incbin "data/sprites/house1.bin"
+  1156 00002A19 <bin C0h>           <1>   .question incbin "data/sprites/question.bin"
+  1157 00002AD9 <bin C0h>           <1>   .stars_1 incbin "data/sprites/stars_1.bin"
+  1158 00002B99 <bin C0h>           <1>   .stars_2 incbin "data/sprites/stars_2.bin"
+  1159 00002C59 <bin C0h>           <1>   .stars_3 incbin "data/sprites/stars_3.bin"
+  1160 00002D19 <bin C0h>           <1>   .stars_4 incbin "data/sprites/stars_4.bin"
+  1161 00002DD9 <bin C0h>           <1>   .walk_bw_1 incbin "data/sprites/walk_bw_1.bin"
+  1162 00002E99 <bin C0h>           <1>   .walk_bw_2 incbin "data/sprites/walk_bw_2.bin"
+  1163 00002F59 <bin C0h>           <1>   .walk_fw_1 incbin "data/sprites/walk_fw_1.bin"
+  1164 00003019 <bin C0h>           <1>   .walk_fw_2 incbin "data/sprites/walk_fw_2.bin"
+  1165 000030D9 <bin C0h>           <1>   .walk_left_1 incbin "data/sprites/walk_left_1.bin"
+  1166 00003199 <bin C0h>           <1>   .walk_left_2 incbin "data/sprites/walk_left_2.bin"
+  1167 00003259 <bin C0h>           <1>   .walk_left_3 incbin "data/sprites/walk_left_3.bin"
+  1168 00003319 <bin C0h>           <1>   .walk_left_4 incbin "data/sprites/walk_left_4.bin"
+  1169 000033D9 <bin C0h>           <1>   .walk_right_1 incbin "data/sprites/walk_right_1.bin"
+  1170 00003499 <bin C0h>           <1>   .walk_right_2 incbin "data/sprites/walk_right_2.bin"
+  1171 00003559 <bin C0h>           <1>   .walk_right_3 incbin "data/sprites/walk_right_3.bin"
+  1172 00003619 <bin C0h>           <1>   .walk_right_4 incbin "data/sprites/walk_right_4.bin"
+  1173 000036D9 <bin C0h>           <1>   .stand_1 incbin "data/sprites/stand_1.bin"
+  1174 00003799 <bin C0h>           <1>   .stand_2 incbin "data/sprites/stand_2.bin"
+  1175 00003859 <bin C0h>           <1>   .stand_3 incbin "data/sprites/stand_3.bin"
+  1176 00003919 <bin C0h>           <1>   .stand_4 incbin "data/sprites/stand_4.bin"
+  1177 000039D9 <bin C0h>           <1>   .donut_1 incbin "data/sprites/donut_1.bin"
+  1178 00003A99 <bin C0h>           <1>   .donut_2 incbin "data/sprites/donut_2.bin"
+  1179 00003B59 <bin C0h>           <1>   .donut_3 incbin "data/sprites/donut_3.bin"
+  1180 00003C19 <bin C0h>           <1>   .donut_4 incbin "data/sprites/donut_4.bin"
+  1181 00003CD9 <bin C0h>           <1>   .sqr_ani_1 incbin "data/sprites/sqr_ani_1.bin"
+  1182 00003D99 <bin C0h>           <1>   .sqr_ani_2 incbin "data/sprites/sqr_ani_2.bin"
+  1183 00003E59 <bin C0h>           <1>   .sqr_ani_3 incbin "data/sprites/sqr_ani_3.bin"
+  1184 00003F19 <bin C0h>           <1>   .sqr_ani_4 incbin "data/sprites/sqr_ani_4.bin"
+  1185 00003FD9 <bin C0h>           <1>   .flower_1 incbin "data/sprites/flower_1.bin"
+  1186 00004099 <bin C0h>           <1>   .flower_2 incbin "data/sprites/flower_2.bin"
+  1187 00004159 <bin C0h>           <1>   .flower_3 incbin "data/sprites/flower_3.bin"
+  1188 00004219 <bin C0h>           <1>   .flower_4 incbin "data/sprites/flower_4.bin"
+  1189 000042D9 <bin C0h>           <1>   .explode_1 incbin "data/sprites/explode_1.bin"
+  1190 00004399 <bin C0h>           <1>   .explode_2 incbin "data/sprites/explode_2.bin"
+  1191 00004459 <bin C0h>           <1>   .explode_3 incbin "data/sprites/explode_3.bin"
+  1192 00004519 <bin C0h>           <1>   .explode_4 incbin "data/sprites/explode_4.bin"
+  1193 000045D9 <bin C0h>           <1>   .creep_1 incbin "data/sprites/creep_1.bin"
+  1194 00004699 <bin C0h>           <1>   .creep_2 incbin "data/sprites/creep_2.bin"
+  1195 00004759 <bin C0h>           <1>   .creep_3 incbin "data/sprites/creep_3.bin"
+  1196 00004819 <bin C0h>           <1>   .creep_4 incbin "data/sprites/creep_4.bin"
+  1197 000048D9 <bin C0h>           <1>   .bouncer_1 incbin "data/sprites/bouncer_1.bin"
+  1198 00004999 <bin C0h>           <1>   .bouncer_2 incbin "data/sprites/bouncer_2.bin"
+  1199 00004A59 <bin C0h>           <1>   .bouncer_3 incbin "data/sprites/bouncer_3.bin"
+  1200 00004B19 <bin C0h>           <1>   .bouncer_4 incbin "data/sprites/bouncer_4.bin"
+  1201 00004BD9 <bin C0h>           <1>   .eye_1 incbin "data/sprites/eye_1.bin"
+  1202 00004C99 <bin C0h>           <1>   .eye_2 incbin "data/sprites/eye_2.bin"
+  1203 00004D59 <bin C0h>           <1>   .eye_3 incbin "data/sprites/eye_3.bin"
+  1204 00004E19 <bin C0h>           <1>   .eye_4 incbin "data/sprites/eye_4.bin"
+  1205 00004ED9 <bin C0h>           <1>   .smurf_1 incbin "data/sprites/smurf_1.bin"
+  1206 00004F99 <bin C0h>           <1>   .smurf_2 incbin "data/sprites/smurf_2.bin"
+  1207 00005059 <bin C0h>           <1>   .smurf_3 incbin "data/sprites/smurf_3.bin"
+  1208 00005119 <bin C0h>           <1>   .smurf_4 incbin "data/sprites/smurf_4.bin"
+  1209                              <1> 
+  1210 000051D9 <bin C0h>           <1>   .ghost_1 incbin "data/sprites/ghost_1.bin"
+  1211 00005299 <bin C0h>           <1>   .ghost_2 incbin "data/sprites/ghost_2.bin"
+  1212 00005359 <bin C0h>           <1>   .ghost_3 incbin "data/sprites/ghost_3.bin"
+  1213 00005419 <bin C0h>           <1>   .ghost_4 incbin "data/sprites/ghost_4.bin"
+  1214                              <1> 
+  1215 000054D9 <bin C0h>           <1>   .lobster_1 incbin "data/sprites/lobster_1.bin"
+  1216 00005599 <bin C0h>           <1>   .lobster_2 incbin "data/sprites/lobster_2.bin"
+  1217 00005659 <bin C0h>           <1>   .lobster_3 incbin "data/sprites/lobster_3.bin"
+  1218 00005719 <bin C0h>           <1>   .lobster_4 incbin "data/sprites/lobster_4.bin"
+  1219                              <1> 
+   183                                  
+   184 000057D9 00<rep 27827h>          times (180*1024)-($-$$) db 0
+   185                                  
