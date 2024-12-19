@@ -9,7 +9,8 @@ void settings() {
 void setup() {
   img = createImage(576, 200, RGB);
   file = loadBytes("BANDIT.EXE");
-  //clear(file, 0x0000, 0x0014);     //MZ header
+  
+  //clear_offset_count(file, 0x0000, 0x0014);     //MZ header
   //clear(file, 0x0C30, 64*192); //sprites: key till bandit
   //clear(file, 0x3C4E, 40*192); //sprites: donut till scorpion
   //clear(file, 0x7753, 984);    //strings
