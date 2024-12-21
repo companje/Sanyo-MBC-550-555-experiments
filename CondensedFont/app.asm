@@ -1,28 +1,42 @@
 %include "sanyo.asm"
 
-setup:
-  mov ax,RED
-  mov es,ax
+char_index: db 0
+hello1: db "FIEP EN SIENE ZIJN LIEF",0
 
-  mov si,font + ('A'-32)*24
-  
-  mov byte [draw_char.char],'B'
+draw_string:  ; input si=string offset
   mov word [draw_char.ox],0
   mov word [draw_char.oy],0
   mov word [draw_char.width],16
   mov word [draw_char.height],12
-  call draw_char
 
-  ; mov ax,4     ; x
-  ; mov bx,4     ; y
-  ; mov cx,16    ; width 0x10
-  ; mov dx,12    ; height 0x0c
+.lp
+  push si ; string offset
+  lodsb
+  or al,al
+  jz .done
+
+  mov byte [draw_char.char],al
+  call draw_char
+  inc byte [char_index]
+  add word [draw_char.ox],12
+  pop si
+  inc si
+  jmp .lp
+.done
+  pop si
+  ret
+
+
+setup:
+  mov ax,RED
+  mov es,ax
+  mov si,hello1
+  call draw_string
 
   hlt
 
 
 %include "func.asm"
-
 
 
 %include "assets.asm"

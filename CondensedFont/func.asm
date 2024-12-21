@@ -80,7 +80,7 @@ jmp .__________
     mul cx
     add ax,[.ymod4]
     mov cx,[.xdiv8]
-    times 2 shr cx,1   ; *=4
+    times 2 shl cx,1   ; *=4
     add ax,cx
     mov di,ax          ; destination index
 
@@ -91,8 +91,14 @@ jmp .__________
     mov [.dst_bit],ax  ; destination bit mask
 
     ; --- SI = bpdiv8
-    mov si,[.bpdiv8]   ; source index
-    add si, ('A'-32)*24
+    xor ah,ah
+    mov al,[.char]
+    sub al,32
+    mov cx,24
+    mul cx
+    mov si,ax
+    add si,font
+    add si,[.bpdiv8]   ; source index
 
     ; --- src_bit = 128>>bpmod8
     mov ax,128
@@ -105,7 +111,8 @@ jmp .__________
     jnz .set
     jz .clr
 .set
-    mov byte al, [.dst_bit]
+    mov byte al,[.dst_bit]
+    ; mov byte al,[bp]
     or byte [es:di],al
     jmp .next
 .clr  
