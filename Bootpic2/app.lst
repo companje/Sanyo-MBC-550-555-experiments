@@ -1,231 +1,328 @@
-     1                                  %include "sanyo.asm"
-     1                              <1> %include "header.asm"
-     1                              <2> org 0
-     2                              <2> cpu 8086
-     3                              <2> 
-     4                              <2> RED   equ 0xf000
-     5                              <2> GREEN equ 0x1c00
-     6                              <2> BLUE  equ 0xf400
-     7                              <2> COLS  equ 72
-     8                              <2> DST   equ 0x38 ; 7F5h                ; absolute addres: 32592
-     9                              <2> NUM_SECTORS equ 9  ; 160 ... 360k met 2 sectors per KB    ; number of sectors for your user code
-    10                              <2> XD    equ 4
-    11                              <2> YD    equ COLS*XD
-     2                              <1> 
-     3 00000000 EB1B                <1> jmp bootloader
-     4                              <1> 
-     5 00000002 5269636B79626F7949- <1> db 'RickyboyII',1,0,0,2,112,0,0,0,2,0,253,2,0,9,0,2,0  ; 2,0, is replaced by II
-     5 0000000B 490100000270000000- <1>
-     5 00000014 0200FD020009000200  <1>
-     6                              <1> 
-     7                              <1> bootloader:
-     8 0000001D FA                  <1>   cli
-     9 0000001E FC                  <1>   cld
-    10                              <1> 
-    11 0000001F B8001C              <1>   mov ax, GREEN     ; green segment
-    12 00000022 8EC0                <1>   mov es, ax
-    13 00000024 BF0000              <1>   mov di, 0
-    14 00000027 B80000              <1>   mov ax, 0
-    15 0000002A B90020              <1>   mov cx, 2000h
-    16 0000002D F3AB                <1>   rep stosw         ; clear screen
-    17 0000002F B005                <1>   mov al, 5
-    18 00000031 E610                <1>   out 10h, al       ; set green video page
-    19                              <1>   
-    20                              <1>   ; hlt
-    21                              <1> 
-    22 00000033 8CC8                <1>   mov ax, cs
-    23 00000035 8ED8                <1>   mov ds, ax
-    24 00000037 B83800              <1>   mov ax, DST       ; was 7F5h, destination segment for floppy data
-    25 0000003A 8EC0                <1>   mov es, ax
-    26 0000003C BF0000              <1>   mov di, 0
-    27                              <1> 
-    28 0000003F B200                <1>   mov dl, 0         ; track=0 (was 1!)
-    29 00000041 B601                <1>   mov dh, 1         ; sector=1
-    30 00000043 B90900              <1>   mov cx, NUM_SECTORS ;48h       ; read 48h (72) sectors (36864 bytes)
-    31 00000046 EB0B                <1>   jmp move_head
-    32                              <1> 
-    33                              <1> next_sector:
-    34 00000048 FEC6                <1>   inc dh                    ; sector++
-    35 0000004A 80FE09              <1>   cmp dh, 9
-    36 0000004D 7218                <1>   jb  read_sector           ; if (dh<9) read_sector
-    37 0000004F B601                <1>   mov dh, 1
-    38 00000051 FEC2                <1>   inc dl                    ; else track++ ; sector=1
-    39                              <1> 
-    40                              <1> move_head:
-    41 00000053 88D0                <1>   mov al, dl
-    42 00000055 E60E                <1>   out 0Eh, al               ; set track number
-    43 00000057 B018                <1>   mov al, 18h     
-    44 00000059 E608                <1>   out 8, al                 ; seek track, load head
-    45 0000005B B000                <1>   mov al, 0
-    46 0000005D E61C                <1>   out 1Ch, al               ; set desired drive/side
-    47 0000005F D40A                <1>   aam
-    48                              <1> 
-    49                              <1> .head_moving
-    50 00000061 E408                <1>   in al, 8
-    51 00000063 A801                <1>   test al, 1
-    52 00000065 75FA                <1>   jnz .head_moving
-    53                              <1> 
-    54                              <1> read_sector:
-    55 00000067 88F0                <1>   mov al, dh
-    56 00000069 E60C                <1>   out 0Ch, al               ; sector number
-    57 0000006B 89D5                <1>   mov bp, dx                ; save dx. we use it tmp for status request
-    58 0000006D BA0800              <1>   mov dx, 8
-    59                              <1> 
-    60 00000070 B702                <1>   mov bh, 2                 ; 00000010b
-    61 00000072 B396                <1>   mov bl, 96h               ; 10010110b
-    62                              <1> 
-    63 00000074 B400                <1>   mov ah, 0
-    64 00000076 B080                <1>   mov al, 80h
-    65 00000078 E608                <1>   out 8, al                 ; read sector
-    66 0000007A 89FC                <1>   mov sp, di                ; save di. we should not be using push/pop from now on
-    67 0000007C D40A<rep 4h>        <1>   times 4 aam               ; wait
-    68                              <1> 
-    69                              <1> check_status_1:
-    70 00000084 EC                  <1>   in  al, dx                ; read status
-    71 00000085 D0F8                <1>   sar al, 1                 ; status/=2
-    72 00000087 731C                <1>   jnb check_status_3
-    73 00000089 75F9                <1>   jnz check_status_1
-    74                              <1> 
-    75                              <1> wait_for_data:
-    76 0000008B EC                  <1>   in  al, dx                ; read status
-    77 0000008C 20D8                <1>   and al, bl                ; 96h
-    78 0000008E 74FB                <1>   jz  wait_for_data
-    79                              <1> 
-    80                              <1> store_byte_1:
-    81 00000090 E40E                <1>   in  al, 0Eh
-    82 00000092 AA                  <1>   stosb
-    83                              <1> 
-    84                              <1> check_status_2:
-    85 00000093 EC                  <1>   in  al, dx                ; read status
-    86 00000094 48                  <1>   dec ax                    ; status--
-    87 00000095 74FC                <1>   jz  check_status_2        ; if (status==0) repeat
-    88 00000097 38F8                <1>   cmp al, bh                ; bh=2
-    89 00000099 750A                <1>   jnz check_status_3        ; if (status==1) 
-    90                              <1> 
-    91                              <1> store_byte_2:
-    92 0000009B E40E                <1>   in  al, 0Eh
-    93 0000009D AA                  <1>   stosb
-    94                              <1> 
-    95                              <1> check_status_4:
-    96 0000009E EC                  <1>   in  al, dx                ; read status
-    97 0000009F 38F8                <1>   cmp al, bh                ; bh=2
-    98 000000A1 74F8                <1>   jz  store_byte_2          ; if (status==2) repeat
-    99 000000A3 EBEE                <1>   jmp check_status_2        ; else: was jmp SI
-   100                              <1> 
-   101                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   102                              <1> 
-   103                              <1> check_status_3:
-   104 000000A5 EC                  <1>   in  al, dx                ; read status
-   105 000000A6 89EA                <1>   mov dx, bp                ; restore dx
-   106 000000A8 A81C                <1>   test  al, 1Ch             ; 00011100
-   107 000000AA 7404                <1>   jz  while_sectors
-   108 000000AC 89E7                <1>   mov di, sp                ; restore di
-   109 000000AE EBB7                <1>   jmp read_sector
-   110                              <1> 
-   111                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   112                              <1> 
-   113                              <1> while_sectors:
-   114 000000B0 E296                <1>   loop next_sector
-   115                              <1> 
-   116                              <1> done_reading:
-   117 000000B2 B80000              <1>   mov ax,0
-   118 000000B5 8ED0                <1>   mov ss,ax
-   119 000000B7 BC0000              <1>   mov sp,0
-   120                              <1> 
-   121 000000BA 0E                  <1>   push cs
-   122 000000BB 1F                  <1>   pop ds
-   123 000000BC E94101              <1>   jmp setup                 ; important to jmp to allow variables above setup
-   124                              <1> 
-   125                              <1> 
-   126 000000BF 00<rep 141h>        <1> times (512)-($-$$) db 0
-   127                              <1> 
-   128                              <1> 
-   129                              <1> 
-     2                                  
-     3                                  ; db 0
-     4                                  
-     5                                  setup:
-     6                                  
-     7                                  ;   hlt
+     1                                  ; %include "sanyo.asm"
+     2                                  ; %include "header.asm"
+     3                                  org 0
+     4                                  cpu 8086
+     5                                  RED equ 0xf000
+     6                                  COLS equ 72
+     7 00000000 EB04                    jmp setup
      8                                  
-     9                                  ;   times 512 db 1
-    10                                  ;   times 512 db 2
-    11                                  ;   times 512 db 3
-    12                                  ;   times 512 db 4
-    13                                  ;   times 512 db 5
-    14                                  ;   times 512 db 6
-    15                                  ;   times 512 db 7
-    16                                  ;   times 512 db 8
-    17                                  ;   times 512 db 9
-    18                                  ;   times 512 db 10
-    19                                  ;   times 512 db 11
-    20                                  ;   times 512 db 12
-    21                                  ;   times 512 db 13
-    22                                  ;   times 512 db 14
-    23                                  ;   times 512 db 15
-    24                                  ;   times 512 db 16
-    25                                  ;   times 512 db 17
-    26                                  ;   times 512 db 18
-    27                                  ;   times 512 db 19
-    28                                  ;   times 512 db 20
-    29                                  ;   times 512 db 21
-    30                                  ;   times 512 db 22
-    31                                  ;   times 512 db 23
-    32                                  ;   times 512 db 24
-    33                                  ;   times 512 db 25
-    34                                  ;   times 512 db 26
-    35                                  ;   times 512 db 27
-    36                                  ;   times 512 db 28
-    37                                  ;   times 512 db 29
-    38                                  ;   times 512 db 30
-    39                                  ;   times 512 db 31
-    40                                  ;   times 512 db 32
-    41                                  ;   times 512 db 33
-    42                                  ;   times 512 db 34
-    43                                  ;   times 512 db 35
-    44                                  ;   times 512 db 36
-    45                                  ;   times 512 db 37
-    46                                  ;   times 512 db 38
-    47                                  ;   times 512 db 39
-    48                                  ;   times 512 db 40
-    49                                  ;   times 512 db 41
-    50                                  ;   times 512 db 42
-    51                                  ;   times 512 db 43
-    52                                  ;   times 512 db 44
-    53                                  ;   times 512 db 45
-    54                                  ;   times 512 db 46
-    55                                  ;   times 512 db 47
-    56                                  ;   times 512 db 48
-    57                                  ;   times 512 db 49
-    58                                  ;   times 512 db 50
-    59                                  ;   times 512 db 51
-    60                                  ;   times 512 db 52
-    61                                  ;   times 512 db 53
-    62                                  ;   times 512 db 54
-    63                                  ;   times 512 db 55
-    64                                  ;   times 512 db 56
-    65                                  ;   times 512 db 57
-    66                                  ;   times 512 db 58
-    67                                  ;   times 512 db 59
-    68                                  ;   times 512 db 60
-    69                                  ;   times 512 db 61
-    70                                  ;   times 512 db 62
-    71                                  ;   times 512 db 63
-    72                                  ;   times 512 db 64
-    73                                  ;   times 512 db 65
-    74                                  ;   times 512 db 66
-    75                                  ;   times 512 db 67
-    76                                  ;   times 512 db 68
-    77                                  ;   times 512 db 69
-    78                                  ;   times 512 db 70
-    79                                  ;   times 512 db 71
-    80                                  ;   times 512 db 72
-    81                                  ;   times 512 db 73
-    82                                  ;   times 512 db 74
-    83                                  ;   times 512 db 75
-    84                                  ;   times 512 db 76
-    85                                  
+     9                                  %macro set_cursor 2
+    10                                    mov bl, %1           ; Zet X in BL
+    11                                    mov bh, %2           ; Zet Y in BH
+    12                                    call calc_di
+    13                                  %endmacro
+    14                                   
+    15                                  %macro set_channel 1
+    16                                    mov ax, %1
+    17                                    mov es, ax
+    18                                  %endmacro
+    19                                  
+    20                                  %macro move_down 0
+    21                                    add di,YD
+    22                                  %endmacro
+    23                                  
+    24                                  %macro move_up 0
+    25                                    sub di,-YD
+    26                                  %endmacro
+    27                                  
+    28                                  p:
+    29 00000002 20                      .x db 32
+    30 00000003 FF                      .vx db -1
+    31 00000004 19                      .y db 25
+    32 00000005 01                      .vy db 1
+    33                                  
+    34                                  setup:
+    35 00000006 8CC8                      mov ax, cs
+    36 00000008 8ED8                      mov ds, ax
+    37                                  
+    38 0000000A EB00                      jmp draw
+    39                                  
+    40                                  draw:
+    41                                    set_channel RED
+    16 0000000C B800F0              <1>  mov ax, %1
+    17 0000000F 8EC0                <1>  mov es, ax
+    42 00000011 8B1E[0200]                mov bx, [p.x]           ; x and vx
+    43 00000015 8B16[0400]                mov dx, [p.y]           ; y and vy
+    44                                  
+    45                                    ; Controleer x-richting
+    46 00000019 80FB01                    cmp bl, 1              ; Check if x <= 10
+    47 0000001C 7F04                      jg .check_x_max         ; If x > 10, skip to next check
+    48 0000001E F6DF                      neg bh                  ; Reverse vx
+    49 00000020 EB07                      jmp .check_y            ; Skip y-check if x condition is met
+    50                                  
+    51                                  .check_x_max:
+    52 00000022 80FB3F                    cmp bl, 63              ; Check if x >= 50
+    53 00000025 7C02                      jl .check_y             ; If x < 50, continue to y-check
+    54 00000027 F6DF                      neg bh                  ; Reverse vx
+    55                                  
+    56                                    ; Controleer y-richting
+    57                                  .check_y:
+    58 00000029 80FA01                    cmp dl, 1               ; Check if y <= 1
+    59 0000002C 7F04                      jg .check_y_max         ; If y > 1, skip to next check
+    60 0000002E F6DE                      neg dh                  ; Reverse vy
+    61 00000030 EB07                      jmp .update             ; Skip updates if y condition is met
+    62                                  
+    63                                  .check_y_max:
+    64 00000032 80FA31                    cmp dl, 49              ; Check if y >= 45
+    65 00000035 7C02                      jl .update              ; If y < 45, continue
+    66 00000037 F6DE                      neg dh                  ; Reverse vy
+    67                                  
+    68                                  .update:
+    69 00000039 00FB                      add bl, bh              ; Update x with vx
+    70 0000003B 891E[0200]                mov [p.x], bx           ; Store the updated x and vx
+    71                                  
+    72 0000003F 00F2                      add dl, dh              ; Update y with vy
+    73 00000041 8916[0400]                mov [p.y], dx           ; Store the updated y and vy
+    74                                  
+    75                                    set_cursor [p.x], [p.y]
+    10 00000045 8A1E[0200]          <1>  mov bl, %1
+    11 00000049 8A3E[0400]          <1>  mov bh, %2
+    12 0000004D E84300              <1>  call calc_di
+    76 00000050 B8FFFF                    mov ax, -1
+    77 00000053 AB                        stosw
+    78 00000054 AB                        stosw
+    79                                  
+    80 00000055 E83200                    call wait_vsync
+    81                                  
+    82                                    set_cursor [p.x], [p.y]
+    10 00000058 8A1E[0200]          <1>  mov bl, %1
+    11 0000005C 8A3E[0400]          <1>  mov bh, %2
+    12 00000060 E83000              <1>  call calc_di
+    83 00000063 B80000                    mov ax, 0
+    84 00000066 AB                        stosw
+    85 00000067 AB                        stosw
     86                                  
-    87                                  
-    88                                  ; times (360*1024)-($-$$) db 0
+    87 00000068 EBA2                      jmp draw
+    88                                  
     89                                  
+    90                                  
+    91                                  
+    92                                  
+    93                                  
+    94                                  flash_red:
+    95 0000006A 06                        push es
+    96 0000006B 31FF                      xor di,di
+    97                                    set_channel RED
+    16 0000006D B800F0              <1>  mov ax, %1
+    17 00000070 8EC0                <1>  mov es, ax
+    98 00000072 B9201C                    mov cx,7200
+    99 00000075 B8FFFF                    mov ax,-1
+   100 00000078 F3AB                      rep stosw
+   101 0000007A 31FF                      xor di,di
+   102 0000007C E80B00                    call wait_vsync
+   103 0000007F B9201C                    mov cx,7200
+   104 00000082 B80000                    mov ax,0
+   105 00000085 F3AB                      rep stosw
+   106 00000087 07                        pop es
+   107 00000088 C3                        ret
+   108                                  
+   109                                  
+   110                                  
+   111                                  
+   112                                  ; draw:
+   113                                    
+   114                                    ; mov al,[p.vx]
+   115                                    ; add byte [p.x],al
+   116                                    ; inc byte [p.x]
+   117                                  
+   118                                    ; cmp byte [p.x],COLS-1
+   119                                    ; je bounceX
+   120                                    ; cmp byte [p.x],1
+   121                                    ; je bounceX
+   122                                  
+   123 00000089 F4                        hlt
+   124                                  
+   125                                    ; call flash_red
+   126                                  
+   127                                    ; call wait_vsync
+   128                                  
+   129                                  
+   130                                    ; set_cursor [p.x],[p.y]
+   131                                    ; mov ax,0
+   132                                    ; stosw
+   133                                    ; stosw
+   134                                  
+   135                                    ; inc byte [p.x]
+   136                                  
+   137                                  
+   138                                    ; jmp draw
+   139                                  
+   140                                    ; mov si,img    ; first image
+   141                                    
+   142                                    ; lodsw
+   143                                    ; mov bx,ax
+   144                                  
+   145                                    ; hlt
+   146                                  
+   147                                    ; xor bx,bx
+   148                                    ; call calc_di
+   149                                    ; mov bl,72              ; width in cols (1 col = 8px)
+   150                                    ; mov bh,16               ; height in rows (1 row = 4px)
+   151                                    ; call draw_pic
+   152                                  
+   153                                    ; hlt
+   154                                  
+   155                                  wait_vsync:
+   156 0000008A FC                        cld
+   157 0000008B B9F401                    mov cx,500
+   158                                  .w
+   159 0000008E D40A                      aam
+   160 00000090 E2FC                      loop .w
+   161 00000092 C3                        ret
+   162                                  
+   163                                  calc_di:          ; input bl,bh [0,0,71,49]
+   164 00000093 B89000                    mov ax,144      ; 2*72 cols
+   165 00000096 F6E7                      mul bh          ; bh*=144 resultaat in AX
+   166 00000098 D1E0                      shl ax,1        ; verdubbel AX
+   167 0000009A 89C7                      mov di,ax       ; di=ax (=bh*288)
+   168 0000009C D0E3                      shl bl,1        ; bl*=2
+   169 0000009E D0E3                      shl bl,1        ; bl*=2
+   170 000000A0 B700                      mov bh,0
+   171 000000A2 01DF                      add di,bx       ; di+=bl
+   172 000000A4 C3                        ret
+   173                                  
+   174                                  draw_pic:          ; DI=offset, [BH,BL]=rows,cols
+   175 000000A5 B800F0                    mov ax, RED
+   176 000000A8 E80D00                    call draw_channel
+   177                                    mov ax, GREEN
+   177          ******************       error: symbol `GREEN' not defined
+   178 000000AB E80A00                    call draw_channel
+   179                                    mov ax, BLUE
+   179          ******************       error: symbol `BLUE' not defined
+   180 000000AE E80700                    call draw_channel
+   181 000000B1 C3                        ret
+   182                                  
+   183                                  draw_channel: 
+   184 000000B2 57                        push di
+   185 000000B3 8EC0                      mov es,ax
+   186 000000B5 31C9                      xor cx,cx  
+   187 000000B7 88F9                      mov cl,bh        ; rows (bh)
+   188 000000B9 51                      .rows push cx
+   189 000000BA 31C9                      xor cx,cx
+   190 000000BC 88D9                      mov cl,bl        ; cols (bl)
+   191 000000BE A5<rep 2h>              .cols times 2 movsw
+   192 000000C0 E2FC                      loop .cols
+   193                                    ; cmp bl,COLS
+   194 000000C2 81C72001                  add di,COLS*4
+   195 000000C6 88D8                      mov al,bl
+   196 000000C8 F6E7                      mul bh
+   197 000000CA 29C7                      sub di,ax
+   198 000000CC 59                        pop cx
+   199 000000CD E2EA                      loop .rows
+   200 000000CF 5F                        pop di
+   201 000000D0 C3                        ret 
+   202                                  
+   203                                  
+   204                                  
+   205                                  ; segment data
+   206                                  
+   207                                  ; times (1000)-($-$$) db 0
+   208                                  
+   209                                  ; SECTION Assets
+   210                                  
+   211                                  startAssets:
+   212                                  img:
+   213 000000D1 <bin 4800h>               .full incbin "data/full.bin"
+   214                                    ; .keylock incbin "data/keylock.bin"
+   215                                    ; .key incbin "data/key.bin"
+   216                                    ; .owl incbin "data/owl.bin"
+   217                                    ; .crown incbin "data/crown.bin"
+   218                                    ; .goblet incbin "data/goblet.bin"
+   219                                    ; .ring incbin "data/ring.bin"
+   220                                    ; .globe incbin "data/globe.bin"
+   221                                    ; .feather incbin "data/feather.bin"
+   222                                    ; .totum incbin "data/totum.bin"
+   223                                    ; .scroll incbin "data/scroll.bin"
+   224                                    ; .building incbin "data/building.bin"
+   225                                    ; .mirror incbin "data/mirror.bin"
+   226                                    ; .harp incbin "data/harp.bin"
+   227                                    ; .nar incbin "data/nar.bin"
+   228                                    ; .computer incbin "data/computer.bin"
+   229                                    ; .way_down incbin "data/way_down.bin"
+   230                                    ; .way_left incbin "data/way_left.bin"
+   231                                    ; .way_up incbin "data/way_up.bin"
+   232                                    ; .way_right incbin "data/way_right.bin"
+   233                                    ; .pinkbox incbin "data/pinkbox.bin"
+   234                                    ; .greenwall_1 incbin "data/greenwall_1.bin"
+   235                                    ; .greenwall_2 incbin "data/greenwall_2.bin"
+   236                                    ; .greenwall_3 incbin "data/greenwall_3.bin"
+   237                                    ; .redwall_1 incbin "data/redwall_1.bin"
+   238                                    ; .redwall_2 incbin "data/redwall_2.bin"
+   239                                    ; .redwall_3 incbin "data/redwall_3.bin"
+   240                                    ; .box incbin "data/box.bin"
+   241                                    ; .vbar incbin "data/vbar.bin"
+   242                                    ; .hbar incbin "data/hbar.bin"
+   243                                    ; .treetop_1 incbin "data/treetop_1.bin"
+   244                                    ; .treetop_2 incbin "data/treetop_2.bin"
+   245                                    ; .treetop_3 incbin "data/treetop_3.bin"
+   246                                    ; .treething incbin "data/treething.bin"
+   247                                    ; .treetop_a incbin "data/treetop_a.bin"
+   248                                    ; .treetop_b incbin "data/treetop_b.bin"
+   249                                    ; .treeroot_a incbin "data/treeroot_a.bin"
+   250                                    ; .treeroot_b incbin "data/treeroot_b.bin"
+   251                                    ; .cactus_top incbin "data/cactus_top.bin"
+   252                                    ; .cactus_bottom incbin "data/cactus_bottom.bin"
+   253                                    ; .roof_1 incbin "data/roof_1.bin"
+   254                                    ; .roof_2 incbin "data/roof_2.bin"
+   255                                    ; .roof_3 incbin "data/roof_3.bin"
+   256                                    ; .house1 incbin "data/house1.bin"
+   257                                    ; .question incbin "data/question.bin"
+   258                                    ; .stars_1 incbin "data/stars_1.bin"
+   259                                    ; .stars_2 incbin "data/stars_2.bin"
+   260                                    ; .stars_3 incbin "data/stars_3.bin"
+   261                                    ; .stars_4 incbin "data/stars_4.bin"
+   262                                    ; .walk_bw_1 incbin "data/walk_bw_1.bin"
+   263                                    ; .walk_bw_2 incbin "data/walk_bw_2.bin"
+   264                                    ; .walk_fw_1 incbin "data/walk_fw_1.bin"
+   265                                    ; .walk_fw_2 incbin "data/walk_fw_2.bin"
+   266                                    ; .walk_left_1 incbin "data/walk_left_1.bin"
+   267                                    ; .walk_left_2 incbin "data/walk_left_2.bin"
+   268                                    ; .walk_left_3 incbin "data/walk_left_3.bin"
+   269                                    ; .walk_left_4 incbin "data/walk_left_4.bin"
+   270                                    ; .walk_right_1 incbin "data/walk_right_1.bin"
+   271                                    ; .walk_right_2 incbin "data/walk_right_2.bin"
+   272                                    ; .walk_right_3 incbin "data/walk_right_3.bin"
+   273                                    ; .walk_right_4 incbin "data/walk_right_4.bin"
+   274                                    ; .stand_1 incbin "data/stand_1.bin"
+   275                                    ; .stand_2 incbin "data/stand_2.bin"
+   276                                    ; .stand_3 incbin "data/stand_3.bin"
+   277                                    ; .stand_4 incbin "data/stand_4.bin"
+   278                                    ; .donut_1 incbin "data/donut_1.bin"
+   279                                    ; .donut_2 incbin "data/donut_2.bin"
+   280                                    ; .donut_3 incbin "data/donut_3.bin"
+   281                                    ; .donut_4 incbin "data/donut_4.bin"
+   282                                    ; .sqr_ani_1 incbin "data/sqr_ani_1.bin"
+   283                                    ; .sqr_ani_2 incbin "data/sqr_ani_2.bin"
+   284                                    ; .sqr_ani_3 incbin "data/sqr_ani_3.bin"
+   285                                    ; .sqr_ani_4 incbin "data/sqr_ani_4.bin"
+   286                                    ; .flower_1 incbin "data/flower_1.bin"
+   287                                    ; .flower_2 incbin "data/flower_2.bin"
+   288                                    ; .flower_3 incbin "data/flower_3.bin"
+   289                                    ; .flower_4 incbin "data/flower_4.bin"
+   290                                    ; .explode_1 incbin "data/explode_1.bin"
+   291                                    ; .explode_2 incbin "data/explode_2.bin"
+   292                                    ; .explode_3 incbin "data/explode_3.bin"
+   293                                    ; .explode_4 incbin "data/explode_4.bin"
+   294                                    ; .creep_1 incbin "data/creep_1.bin"
+   295                                    ; .creep_2 incbin "data/creep_2.bin"
+   296                                    ; .creep_3 incbin "data/creep_3.bin"
+   297                                    ; .creep_4 incbin "data/creep_4.bin"
+   298                                    ; .bouncer_1 incbin "data/bouncer_1.bin"
+   299                                    ; .bouncer_2 incbin "data/bouncer_2.bin"
+   300                                    ; .bouncer_3 incbin "data/bouncer_3.bin"
+   301                                    ; .bouncer_4 incbin "data/bouncer_4.bin"
+   302                                    ; .eye_1 incbin "data/eye_1.bin"
+   303                                    ; .eye_2 incbin "data/eye_2.bin"
+   304                                    ; .eye_3 incbin "data/eye_3.bin"
+   305                                    ; .eye_4 incbin "data/eye_4.bin"
+   306                                    ; .smurf_1 incbin "data/smurf_1.bin"
+   307                                    ; .smurf_2 incbin "data/smurf_2.bin"
+   308                                    ; .smurf_3 incbin "data/smurf_3.bin"
+   309                                    ; .smurf_4 incbin "data/smurf_4.bin"
+   310                                  endAssets:
+   311                                  
+   312                                  
+   313                                  ; segment .text
+   314                                  
+   315 000048D1 00<rep 5572Fh>          times (360*1024)-($-$$) db 0
+   316                                  

@@ -26,64 +26,51 @@ void setup() {
   chrB = loadBytes("chr66.bin");
 
   draw_char_xy(chrA, 0, 0, 16, 12); //width must be multiple of 8
-  //draw_char_xy(chrB, 12, 0, 16, 12); //width must be multiple of 8
+  draw_char_xy(chrB, 12, 0, 16, 12); //width must be multiple of 8
+  
+  copy_red_to_green(0, 0, 3*8, 12);
+  
   setImageFromMemory(img);
 }
 
-void draw_char_xy(byte[] bytes, int ox, int oy, int w, int h) {
-  int n = bytes.length*8-1;
-
-  for (int bp = n; bp>=0; bp--) { //in case of 24 bytes (16x12 pixels) b=bit index 0..192   //16 bits (2 bytes) per line (12 lines)
-
-    int bpdiv8 = bp/8;
-    int bpmod8 = bp%8;
-    int bpdivw = bp/w;
-    int bpmodw = bp%w;
-    int x = bpmodw + ox;
-    int y = bpdivw + oy;
-    int ydiv4 = y/4;
-    int ymod4 = y%4;
-    int xdiv8 = x/8;
-    int xmod8 = x%8;
-
-    println(bp, x, y);
-
-    //; di = (y / 4) * (4 * COLS) + (y % 4) + (x / 8) * 4;
-
-    int di = ydiv4;
-    di *= 4*COLS;
-    di += ymod4;
-    di += xdiv8*4;
-
-    if (true) {
-      int dh = 128>>xmod8; //dst bit ??
-
-      int si = bpdiv8; // source index
-      int dl = 128>>bpmod8;
-
-      memory[R + di] = random(255);
-
-      //     if ((bytes[si]&dl)>0) {
-      //       memory[R + di] ^= dh; // Set the bit
-      //     } else {
-      //       memory[R + di] &= ~dh; // Clear the bit
-      //     }
-    }
-  }
+void copy_red_to_green(int ox, int oy, int w, int h) { //x and with multiples of 8
+    
 }
 
 
+void draw_char_xy(byte[] bytes, int ox, int oy, int w, int h) {
 
-//void draw_char_xy(byte[] bytes, int ox, int oy, int w, int h) {
-//  _mov("bp",bytes.length * 8-1);
-//  do {
+  int y=0;
+  int bp=0;
+  do { //y
+    int yy = y+oy;
+    int ydiv4 = yy >> 2 ;
+    int ymod4 = yy & 3;
+    int di_base = ydiv4 * (4*COLS) + ymod4;
+    int x=0;
+    do { //x
+      int xx = x + ox;
+      int xdiv8 = xx >> 3;
+      int xdiv8x4 = xdiv8 << 2;
+      int xmod8 = xx & 7;
+      println(bp, x,xmod8);
+      
+      int bpmod8 = bp & 7;
+      int bpdiv8 = bp >> 3;
 
-//    _mov("ax","bp");
-//    _div("ax",w); //al=quotient, ah=rest
+      int di = di_base + xdiv8x4 ;
+      int dh = 128 >> xmod8; // dst bit
+      int si = bpdiv8;
+      int dl = 128 >> bpmod8; //src bit
 
-//  } while (bp-->0);
-//}
-
+      if ((bytes[si] & dl) > 0) {
+        memory[R + di] |= dh; // set 
+      }
+      
+      bp++;
+    } while (++x<w);
+  } while (++y<h);
+}
 
 void draw() {
   //scale(3, 3);

@@ -14,7 +14,7 @@ os.makedirs(assets_2_dir, exist_ok=True)
 # Start offset en grootte van een font-asset
 start_offset = 824 - 2*12
 asset_size = 24
-num_assets = 58
+num_assets = 59
 ascii_start = 32 
 
 # Image parameters
