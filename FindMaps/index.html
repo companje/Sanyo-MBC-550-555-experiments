@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Visualization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <style>@import "styles.css";</style>
+</head>
+<body>
+    <div id="visualization" class="container"></div>
+    <script src="utils.js"></script>
+    <script src="bandit.js"></script>
+
+    <script>
+      const greens = ["#004b23", "#006400", "#007200", "#008000", "#38b000", "#70e000", "#9ef01a", "#ccff33"];
+      const pal1 = ["#54478c","#2c699a","#048ba8","#0db39e","#16db93","#83e377","#b9e769","#efea5a","#f1c453","#f29e4c"];
+      const pink = ["#590d22", "#800f2f", "#a4133c", "#c9184a", "#ff4d6d", "#ff758f", "#ff8fa3", "#ffb3c1", "#ffccd5", "#fff0f3"];
+      const yellows = ["#007f5f","#2b9348","#55a630","#80b918","#aacc00","#bfd200","#d4d700","#dddf00","#eeef20","#ffff3f"];
+      const purple = ["#ff00ff"];
+      const red = ["#ff0000"];
+      const cyan = ["#00ffff"];
+      const blue = ["#0000ff"];
+      const white = ["#ffffff"];
+      const yellow = ["#ffff00"];
+
+
+      visualizeBinaryFile(binaryData, [
+          { offset: 0, length: 30, bytesPerLine: 2, palette: yellow, decoder: 'font' }, //font
+          { offset: 800, length: 1416, bytesPerLine: 2, palette: white, decoder: 'font' }, //font
+          { offset: 3120, length: 64*192, bytesPerLine: 4, decoder: 'sprite' }, //sprites: sleutel tot poppetje
+          { offset: 15438, length: 40*192, bytesPerLine: 4, decoder: 'sprite' }, //sprites: donut tot schorpioen
+          { offset: 0x7393, length: 0x03BF, bytesPerLine: 4, palette: red, decoder: 'strings'}, //strings TREES, CACTI, THE TIMEGATES ...
+          { offset: 0x7753, length: 984, bytesPerLine:4, palette: red, decoder: 'strings'}, //strings
+          { offset: 0x7E0A, length: 1656, bytesPerLine:4, palette: red, decoder: 'strings'}, //strings
+          { offset: 0x6CF0, length: 1583, bytesPerLine:4, palette: red, decoder: 'strings'}, //strings
+          { offset: 0x8BBB, length: 1167, bytesPerLine:4, palette: red, decoder: 'strings'}, //strings
+          { offset: 0x84A1, length: 0x0477, bytesPerLine:4, palette: purple },  //code
+          { offset: 0x90DB, length: 0x003F, bytesPerLine:4, palette: purple },  //code
+          { offset: 0x914A, length: 0x1E4C, bytesPerLine:4, palette: purple }  //code
+      ]);
+
+
+
+    function visualizeBinaryFile(binaryData, regions) {
+        const container = document.getElementById('visualization');
+        container.innerHTML = '';
+
+        let defaultPalette = greens;
+        let defaultBytesPerLine = 4;
+        let currentOffset = 0;
+
+        for (const region of regions) {
+            const { offset, length, bytesPerLine, palette, decoder } = region;
+
+            // Voeg gewone data toe vóór het gebied
+            if (currentOffset < offset) {
+                appendData(binaryData, currentOffset, offset - currentOffset, defaultBytesPerLine, defaultPalette);
+            }
+
+            appendData(binaryData, offset, length, bytesPerLine, palette, decoder);
+
+            currentOffset = offset + length;
+        }
+
+        // Voeg data na het laatste gebied toe
+        if (currentOffset < binaryData.length) {
+            appendData(binaryData, currentOffset, binaryData.length - currentOffset, defaultBytesPerLine, defaultPalette);
+        }
+
+       function appendData(data, start, length, bytesPerLine, palette, decoder) {
+         if (decoder === 'strings') {
+            const decoder = new TextDecoder();
+            const line = document.createElement('div');
+            const subArray = data.subarray(start, start + length);
+            const stringResult = decoder.decode(subArray);
+            
+            // const result = Array.from(subArray, byte =>
+            //   byte >= 32 && byte <= 126 ? "<span class='char'>"+String.fromCharCode(byte)+"</span>" : `<span class='charcode'>${byte} </span>` 
+            // ).join('');
+
+            let foundFirstChar = false;
+
+            const result = Array.from(subArray, (byte) => {
+              if (byte < 32 || byte > 126) {
+                foundFirstChar = false; // Reset de status
+                return `<span class='charcode'>${byte} </span>`;
+              }
+
+              if (!foundFirstChar) {
+                foundFirstChar = true; // Markeer het eerste geldige teken
+                return `<br><span class='char firstchar'>${String.fromCharCode(byte)}</span>`;
+              }
+
+              return `<span class='char'>${String.fromCharCode(byte)}</span>`;
+            }).join('');
+
+
+
+            line.innerHTML = result;
+            line.className = "text"
+            // line.style.background = 'black'
+            container.appendChild(line);
+         } 
+         else if (decoder === 'sprite') {
+            const numSprites = length/192;
+            
+            for (let i=0; i<numSprites; i++) {
+
+              const sprite = document.createElement('div');
+              sprite.className = "sprite";
+              container.appendChild(sprite);            
+
+              const spriteLines = decodeSprite(data, start+i*192, 192);
+              spriteLines.forEach((linePixels) => {
+                  const line = document.createElement('div');
+                  line.className = 'smallline';
+
+                  linePixels.forEach((pixelColor) => {
+                      const span = document.createElement('span');
+                      span.className = 'smallbit';
+                      span.style.backgroundColor = pixelColor;
+                      line.appendChild(span);
+                  });
+
+                  sprite.appendChild(line);
+              });
+
+            }
+        }
+        else {
+
+            // if (decoder=='font') {
+            //     numItems = 59
+            // }
+
+            // for (let i=0; i<numItems; i++) {
+            //     const item = document.createElement('div');
+            //     item.className = "item";
+            //     container.appendChild(item);
+
+            //     ...
+
+            //     for (let i = start; i < start + length; i += bytesPerLine) {
+
+            //     }
+            // }
+
+            const item = document.createElement('div');
+            item.className = "item";
+            container.appendChild(item);
+            //linesPerItem
+
+
+            for (let i = start; i < start + length; i += bytesPerLine) {
+                const line = document.createElement('div');
+                line.className = 'line';
+
+                for (let j = 0; j < bytesPerLine; j++) {
+                    if (i + j >= data.length) break;
+                    const byte = data[i + j];
+                    const color = getGradientColor(palette, byte);
+
+                    for (let bit = 0; bit < 8; bit++) {
+                        const span = document.createElement('span');
+                        span.className = 'bit';
+                        const bitValue = (byte >> (7 - bit)) & 1;
+
+                        span.style.backgroundColor = bitValue === 1
+                            ? color
+                            : 'black';
+
+                        line.appendChild(span);
+                    }
+                }
+                item.appendChild(line);
+            }
+        }
+    }
+
+    function decodeSprite(data, start, length) {
+        const lines = [];
+        const width = 32;
+        const bytesPerRow = 4;
+        const height = 16;
+        const wd8h = width/8*height;
+
+        for (let y = 0; y < height; y++) {
+            const linePixels = [];
+            for (let x = 0; x < width; x++) {
+                const bit = 128 >> (x % 8);
+                const i = Math.floor(y/4)*(width/2)+(y%4)+Math.floor(x/8)*4;
+                const r = (data[start + i + 2 * wd8h] & bit) > 0 ? 255 : 0;
+                const g = (data[start + i + 1 * wd8h] & bit) > 0 ? 255 : 0;
+                const b = (data[start + i + 0 * wd8h] & bit) > 0 ? 255 : 0;
+
+                linePixels.push(`rgb(${r}, ${g}, ${b})`)
+            }
+            lines.push(linePixels);
+        }
+        return lines;
+    }
+}
+
+    </script>
+</body>
+</html>

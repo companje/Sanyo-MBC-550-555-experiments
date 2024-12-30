@@ -6,8 +6,8 @@ PImage img, bg, beker;
 int R=0xf0000, G=0xC000, B=0xf4000;
 Viewport view;
 int rows,cols;
-String input_filename = "kipjes-dithered.png";
-String output_filename = "8x8.bin";
+String input_filename = "kipjes-dithered-2.png";
+String output_filename = "200x176.bin";
 
 void settings() {
   size(1152, 850);
@@ -29,7 +29,7 @@ void setup() {
 
 void keyPressed() {
   if (key=='s') {
-    byte bytes[] = getSnapshot(0, 0, 8, 8);
+    byte bytes[] = getSnapshot(0, 0, 25, 44);
     saveBytes(output_filename, bytes);
     println("saved");
   }

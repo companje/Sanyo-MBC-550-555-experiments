@@ -1,0 +1,61 @@
+body {
+    background: black;
+}
+.sprite {
+    margin-bottom: 10px;
+}
+.bit {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin: 0px;
+}
+.smallbit {
+    display: inline-block;
+    width: 4px;
+    height: 6px;
+    margin: 0px;
+    padding: 0;
+}
+.smallline {
+    display: block;
+    line-height: 2px;
+    margin: 0;
+    padding: 0;
+}
+.line {
+    display: block;
+    line-height: 5px;
+    margin: 0;
+}
+.item {
+    margin-bottom: 20px;
+}
+
+.container {
+    column-count: 8;
+    column-gap: 20px;
+}
+.container > * {
+    break-inside: avoid;
+}
+
+@font-face {
+  font-family: 'SanyoMBC55x';
+  src: url('Web437_SanyoMBC55x-2y.woff') format('woff');
+}
+
+.char {
+    font-family: "SanyoMBC55x";
+    font-size: 24px;
+    background-color: red;
+    color: white;
+}
+
+.charcode {
+    font-family: monospace;
+    font-size: 12px;
+    background-color: black;
+    color: white;
+}
+

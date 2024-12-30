@@ -110,53 +110,53 @@ void drawByte(int i, int x, int y, int channels) {
   }
 }
 
-//void draw_sprites(int xx, int yy, int offset, int count, int channels) {
-//  int expected_bytes_per_font_letter = 32; //2x4 cols 4 rows - 8 dots horizontal per col
-//  int hspacing = 0; //4
-//  int vspacing = 0; //2
-//  for (int r=0; r<count; r++) {
-//    int gridX = (r%8)*(32+hspacing);
-//    int gridY = (r/8)*(16+vspacing);
-//    int i=0;
+void draw_sprites(int xx, int yy, int offset, int count, int channels) {
+  int expected_bytes_per_font_letter = 32; //2x4 cols 4 rows - 8 dots horizontal per col
+  int hspacing = 0; //4
+  int vspacing = 0; //2
+  for (int r=0; r<count; r++) {
+    int gridX = (r%8)*(32+hspacing);
+    int gridY = (r/8)*(16+vspacing);
+    int i=0;
 
-//    for (int y=0; y<4; y++) {
-//      for (int x=0; x<4; x++) { //x en y omgedraaid voor de test
+    for (int y=0; y<4; y++) {
+      for (int x=0; x<4; x++) { //x en y omgedraaid voor de test
 
-//        for (int q=0; q<4; q++, i++) {
-//          drawByte(
-//            offset  + i + r*192/2/3,
-//            xx + x*4+ gridX,
-//            yy + y*4 + q + gridY,
-//            channels); //channels
-//        }
-//      }
-//    }
-//  }
-//}
+        for (int q=0; q<4; q++, i++) {
+          drawByte(
+            offset  + i + r*192/2/3,
+            xx + x*4+ gridX,
+            yy + y*4 + q + gridY,
+            channels); //channels
+        }
+      }
+    }
+  }
+}
 
 
 void draw() {
   background(0);
   scale(5, 10);
 
-  //draw_sprites(0, 0, offset, 64*8, 1);
+  draw_sprites(0, 0, offset, 64*8, 1);
 
-  int channels = 1;
-  int i=offset;
-  int x=0;
-  int y=0;
+  //int channels = 1;
+  //int i=offset;
+  //int x=0;
+  //int y=0;
 
-  //for (int p=0; p<32; p++) {
-  drawByte(i++, x++, y, channels);
-  drawByte(i++, x+=8, y, channels);
-  y+=2;
-  x=0;
-  drawByte(i++, x++, y, channels);
-  drawByte(i++, x+=8, y, channels);
-  y+=2;
-  x+=16;  
-  drawByte(i++, x++, y, channels);
-  drawByte(i++, x+=8, y, channels);
+  ////for (int p=0; p<32; p++) {
+  //drawByte(i++, x++, y, channels);
+  //drawByte(i++, x+=8, y, channels);
+  //y+=2;
+  //x=0;
+  //drawByte(i++, x++, y, channels);
+  //drawByte(i++, x+=8, y, channels);
+  //y+=2;
+  //x+=16;  
+  //drawByte(i++, x++, y, channels);
+  //drawByte(i++, x+=8, y, channels);
   
 
 

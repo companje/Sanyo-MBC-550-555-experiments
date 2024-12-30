@@ -1,4 +1,4 @@
-prefix="0284. kipjes-"
+prefix="0285. kipjes2-"
 base=app
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
 

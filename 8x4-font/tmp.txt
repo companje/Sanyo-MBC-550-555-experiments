@@ -1,0 +1,1 @@
+/Users/rick/Library/Application Support/Aseprite/scripts/sprite.lua:33: attempt to index a nil value (global 'pc')

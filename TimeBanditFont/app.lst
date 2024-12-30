@@ -222,7 +222,7 @@
     46                                    ; call copy_red_to_green
     47 00000262 F4                        hlt
     48                                  
-    49                                  %include "func2.asm"
+    49                                  %include "functions.asm"
      1                              <1> draw_char: 
      2 00000263 EB2C                <1> jmp .__________
      3                              <1>     ; public
@@ -362,60 +362,59 @@
    137 0000034E 8A0E[7202]          <1>     mov cl,[.y]
    138 00000352 30C8                <1>     xor al, cl      ; XOR x en y
    139 00000354 A801                <1>     test al, 1
-   140                              <1> 
-   141 00000356 7508                <1>     jnz .lower
-   142                              <1> 
-   143                              <1> .upper
-   144 00000358 A0[6F02]            <1>     mov al,[.color2]
-   145 0000035B A2[9002]            <1>     mov [.color],al
-   146 0000035E EB06                <1>     jmp .red
-   147                              <1> .lower
-   148 00000360 A0[6E02]            <1>     mov al,[.color1]
-   149 00000363 A2[9002]            <1>     mov [.color],al
-   150                              <1> .red
-   151 00000366 F606[9002]04        <1>     test byte [.color], Color.R
-   152 0000036B 7408                <1>     jz .green
-   153 0000036D B800F0              <1>     mov ax,RED
-   154 00000370 8EC0                <1>     mov es,ax
-   155 00000372 26081D              <1>     or byte [es:di],bl
-   156                              <1> 
-   157                              <1> .green
-   158 00000375 F606[9002]02        <1>     test byte [.color], Color.G
-   159 0000037A 7408                <1>     jz .blue
-   160 0000037C B8001C              <1>     mov ax,GREEN
-   161 0000037F 8EC0                <1>     mov es,ax
-   162 00000381 26081D              <1>     or byte [es:di],bl
-   163                              <1> 
-   164                              <1> .blue
-   165 00000384 F606[9002]01        <1>     test byte [.color], Color.B
-   166 00000389 740F                <1>     jz .while
-   167 0000038B B800F4              <1>     mov ax,BLUE
-   168 0000038E 8EC0                <1>     mov es,ax
-   169 00000390 26081D              <1>     or byte [es:di],bl
-   170                              <1>     
-   171 00000393 EB05                <1>     jmp .while
-   172                              <1> .clr  
-   173 00000395 F6D0                <1>     not al  
-   174 00000397 262005              <1>     and byte [es:di],al
-   175                              <1> .while
-   176                              <1>     ; --- bp++
-   177 0000039A 45                  <1>     inc bp
-   178                              <1>     
-   179                              <1>     ; while(++x<w)
-   180 0000039B FF06[7002]          <1>     inc word [.x]
-   181 0000039F A1[6A02]            <1>     mov ax,[.width]
-   182 000003A2 3906[7002]          <1>     cmp [.x],ax
-   183 000003A6 7303E92EFF          <1>     jb .do_x
-   184                              <1> 
-   185                              <1>     ; --- while(++y<h)
-   186 000003AB FF06[7202]          <1>     inc word [.y]
-   187 000003AF A1[6C02]            <1>     mov ax,[.height]
-   188 000003B2 3906[7202]          <1>     cmp [.y],ax
-   189 000003B6 7303E9F0FE          <1>     jb .do_y
-   190                              <1> 
-   191 000003BB C3                  <1>     ret
-   192                              <1> 
-   193                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   140 00000356 7508                <1>     jnz .lower
+   141                              <1> 
+   142                              <1> .upper
+   143 00000358 A0[6F02]            <1>     mov al,[.color2]
+   144 0000035B A2[9002]            <1>     mov [.color],al
+   145 0000035E EB06                <1>     jmp .red
+   146                              <1> .lower
+   147 00000360 A0[6E02]            <1>     mov al,[.color1]
+   148 00000363 A2[9002]            <1>     mov [.color],al
+   149                              <1> .red
+   150 00000366 F606[9002]04        <1>     test byte [.color], Color.R
+   151 0000036B 7408                <1>     jz .green
+   152 0000036D B800F0              <1>     mov ax,RED
+   153 00000370 8EC0                <1>     mov es,ax
+   154 00000372 26081D              <1>     or byte [es:di],bl
+   155                              <1> 
+   156                              <1> .green
+   157 00000375 F606[9002]02        <1>     test byte [.color], Color.G
+   158 0000037A 7408                <1>     jz .blue
+   159 0000037C B8001C              <1>     mov ax,GREEN
+   160 0000037F 8EC0                <1>     mov es,ax
+   161 00000381 26081D              <1>     or byte [es:di],bl
+   162                              <1> 
+   163                              <1> .blue
+   164 00000384 F606[9002]01        <1>     test byte [.color], Color.B
+   165 00000389 740F                <1>     jz .while
+   166 0000038B B800F4              <1>     mov ax,BLUE
+   167 0000038E 8EC0                <1>     mov es,ax
+   168 00000390 26081D              <1>     or byte [es:di],bl
+   169                              <1>     
+   170 00000393 EB05                <1>     jmp .while
+   171                              <1> .clr  
+   172 00000395 F6D0                <1>     not al  
+   173 00000397 262005              <1>     and byte [es:di],al
+   174                              <1> .while
+   175                              <1>     ; --- bp++
+   176 0000039A 45                  <1>     inc bp
+   177                              <1>     
+   178                              <1>     ; while(++x<w)
+   179 0000039B FF06[7002]          <1>     inc word [.x]
+   180 0000039F A1[6A02]            <1>     mov ax,[.width]
+   181 000003A2 3906[7002]          <1>     cmp [.x],ax
+   182 000003A6 7303E92EFF          <1>     jb .do_x
+   183                              <1> 
+   184                              <1>     ; --- while(++y<h)
+   185 000003AB FF06[7202]          <1>     inc word [.y]
+   186 000003AF A1[6C02]            <1>     mov ax,[.height]
+   187 000003B2 3906[7202]          <1>     cmp [.y],ax
+   188 000003B6 7303E9F0FE          <1>     jb .do_y
+   189                              <1> 
+   190 000003BB C3                  <1>     ret
+   191                              <1> 
+   192                              <1> ; ───────────────────────────────────────────────────────────────────────────
     50                                  
     51                                  %include "assets.asm"
      1                              <1> font:

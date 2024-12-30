@@ -21,7 +21,7 @@ PImage getImageFromBytes(byte[] bytes, int w, int h) { //w,h in pixels - 3 chann
   PImage img = createImage(w, h, RGB);
   img.loadPixels();
   for (int y=0, bit=128, j=0; y<h; y++) {
-    for (int x=0; x<w; x++, bit=128>>(x%8)) {
+    for (int x=0; x<w; x++, biparsedDatet=128>>(x%8)) {
       int i = int(y/4)*(w/2)+(y%4)+int(x/8)*4;
       int r = (bytes[i+0*w/8*h] & bit)>0 ? 255 : 0;
       int g = (bytes[i+1*w/8*h] & bit)>0 ? 255 : 0;

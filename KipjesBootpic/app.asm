@@ -2,8 +2,8 @@
 
 setup:
   mov si, kipjes
-  mov bh,72 ; cols 
-  mov bl,50 ; rows
+  mov bh,25 ; cols 
+  mov bl,44 ; rows
   call draw_pic
   hlt
 

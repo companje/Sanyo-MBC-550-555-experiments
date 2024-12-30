@@ -1,0 +1,331 @@
+     1                                  cpu 8086
+     2                                  org 0
+     3                                  
+     4                                  GREEN equ 0x1c00
+     5                                  ROM equ 0xFE00
+     6                                  FONT equ 0xFF00
+     7                                  COLS equ 72
+     8                                  ROWS equ 50
+     9                                  BYTES_PER_ROW equ 8*72  ; 25 lines
+    10                                  
+    11 00000000 EB06                    jmp setup
+    12                                  
+    13 00000002 48656C6C6F00            hello: db "Hello",0
+    14                                  
+    15                                  setup:
+    16                                    ; mov al,0xFF
+    17                                    ; out 0x3a,al           ; keyboard
+    18                                    ; mov al,0x30
+    19                                    ; out 0x3a,al           ; keyboard
+    20                                  
+    21 00000008 B000                      mov al,0
+    22 0000000A E63A                      out 0x3a,al           ; keyboard \force state/
+    23 0000000C E63A                      out 0x3a,al           ; keyboard \force state/
+    24 0000000E B0FF                      mov al,0xFF
+    25 00000010 E63A                      out 0x3a,al           ; keyboard \reset/
+    26 00000012 E63A                      out 0x3a,al           ; keyboard \mode/
+    27 00000014 B037                      mov al,0x37
+    28 00000016 E63A                      out 0x3a,al           ; keyboard \set command
+    29                                  
+    30 00000018 B8001C                    mov ax,GREEN      
+    31 0000001B 8EC0                      mov es,ax
+    32 0000001D 31FF                      xor di,di
+    33 0000001F 31C0                      xor ax,ax
+    34 00000021 B94038                    mov cx,14400
+    35 00000024 F3AA                      rep stosb
+    36                                  
+    37 00000026 B005                      mov al, 5
+    38 00000028 E610                      out 10h, al               ; select address 0x1c000 as green video page
+    39                                  
+    40 0000002A E82100                    call initText
+    41                                  
+    42                                  draw:
+    43 0000002D 31FF                      xor di,di
+    44                                  
+    45 0000002F E43A                      in al,0x3a
+    46 00000031 E85A00                    call DrawBinary
+    47                                  
+    48 00000034 BF4002                    mov di,1*BYTES_PER_ROW
+    49 00000037 E438                      in al,0x38  ;get data byte
+    50 00000039 E81F00                    call DrawChar
+    51                                  
+    52 0000003C BF8004                    mov di,2*BYTES_PER_ROW
+    53 0000003F E86000                    call DisplayNAX
+    54 00000042 E83300                    call DrawSpace
+    55 00000045 E83000                    call DrawSpace
+    56                                  
+    57 00000048 B037                      mov al,0x37
+    58 0000004A E63A                      out 0x3a,al ;drop key?
+    59                                   
+    60 0000004C EBDF                      jmp draw
+    61                                  
+    62                                  
+    63                                  initText:
+    64 0000004E B8001C                    mov ax,GREEN
+    65 00000051 8EC0                      mov es,ax
+    66 00000053 B800FF                    mov ax,FONT
+    67 00000056 8ED8                      mov ds,ax
+    68 00000058 C3                        ret
+    69                                  
+    70                                  DrawCharTL:
+    71 00000059 31FF                      xor di,di
+    72                                  DrawChar:   ; ds=FONT, es=GREEN, al=charcode
+    73 0000005B 50                        push ax
+    74 0000005C B408                      mov ah,8
+    75 0000005E F6E4                      mul ah
+    76 00000060 89C6                      mov si,ax
+    77 00000062 A5                        movsw
+    78 00000063 A5                        movsw
+    79 00000064 81C71C01                  add di,0x11c
+    80 00000068 A5                        movsw
+    81 00000069 A5                        movsw
+    82 0000006A 81EF2001                  sub di,0x120
+    83 0000006E 81FF4038                  cmp di,14400
+    84 00000072 7202                      jb .return
+    85 00000074 31FF                      xor di,di      ; move to left top
+    86                                  .return
+    87 00000076 58                        pop ax
+    88 00000077 C3                        ret
+    89                                  
+    90                                  DrawSpace:
+    91 00000078 B020                      mov al,' '
+    92 0000007A E8DEFF                    call DrawChar
+    93 0000007D C3                        ret
+    94                                  
+    95                                  DisplayStringTL:
+    96 0000007E 31FF                      xor di,di
+    97                                  DisplayString:
+    98 00000080 2E8A07                    mov al,[cs:bx]
+    99 00000083 43                        inc bx
+   100 00000084 08C0                      or al,al
+   101 00000086 7405                      jz .return
+   102 00000088 E8D0FF                    call DrawChar
+   103 0000008B EBF3                      jmp short DisplayString
+   104                                  .return
+   105 0000008D C3                        ret
+   106                                  
+   107                                  
+   108                                  DrawBinary:          ; input AL
+   109 0000008E 88C3                      mov bl, al          ; Kopieer AL naar BL (we werken op BL)
+   110 00000090 B90800                    mov cx, 8           ; We gaan 8 bits schrijven
+   111                                  .lp:
+   112 00000093 D0C3                      rol bl, 1           ; Rotate BL naar links (hoogste bit komt in Carry Flag)
+   113 00000095 B80000                    mov ax, 0           ; AH leegmaken
+   114 00000098 1430                      adc al, 48          ; Als Carry Flag 1 is, wordt '1', anders '0'  
+   115 0000009A 51                        push cx             ; CX opslaan
+   116 0000009B E8BDFF                    call DrawChar       ; Schrijf het karakter naar het scherm
+   117 0000009E 59                        pop cx              ; CX herstellen
+   118 0000009F E2F2                      loop .lp            ; Loop voor alle 8 bits
+   119 000000A1 C3                        ret
+   120                                  
+   121                                  DisplayNAX:
+   122 000000A2 50                          push ax
+   123 000000A3 52                          push dx
+   124 000000A4 31D2                        xor dx,dx
+   125 000000A6 52                          push dx ;high byte is zero
+   126 000000A7 31D2                    .clp    xor dx,dx
+   127 000000A9 2EF736[C500]                cs div word [.base]
+   128 000000AE 92                          xchg ax,dx
+   129 000000AF 05300E                      add ax,0xe30
+   130 000000B2 50                          push ax
+   131 000000B3 92                          xchg ax,dx
+   132 000000B4 09C0                        or ax,ax
+   133 000000B6 75EF                        jnz .clp
+   134 000000B8 58                      .dlp    pop ax
+   135 000000B9 08E4                        or ah,ah
+   136 000000BB 7405                        jz .done
+   137                                      ; int 0x29
+   138 000000BD E89BFF                      call DrawChar
+   139 000000C0 EBF6                        jmp short .dlp
+   140 000000C2 5A                      .done   pop dx
+   141 000000C3 58                          pop ax
+   142 000000C4 C3                          ret
+   143 000000C5 0A00                    .base   dw 10
+   144                                  
+   145                                  
+   146                                  clear_green:
+   147 000000C7 B9201C                    mov cx,COLS*ROWS*2
+   148 000000CA B8001C                    mov ax,GREEN
+   149 000000CD 8EC0                      mov es,ax
+   150 000000CF 31FF                      xor di,di
+   151 000000D1 31C0                      xor ax,ax
+   152 000000D3 F3AB                      rep stosw         ; clear screen
+   153 000000D5 31FF                      xor di,di
+   154 000000D7 C3                        ret
+   155                                  
+   156                                  
+   157 000000D8 00<rep 2CF28h>          times (180*1024)-($-$$) db 0
+   158                                  
+   159                                  
+   160                                  
+   161                                  
+   162                                  
+   163                                  ; cpu 8086
+   164                                  ; org 0
+   165                                  
+   166                                  ; GREEN equ 0x1c00
+   167                                  ; COLS equ 72
+   168                                  ; ROWS equ 50
+   169                                  ; FONT equ 0xFF00
+   170                                  
+   171                                  ; jmp setup
+   172                                  
+   173                                  ; cursor:
+   174                                  ; col: db 0
+   175                                  ; row: db 0
+   176                                  
+   177                                  ; FIXME
+   178                                  ; ; text: times COLS*ROW
+   179                                  
+   180                                  ; setup:
+   181                                  ;   mov al,0
+   182                                  ;   out 0x3a,al           ; keyboard \force state/
+   183                                   
+   184                                  ;   mov al,0
+   185                                  ;   out 0x3a,al           ; keyboard \force state/
+   186                                    
+   187                                  ;   mov al,0xFF
+   188                                  ;   out 0x3a,al           ; keyboard \reset/
+   189                                    
+   190                                  ;   mov al,0xFF
+   191                                  ;   out 0x3a,al           ; keyboard \mode/
+   192                                    
+   193                                  ;   mov al,0x37
+   194                                  ;   out 0x3a,al           ; keyboard \set command
+   195                                  
+   196                                  ;   mov al, 5
+   197                                  ;   out 10h, al           ; select address 0x1c000 as green video page
+   198                                    
+   199                                  ;   call clear_green
+   200                                  
+   201                                  
+   202                                  ;   ; mov al,1
+   203                                  ;   ; call draw_char
+   204                                  ;   ; mov al,1
+   205                                  ;   ; call draw_char
+   206                                  ;   ; mov al,1
+   207                                  ;   ; call draw_char
+   208                                  
+   209                                  ;   ; call rom_to_vram
+   210                                  ;   ; hlt
+   211                                  
+   212                                  ;   cli
+   213                                    
+   214                                  ; draw:
+   215                                  
+   216                                  
+   217                                  ;   mov cx,73
+   218                                  ; .lp
+   219                                  ;   mov al,65
+   220                                  ;   call draw_char  
+   221                                  ;   loop .lp
+   222                                  
+   223                                  ;   hlt
+   224                                  
+   225                                  ;   ; in al,0x3a
+   226                                  ;   ; test al,2
+   227                                  
+   228                                  ;   ; ; jz .jiret
+   229                                  
+   230                                  ;   ; in al,0x38  ;get data byte
+   231                                    
+   232                                  ;   ; cmp al,0
+   233                                  ;   ; je draw
+   234                                  
+   235                                  ;   ; cmp al, 0b00011111
+   236                                  ;   ; je draw
+   237                                  
+   238                                  ;   ; ; call draw_char
+   239                                  ;   ; call draw_char
+   240                                  
+   241                                  ;   ; mov al,0x37
+   242                                  ;   ; out 0x3a,al ; drop key
+   243                                  
+   244                                  
+   245                                  ;   cmp di,14400
+   246                                  ;   jb draw
+   247                                  ;   xor di,di
+   248                                  ;   jmp draw
+   249                                  
+   250                                  ; rom_to_vram:
+   251                                  ;   mov ax, 0xFE00
+   252                                  ;   mov ds, ax       ; DS source segment
+   253                                  ;   mov ax, GREEN
+   254                                  ;   mov es, ax       ; ES dest segment
+   255                                  ;   mov si, 0x1000   ; FONT offset in ROM
+   256                                  ;   mov di, 0        ; dest index
+   257                                  ;   mov cx, 0x4000   ; 8000 bytes (0x4000 in hexadecimal)
+   258                                  ;   rep movsb        ; Kopieer CX bytes van DS:SI naar ES:DI
+   259                                  ;   ret
+   260                                  
+   261                                  
+   262                                  ; draw_char:   ; al=char, changes ax,di,si,ds
+   263                                  ;   mov si,FONT
+   264                                  ;   mov ds,si
+   265                                  
+   266                                  ;   shl ax,1
+   267                                  ;   shl ax,1
+   268                                  ;   shl ax,1
+   269                                  ;   mov si,ax
+   270                                  ;   movsw
+   271                                  ;   movsw
+   272                                  ;   push di
+   273                                  ;   add di,4*COLS-4
+   274                                  ;   movsw
+   275                                  ;   movsw
+   276                                  ;   pop di
+   277                                  
+   278                                  ;   push cs
+   279                                  ;   pop ds
+   280                                  
+   281                                  ;   inc byte [col]
+   282                                  
+   283                                  ;   cmp byte [col],25
+   284                                  ;   jne .done
+   285                                  
+   286                                  ;   mov byte [col],0
+   287                                  ;   inc byte [row]     ; 1 row = 4 lines
+   288                                  ;   inc byte [row]
+   289                                  
+   290                                  ;   push bx
+   291                                  ;   mov bx,[cursor]
+   292                                  ;   call calc_di
+   293                                  ;   pop bx
+   294                                  
+   295                                  
+   296                                  ; .done
+   297                                  ;   ret
+   298                                  
+   299                                  ; calc_di:          ; input bl,bh [0,0,71,49]
+   300                                  ;   mov ax,144      ; 2*72 cols
+   301                                  ;   mul bh          ; bh*=144 resultaat in AX
+   302                                  ;   shl ax,1        ; verdubbel AX
+   303                                  ;   mov di,ax       ; di=ax (=bh*288)
+   304                                  ;   shl bl,1        ; bl*=2
+   305                                  ;   shl bl,1        ; bl*=2
+   306                                  ;   mov bh,0
+   307                                  ;   add di,bx       ; di+=bl
+   308                                  ;   ret
+   309                                  
+   310                                  ; clear_green:
+   311                                  ;   mov cx,COLS*ROWS*2
+   312                                  ;   mov ax,GREEN
+   313                                  ;   mov es,ax
+   314                                  ;   xor di,di
+   315                                  ;   xor ax,ax
+   316                                  ;   rep stosw         ; clear screen
+   317                                  ;   xor di,di
+   318                                  ;   ret
+   319                                  
+   320                                  ; beep:
+   321                                  ;   mov cx,3
+   322                                  ; .lp in al,0x3a
+   323                                  ;   test al,1
+   324                                  ;   jz .lp
+   325                                  ;   mov al,0x18
+   326                                  ;   out 0x38,al
+   327                                  ;   loop .lp
+   328                                  ;   ret
+   329                                  
+   330                                  ; times (180*1024)-($-$$) db 0
+   331                                  
