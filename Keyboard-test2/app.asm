@@ -11,21 +11,10 @@ BYTES_PER_ROW equ 8*72  ; 25 lines
 jmp setup
 
 hello: db "Hello",0
+count: dw 0
 
 setup:
-  ; mov al,0xFF
-  ; out 0x3a,al           ; keyboard
-  ; mov al,0x30
-  ; out 0x3a,al           ; keyboard
-
-  mov al,0
-  out 0x3a,al           ; keyboard \force state/
-  out 0x3a,al           ; keyboard \force state/
-  mov al,0xFF
-  out 0x3a,al           ; keyboard \reset/
-  out 0x3a,al           ; keyboard \mode/
-  mov al,0x37
-  out 0x3a,al           ; keyboard \set command
+  
 
   mov ax,GREEN      
   mov es,ax
@@ -39,24 +28,50 @@ setup:
 
   call initText
 
+  ; mov bp,30000
+  xor bp,bp
 draw:
   xor di,di
-
+  xor ah,ah
   in al,0x3a
+  push ax
   call DrawBinary
+  inc bp
+  mov ax,bp
+  mov di,6*BYTES_PER_ROW
+  call DisplayNAX
+
+  pop ax
+  test al,2
+  jz draw
+
+  push ax ; status
+  inc word [cs:count]
+  mov di,8*BYTES_PER_ROW
+  mov ax,[cs:count]
+  call DisplayNAX
+
+  ;status
+  mov di,9*BYTES_PER_ROW
+  pop ax
+  call DrawBinary
+
+
 
   mov di,1*BYTES_PER_ROW
   in al,0x38  ;get data byte
   call DrawChar
-
   mov di,2*BYTES_PER_ROW
   call DisplayNAX
-  call DrawSpace
-  call DrawSpace
+  mov di,3*BYTES_PER_ROW
+  call DrawBinary
+
+
 
   mov al,0x37
   out 0x3a,al ;drop key?
- 
+
+
   jmp draw
 
 
@@ -67,8 +82,6 @@ initText:
   mov ds,ax
   ret
 
-DrawCharTL:
-  xor di,di
 DrawChar:   ; ds=FONT, es=GREEN, al=charcode
   push ax
   mov ah,8
@@ -138,6 +151,10 @@ DisplayNAX:
     call DrawChar
     jmp short .dlp
 .done   pop dx
+    call DrawSpace
+    call DrawSpace
+    call DrawSpace
+    call DrawSpace
     pop ax
     ret
 .base   dw 10
