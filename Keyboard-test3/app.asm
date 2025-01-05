@@ -4,6 +4,10 @@ msg_a:            db '"a"         ',0
 msg_shift_a:      db 'Shift+A     ',0
 msg_ctrl_a:       db 'Ctrl+A      ',0
 msg_ctrl_shift_a: db 'Ctrl+Shift+A',0
+msg_left:         db 'LEFT        ',0
+msg_right:        db 'RIGHT       ',0
+msg_up:           db 'UP          ',0
+msg_down:         db 'DOWN        ',0
 msg_other_key:    db 'Other key   ',0
 
 
@@ -35,6 +39,14 @@ draw:
     je .on_key_a
   cmp ax,'A'
     je .on_key_shift_a
+  cmp ax,KEY_LEFT
+    je .on_key_left
+  cmp ax,KEY_RIGHT
+    je .on_key_right
+  cmp ax,KEY_UP
+    je .on_key_up
+  cmp ax,KEY_DOWN
+    je .on_key_down
   ;else
     mov bx, msg_other_key             ; msg_other_key
     jmp .print_msg
@@ -53,6 +65,22 @@ draw:
 
 .on_key_shift_a:
   mov bx, msg_shift_a                 ; msg_shift_a
+  jmp .print_msg
+
+.on_key_left:
+  mov bx, msg_left                    ; msg_left
+  jmp .print_msg
+
+.on_key_right:
+  mov bx, msg_right                   ; msg_right
+  jmp .print_msg
+
+.on_key_up:
+  mov bx, msg_up                      ; msg_up
+  jmp .print_msg
+
+.on_key_down:
+  mov bx, msg_down                    ; msg_down
   jmp .print_msg
 
 .print_msg:

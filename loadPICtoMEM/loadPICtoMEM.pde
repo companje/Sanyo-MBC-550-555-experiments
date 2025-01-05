@@ -6,8 +6,8 @@ PImage img, bg, beker;
 int R=0xf0000, G=0xC000, B=0xf4000;
 Viewport view;
 int rows,cols;
-String input_filename = "kipjes-dithered-2.png";
-String output_filename = "200x176.bin";
+String input_filename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Keyboard-Sprite/data/player/player-rotate.png";
+String output_filename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Keyboard-Sprite/data/player/player-rotations.bin";
 
 void settings() {
   size(1152, 850);
@@ -25,11 +25,15 @@ void setup() {
   bg = loadImage(input_filename);
   rows = bg.height/4;
   cols = bg.width/8;
+  
+  print(cols,rows);
 }
 
 void keyPressed() {
   if (key=='s') {
-    byte bytes[] = getSnapshot(0, 0, 25, 44);
+    //byte bytes[] = getSnapshot(0, 0, 25, 44);
+    //128x64 = rows,cols?
+    byte bytes[] = getSnapshot(0, 0, cols, rows);
     saveBytes(output_filename, bytes);
     println("saved");
   }
@@ -40,11 +44,11 @@ void draw() {
   pg.background(0);
   pg.image(bg, 0, 0);
   
-  for (int yi=0; yi<4; yi++) {
-    for (int xi=0; xi<4; xi++) {
-      pg.ellipse(4+xi*8,2+yi*4,8,4);
-    }
-  }
+  //for (int yi=0; yi<4; yi++) {
+  //  for (int xi=0; xi<4; xi++) {
+  //    pg.ellipse(4+xi*8,2+yi*4,8,4);
+  //  }
+  //}
     
   
   pg.endDraw();

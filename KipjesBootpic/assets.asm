@@ -1,4 +1,6 @@
-kipjes: incbin "data/bg/200x176.bin"
+; kipjes: incbin "data/bg/blowthemaway-dithered-200x176.bin" ; data/bg/200x176.bin"
+kipjes: incbin "data/bg/blowthemaway-dithered-576x200.bin" ; data/bg/200x176.bin"
+
 
 
 font:
