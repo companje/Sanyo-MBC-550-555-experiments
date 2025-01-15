@@ -11,13 +11,13 @@ msg_up:           db 'UP          ',0
 msg_down:         db 'DOWN        ',0
 msg_other_key:    db 'Other key   ',0
 
-img1: incbin "data/player/player-rotations-1.spr"
-img2: incbin "data/player/player-rotations-2.spr"
-img3: incbin "data/player/player-rotations-3.spr"
-img4: incbin "data/player/player-rotations-4.spr"
-img5: incbin "data/player/player-rotations-5.spr"
-img6: incbin "data/player/player-rotations-6.spr"
-img7: incbin "data/player/player-rotations-7.spr"
+; img1: incbin "data/player/player-rotations-1.spr"
+; img2: incbin "data/player/player-rotations-2.spr"
+; img3: incbin "data/player/player-rotations-3.spr"
+; img4: incbin "data/player/player-rotations-4.spr"
+; img5: incbin "data/player/player-rotations-5.spr"
+; img6: incbin "data/player/player-rotations-6.spr"
+; img7: incbin "data/player/player-rotations-7.spr"
 
 ; size equ 0
 ; w equ 0
@@ -77,7 +77,7 @@ draw:
   push cs
   pop ds
 
-
+ 
   draw_frame img1
   draw_frame img2
   draw_frame img3
@@ -85,12 +85,23 @@ draw:
   draw_frame img5
   draw_frame img6
   draw_frame img7
-  draw_frame img7
-  draw_frame img6
-  draw_frame img4
-  draw_frame img3
-  draw_frame img2
-  draw_frame img1
+  draw_frame img8
+  draw_frame img9
+  draw_frame img10
+  draw_frame img11
+  draw_frame img12
+  draw_frame img13
+  draw_frame img14
+  draw_frame img15
+  draw_frame img16
+  draw_frame img17
+  draw_frame img18
+  draw_frame img19
+  draw_frame img20
+  draw_frame img21
+  draw_frame img22
+  draw_frame img23
+  draw_frame img24
 
   
   ; call player.update
@@ -176,6 +187,31 @@ draw:
 %include "assets.asm"
 ; kipjes: incbin "data/bg/200x176.bin"
 
+
+img1: incbin "data/ship/ship-1.spr"
+img2: incbin "data/ship/ship-2.spr"
+img3: incbin "data/ship/ship-3.spr"
+img4: incbin "data/ship/ship-4.spr"
+img5: incbin "data/ship/ship-5.spr"
+img6: incbin "data/ship/ship-6.spr"
+img7: incbin "data/ship/ship-7.spr"
+img8: incbin "data/ship/ship-8.spr"
+img9: incbin "data/ship/ship-9.spr"
+img10: incbin "data/ship/ship-10.spr"
+img11: incbin "data/ship/ship-11.spr"
+img12: incbin "data/ship/ship-12.spr"
+img13: incbin "data/ship/ship-13.spr"
+img14: incbin "data/ship/ship-14.spr"
+img15: incbin "data/ship/ship-15.spr"
+img16: incbin "data/ship/ship-16.spr"
+img17: incbin "data/ship/ship-17.spr"
+img18: incbin "data/ship/ship-18.spr"
+img19: incbin "data/ship/ship-19.spr"
+img20: incbin "data/ship/ship-20.spr"
+img21: incbin "data/ship/ship-21.spr"
+img22: incbin "data/ship/ship-22.spr"
+img23: incbin "data/ship/ship-23.spr"
+img24: incbin "data/ship/ship-24.spr"
 
 
 times (180*1024)-($-$$) db 0

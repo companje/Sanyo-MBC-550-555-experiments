@@ -4,7 +4,7 @@
      3                              <1> 
      4 00000000 EB04                <1> jmp boot
      5                              <1> 
-     6                              <1> NUM_SECTORS equ 30          ; number of sectors to read
+     6                              <1> NUM_SECTORS equ 50          ; number of sectors to read
      7                              <1> BAR_WIDTH equ 30
      8                              <1> COLS  equ 72
      9                              <1> ROWS  equ 50
@@ -72,7 +72,7 @@
     71 00000029 BF0000              <1>   mov di,0                  ;
     72 0000002C B200                <1>   mov dl,0                  ; track=0
     73 0000002E B601                <1>   mov dh,1                  ; sector=1
-    74 00000030 B91E00              <1>   mov cx,NUM_SECTORS        ; read 48h (72) sectors (36864 bytes)
+    74 00000030 B93200              <1>   mov cx,NUM_SECTORS        ; read 48h (72) sectors (36864 bytes)
     75 00000033 EB0B                <1>   jmp move_head
     76                              <1> 
     77                              <1> ; ───────────────────────────────────────────────────────────────────────────
@@ -161,7 +161,7 @@
    160 000000A1 E82D00              <1>   call clear_green
    161 000000A4 0E                  <1>   push cs
    162 000000A5 1F                  <1>   pop ds
-   163 000000A6 E93517              <1>   jmp setup
+   163 000000A6 E92702              <1>   jmp setup
    164                              <1> 
    165                              <1> ; ───────────────────────────────────────────────────────────────────────────
    166                              <1> 
@@ -171,7 +171,7 @@
    170 000000AA 53                  <1>   push bx
    171 000000AB 31D2                <1>   xor dx,dx
    172 000000AD B81E00              <1>   mov ax,BAR_WIDTH
-   173 000000B0 BB1E00              <1>   mov bx,NUM_SECTORS    
+   173 000000B0 BB3200              <1>   mov bx,NUM_SECTORS    
    174 000000B3 F7E1                <1>   mul cx
    175 000000B5 F7F3                <1>   div bx
    176 000000B7 5B                  <1>   pop bx
@@ -602,13 +602,13 @@
     12 000002C3 4F74686572206B6579-     msg_other_key:    db 'Other key   ',0
     12 000002CC 20202000           
     13                                  
-    14 000002D0 <bin 302h>              img1: incbin "data/player/player-rotations-1.spr"
-    15 000005D2 <bin 302h>              img2: incbin "data/player/player-rotations-2.spr"
-    16 000008D4 <bin 302h>              img3: incbin "data/player/player-rotations-3.spr"
-    17 00000BD6 <bin 302h>              img4: incbin "data/player/player-rotations-4.spr"
-    18 00000ED8 <bin 302h>              img5: incbin "data/player/player-rotations-5.spr"
-    19 000011DA <bin 302h>              img6: incbin "data/player/player-rotations-6.spr"
-    20 000014DC <bin 302h>              img7: incbin "data/player/player-rotations-7.spr"
+    14                                  ; img1: incbin "data/player/player-rotations-1.spr"
+    15                                  ; img2: incbin "data/player/player-rotations-2.spr"
+    16                                  ; img3: incbin "data/player/player-rotations-3.spr"
+    17                                  ; img4: incbin "data/player/player-rotations-4.spr"
+    18                                  ; img5: incbin "data/player/player-rotations-5.spr"
+    19                                  ; img6: incbin "data/player/player-rotations-6.spr"
+    20                                  ; img7: incbin "data/player/player-rotations-7.spr"
     21                                  
     22                                  ; size equ 0
     23                                  ; w equ 0
@@ -654,225 +654,327 @@
     63                                  %endmacro
     64                                  
     65                                  setup:
-    66 000017DE 31ED                      xor bp,bp
+    66 000002D0 31ED                      xor bp,bp
     67                                  
-    68 000017E0 EB08                      jmp draw
+    68 000002D2 EB08                      jmp draw
     69                                  
     70                                  _wait:
-    71 000017E2 B9A00F                    mov cx,DELAY
-    72 000017E5 D40A                      .lp aam
-    73 000017E7 E2FC                      loop .lp
-    74 000017E9 C3                        ret
+    71 000002D4 B9A00F                    mov cx,DELAY
+    72 000002D7 D40A                      .lp aam
+    73 000002D9 E2FC                      loop .lp
+    74 000002DB C3                        ret
     75                                  
     76                                  draw:
-    77 000017EA 0E                        push cs
-    78 000017EB 1F                        pop ds
+    77 000002DC 0E                        push cs
+    78 000002DD 1F                        pop ds
     79                                  
-    80                                  
+    80                                   
     81                                    draw_frame img1
     59                              <1>  set_cursor 10,10
-    45 000017EC BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 000002DE BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 000017EF BE[D002]            <1>  mov si,%1
-    61 000017F2 E81AEA              <1>  call draw_spr
-    62 000017F5 E8EAFF              <1>  call _wait
+    60 000002E1 BE[7710]            <1>  mov si,%1
+    61 000002E4 E828FF              <1>  call draw_spr
+    62 000002E7 E8EAFF              <1>  call _wait
     82                                    draw_frame img2
     59                              <1>  set_cursor 10,10
-    45 000017F8 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 000002EA BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 000017FB BE[D205]            <1>  mov si,%1
-    61 000017FE E80EEA              <1>  call draw_spr
-    62 00001801 E8DEFF              <1>  call _wait
+    60 000002ED BE[7913]            <1>  mov si,%1
+    61 000002F0 E81CFF              <1>  call draw_spr
+    62 000002F3 E8DEFF              <1>  call _wait
     83                                    draw_frame img3
     59                              <1>  set_cursor 10,10
-    45 00001804 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 000002F6 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 00001807 BE[D408]            <1>  mov si,%1
-    61 0000180A E802EA              <1>  call draw_spr
-    62 0000180D E8D2FF              <1>  call _wait
+    60 000002F9 BE[7B16]            <1>  mov si,%1
+    61 000002FC E810FF              <1>  call draw_spr
+    62 000002FF E8D2FF              <1>  call _wait
     84                                    draw_frame img4
     59                              <1>  set_cursor 10,10
-    45 00001810 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 00000302 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 00001813 BE[D60B]            <1>  mov si,%1
-    61 00001816 E8F6E9              <1>  call draw_spr
-    62 00001819 E8C6FF              <1>  call _wait
+    60 00000305 BE[7D19]            <1>  mov si,%1
+    61 00000308 E804FF              <1>  call draw_spr
+    62 0000030B E8C6FF              <1>  call _wait
     85                                    draw_frame img5
     59                              <1>  set_cursor 10,10
-    45 0000181C BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 0000030E BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 0000181F BE[D80E]            <1>  mov si,%1
-    61 00001822 E8EAE9              <1>  call draw_spr
-    62 00001825 E8BAFF              <1>  call _wait
+    60 00000311 BE[7F1C]            <1>  mov si,%1
+    61 00000314 E8F8FE              <1>  call draw_spr
+    62 00000317 E8BAFF              <1>  call _wait
     86                                    draw_frame img6
     59                              <1>  set_cursor 10,10
-    45 00001828 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 0000031A BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 0000182B BE[DA11]            <1>  mov si,%1
-    61 0000182E E8DEE9              <1>  call draw_spr
-    62 00001831 E8AEFF              <1>  call _wait
+    60 0000031D BE[811F]            <1>  mov si,%1
+    61 00000320 E8ECFE              <1>  call draw_spr
+    62 00000323 E8AEFF              <1>  call _wait
     87                                    draw_frame img7
     59                              <1>  set_cursor 10,10
-    45 00001834 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 00000326 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 00001837 BE[DC14]            <1>  mov si,%1
-    61 0000183A E8D2E9              <1>  call draw_spr
-    62 0000183D E8A2FF              <1>  call _wait
-    88                                    draw_frame img7
+    60 00000329 BE[8322]            <1>  mov si,%1
+    61 0000032C E8E0FE              <1>  call draw_spr
+    62 0000032F E8A2FF              <1>  call _wait
+    88                                    draw_frame img8
     59                              <1>  set_cursor 10,10
-    45 00001840 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 00000332 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 00001843 BE[DC14]            <1>  mov si,%1
-    61 00001846 E8C6E9              <1>  call draw_spr
-    62 00001849 E896FF              <1>  call _wait
-    89                                    draw_frame img6
+    60 00000335 BE[8525]            <1>  mov si,%1
+    61 00000338 E8D4FE              <1>  call draw_spr
+    62 0000033B E896FF              <1>  call _wait
+    89                                    draw_frame img9
     59                              <1>  set_cursor 10,10
-    45 0000184C BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 0000033E BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 0000184F BE[DA11]            <1>  mov si,%1
-    61 00001852 E8BAE9              <1>  call draw_spr
-    62 00001855 E88AFF              <1>  call _wait
-    90                                    draw_frame img4
+    60 00000341 BE[8728]            <1>  mov si,%1
+    61 00000344 E8C8FE              <1>  call draw_spr
+    62 00000347 E88AFF              <1>  call _wait
+    90                                    draw_frame img10
     59                              <1>  set_cursor 10,10
-    45 00001858 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 0000034A BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 0000185B BE[D60B]            <1>  mov si,%1
-    61 0000185E E8AEE9              <1>  call draw_spr
-    62 00001861 E87EFF              <1>  call _wait
-    91                                    draw_frame img3
+    60 0000034D BE[892B]            <1>  mov si,%1
+    61 00000350 E8BCFE              <1>  call draw_spr
+    62 00000353 E87EFF              <1>  call _wait
+    91                                    draw_frame img11
     59                              <1>  set_cursor 10,10
-    45 00001864 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 00000356 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 00001867 BE[D408]            <1>  mov si,%1
-    61 0000186A E8A2E9              <1>  call draw_spr
-    62 0000186D E872FF              <1>  call _wait
-    92                                    draw_frame img2
+    60 00000359 BE[8B2E]            <1>  mov si,%1
+    61 0000035C E8B0FE              <1>  call draw_spr
+    62 0000035F E872FF              <1>  call _wait
+    92                                    draw_frame img12
     59                              <1>  set_cursor 10,10
-    45 00001870 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 00000362 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 00001873 BE[D205]            <1>  mov si,%1
-    61 00001876 E896E9              <1>  call draw_spr
-    62 00001879 E866FF              <1>  call _wait
-    93                                    draw_frame img1
+    60 00000365 BE[8D31]            <1>  mov si,%1
+    61 00000368 E8A4FE              <1>  call draw_spr
+    62 0000036B E866FF              <1>  call _wait
+    93                                    draw_frame img13
     59                              <1>  set_cursor 10,10
-    45 0000187C BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    45 0000036E BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <2> 
-    60 0000187F BE[D002]            <1>  mov si,%1
-    61 00001882 E88AE9              <1>  call draw_spr
-    62 00001885 E85AFF              <1>  call _wait
-    94                                  
-    95                                    
-    96                                    ; call player.update
-    97                                    ; call player.draw
-    98                                  
-    99 00001888 45                        inc bp
-   100 00001889 89E8                      mov ax,bp
-   101                                    set_cursor 12,50
-    45 0000188B BFC81B              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   102 0000188E E8C9E8                    call write_number_word     ; draw frame counter
-   103                                    
-   104 00001891 E8EBE8                    call check_keys
-   105 00001894 7503                      jnz .onkey
-   106                                    ;else
-   107 00001896 E951FF                    jmp draw            ; else continue draw loop
-   108                                  
+    60 00000371 BE[8F34]            <1>  mov si,%1
+    61 00000374 E898FE              <1>  call draw_spr
+    62 00000377 E85AFF              <1>  call _wait
+    94                                    draw_frame img14
+    59                              <1>  set_cursor 10,10
+    45 0000037A BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 0000037D BE[9137]            <1>  mov si,%1
+    61 00000380 E88CFE              <1>  call draw_spr
+    62 00000383 E84EFF              <1>  call _wait
+    95                                    draw_frame img15
+    59                              <1>  set_cursor 10,10
+    45 00000386 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 00000389 BE[933A]            <1>  mov si,%1
+    61 0000038C E880FE              <1>  call draw_spr
+    62 0000038F E842FF              <1>  call _wait
+    96                                    draw_frame img16
+    59                              <1>  set_cursor 10,10
+    45 00000392 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 00000395 BE[953D]            <1>  mov si,%1
+    61 00000398 E874FE              <1>  call draw_spr
+    62 0000039B E836FF              <1>  call _wait
+    97                                    draw_frame img17
+    59                              <1>  set_cursor 10,10
+    45 0000039E BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003A1 BE[9740]            <1>  mov si,%1
+    61 000003A4 E868FE              <1>  call draw_spr
+    62 000003A7 E82AFF              <1>  call _wait
+    98                                    draw_frame img18
+    59                              <1>  set_cursor 10,10
+    45 000003AA BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003AD BE[9943]            <1>  mov si,%1
+    61 000003B0 E85CFE              <1>  call draw_spr
+    62 000003B3 E81EFF              <1>  call _wait
+    99                                    draw_frame img19
+    59                              <1>  set_cursor 10,10
+    45 000003B6 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003B9 BE[9B46]            <1>  mov si,%1
+    61 000003BC E850FE              <1>  call draw_spr
+    62 000003BF E812FF              <1>  call _wait
+   100                                    draw_frame img20
+    59                              <1>  set_cursor 10,10
+    45 000003C2 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003C5 BE[9D49]            <1>  mov si,%1
+    61 000003C8 E844FE              <1>  call draw_spr
+    62 000003CB E806FF              <1>  call _wait
+   101                                    draw_frame img21
+    59                              <1>  set_cursor 10,10
+    45 000003CE BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003D1 BE[9F4C]            <1>  mov si,%1
+    61 000003D4 E838FE              <1>  call draw_spr
+    62 000003D7 E8FAFE              <1>  call _wait
+   102                                    draw_frame img22
+    59                              <1>  set_cursor 10,10
+    45 000003DA BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003DD BE[A14F]            <1>  mov si,%1
+    61 000003E0 E82CFE              <1>  call draw_spr
+    62 000003E3 E8EEFE              <1>  call _wait
+   103                                    draw_frame img23
+    59                              <1>  set_cursor 10,10
+    45 000003E6 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003E9 BE[A352]            <1>  mov si,%1
+    61 000003EC E820FE              <1>  call draw_spr
+    62 000003EF E8E2FE              <1>  call _wait
+   104                                    draw_frame img24
+    59                              <1>  set_cursor 10,10
+    45 000003F2 BFA816              <2>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <2> 
+    60 000003F5 BE[A555]            <1>  mov si,%1
+    61 000003F8 E814FE              <1>  call draw_spr
+    62 000003FB E8D6FE              <1>  call _wait
+   105                                  
+   106                                    
+   107                                    ; call player.update
+   108                                    ; call player.draw
    109                                  
-   110                                  
-   111                                  
-   112                                  .onkey:
-   113                                    set_cursor 2,10
-    45 00001899 BFA804              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   110 000003FE 45                        inc bp
+   111 000003FF 89E8                      mov ax,bp
+   112                                    set_cursor 12,50
+    45 00000401 BFC81B              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   114 0000189C 2EA1[0400]                mov ax,[cs:key]
-   115 000018A0 E89FE8                    call write_binary_word
-   116                                  
-   117 000018A3 3D6108                    cmp ax,CTRL+'a'
-   118 000018A6 7428                        je .on_key_ctrl_a
-   119 000018A8 3D4108                    cmp ax,CTRL+'A'
-   120 000018AB 7428                        je .on_key_ctrl_shift_a
-   121 000018AD 83F861                    cmp ax,'a'
-   122 000018B0 7428                        je .on_key_a
-   123 000018B2 83F841                    cmp ax,'A'
-   124 000018B5 7428                        je .on_key_shift_a
-   125 000018B7 83F81C                    cmp ax,KEY_LEFT
-   126 000018BA 7428                        je .on_key_left
-   127 000018BC 83F81D                    cmp ax,KEY_RIGHT
-   128 000018BF 7428                        je .on_key_right
-   129 000018C1 83F81E                    cmp ax,KEY_UP
-   130 000018C4 7428                        je .on_key_up
-   131 000018C6 83F81F                    cmp ax,KEY_DOWN
-   132 000018C9 7428                        je .on_key_down
-   133                                    ;else
-   134 000018CB BB[C302]                    mov bx, msg_other_key             ; msg_other_key
-   135 000018CE EB28                        jmp .print_msg
-   136                                  
-   137                                  .on_key_ctrl_a:
-   138 000018D0 BB[7502]                  mov bx, msg_ctrl_a                  ; msg_ctrl_a
-   139 000018D3 EB23                      jmp .print_msg
-   140                                  
-   141                                  .on_key_ctrl_shift_a:
-   142 000018D5 BB[8202]                  mov bx, msg_ctrl_shift_a            ; msg_ctrl_shift_a
-   143 000018D8 EB1E                      jmp .print_msg
-   144                                  
-   145                                  .on_key_a:
-   146 000018DA BB[5B02]                  mov bx, msg_a                       ; msg_a
-   147 000018DD EB19                      jmp .print_msg
-   148                                  
-   149                                  .on_key_shift_a:
-   150 000018DF BB[6802]                  mov bx, msg_shift_a                 ; msg_shift_a
-   151 000018E2 EB14                      jmp .print_msg
-   152                                  
-   153                                  .on_key_left:
-   154 000018E4 BB[8F02]                  mov bx, msg_left                    ; msg_left
-   155 000018E7 EB0F                      jmp .print_msg
-   156                                  
-   157                                  .on_key_right:
-   158 000018E9 BB[9C02]                  mov bx, msg_right                   ; msg_right
-   159 000018EC EB0A                      jmp .print_msg
-   160                                  
-   161                                  .on_key_up:
-   162 000018EE BB[A902]                  mov bx, msg_up                      ; msg_up
-   163 000018F1 EB05                      jmp .print_msg
-   164                                  
-   165                                  .on_key_down:
-   166 000018F3 BB[B602]                  mov bx, msg_down                    ; msg_down
-   167 000018F6 EB00                      jmp .print_msg
-   168                                  
-   169                                  .print_msg:
-   170                                    set_cursor 1,10
-    45 000018F8 BF6802              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   113 00000404 E853FD                    call write_number_word     ; draw frame counter
+   114                                    
+   115 00000407 E875FD                    call check_keys
+   116 0000040A 7503                      jnz .onkey
+   117                                    ;else
+   118 0000040C E9CDFE                    jmp draw            ; else continue draw loop
+   119                                  
+   120                                  
+   121                                  
+   122                                  
+   123                                  .onkey:
+   124                                    set_cursor 2,10
+    45 0000040F BFA804              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   171 000018FB E820E8                    call write_string
-   172                                  
-   173 000018FE E9E9FE                    jmp draw
-   174                                  
+   125 00000412 2EA1[0400]                mov ax,[cs:key]
+   126 00000416 E829FD                    call write_binary_word
+   127                                  
+   128 00000419 3D6108                    cmp ax,CTRL+'a'
+   129 0000041C 7428                        je .on_key_ctrl_a
+   130 0000041E 3D4108                    cmp ax,CTRL+'A'
+   131 00000421 7428                        je .on_key_ctrl_shift_a
+   132 00000423 83F861                    cmp ax,'a'
+   133 00000426 7428                        je .on_key_a
+   134 00000428 83F841                    cmp ax,'A'
+   135 0000042B 7428                        je .on_key_shift_a
+   136 0000042D 83F81C                    cmp ax,KEY_LEFT
+   137 00000430 7428                        je .on_key_left
+   138 00000432 83F81D                    cmp ax,KEY_RIGHT
+   139 00000435 7428                        je .on_key_right
+   140 00000437 83F81E                    cmp ax,KEY_UP
+   141 0000043A 7428                        je .on_key_up
+   142 0000043C 83F81F                    cmp ax,KEY_DOWN
+   143 0000043F 7428                        je .on_key_down
+   144                                    ;else
+   145 00000441 BB[C302]                    mov bx, msg_other_key             ; msg_other_key
+   146 00000444 EB28                        jmp .print_msg
+   147                                  
+   148                                  .on_key_ctrl_a:
+   149 00000446 BB[7502]                  mov bx, msg_ctrl_a                  ; msg_ctrl_a
+   150 00000449 EB23                      jmp .print_msg
+   151                                  
+   152                                  .on_key_ctrl_shift_a:
+   153 0000044B BB[8202]                  mov bx, msg_ctrl_shift_a            ; msg_ctrl_shift_a
+   154 0000044E EB1E                      jmp .print_msg
+   155                                  
+   156                                  .on_key_a:
+   157 00000450 BB[5B02]                  mov bx, msg_a                       ; msg_a
+   158 00000453 EB19                      jmp .print_msg
+   159                                  
+   160                                  .on_key_shift_a:
+   161 00000455 BB[6802]                  mov bx, msg_shift_a                 ; msg_shift_a
+   162 00000458 EB14                      jmp .print_msg
+   163                                  
+   164                                  .on_key_left:
+   165 0000045A BB[8F02]                  mov bx, msg_left                    ; msg_left
+   166 0000045D EB0F                      jmp .print_msg
+   167                                  
+   168                                  .on_key_right:
+   169 0000045F BB[9C02]                  mov bx, msg_right                   ; msg_right
+   170 00000462 EB0A                      jmp .print_msg
+   171                                  
+   172                                  .on_key_up:
+   173 00000464 BB[A902]                  mov bx, msg_up                      ; msg_up
+   174 00000467 EB05                      jmp .print_msg
    175                                  
-   176                                  %include "assets.asm"
+   176                                  .on_key_down:
+   177 00000469 BB[B602]                  mov bx, msg_down                    ; msg_down
+   178 0000046C EB00                      jmp .print_msg
+   179                                  
+   180                                  .print_msg:
+   181                                    set_cursor 1,10
+    45 0000046E BF6802              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   182 00000471 E8AAFC                    call write_string
+   183                                  
+   184 00000474 E965FE                    jmp draw
+   185                                  
+   186                                  
+   187                                  %include "assets.asm"
      1                              <1> img:
-     2 00001901 <bin C0h>           <1>   .walk_bw_1 incbin "data/sprites/walk_bw_1.bin"
-     3 000019C1 <bin C0h>           <1>   .walk_bw_2 incbin "data/sprites/walk_bw_2.bin"
-     4 00001A81 <bin C0h>           <1>   .walk_fw_1 incbin "data/sprites/walk_fw_1.bin"
-     5 00001B41 <bin C0h>           <1>   .walk_fw_2 incbin "data/sprites/walk_fw_2.bin"
-     6 00001C01 <bin C0h>           <1>   .walk_left_1 incbin "data/sprites/walk_left_1.bin"
-     7 00001CC1 <bin C0h>           <1>   .walk_left_2 incbin "data/sprites/walk_left_2.bin"
-     8 00001D81 <bin C0h>           <1>   .walk_left_3 incbin "data/sprites/walk_left_3.bin"
-     9 00001E41 <bin C0h>           <1>   .walk_left_4 incbin "data/sprites/walk_left_4.bin"
-    10 00001F01 <bin C0h>           <1>   .walk_right_1 incbin "data/sprites/walk_right_1.bin"
-    11 00001FC1 <bin C0h>           <1>   .walk_right_2 incbin "data/sprites/walk_right_2.bin"
-    12 00002081 <bin C0h>           <1>   .walk_right_3 incbin "data/sprites/walk_right_3.bin"
-    13 00002141 <bin C0h>           <1>   .walk_right_4 incbin "data/sprites/walk_right_4.bin"
-    14 00002201 <bin C0h>           <1>   .stand_1 incbin "data/sprites/stand_1.bin"
-    15 000022C1 <bin C0h>           <1>   .stand_2 incbin "data/sprites/stand_2.bin"
-    16 00002381 <bin C0h>           <1>   .stand_3 incbin "data/sprites/stand_3.bin"
-    17 00002441 <bin C0h>           <1>   .stand_4 incbin "data/sprites/stand_4.bin"
+     2 00000477 <bin C0h>           <1>   .walk_bw_1 incbin "data/sprites/walk_bw_1.bin"
+     3 00000537 <bin C0h>           <1>   .walk_bw_2 incbin "data/sprites/walk_bw_2.bin"
+     4 000005F7 <bin C0h>           <1>   .walk_fw_1 incbin "data/sprites/walk_fw_1.bin"
+     5 000006B7 <bin C0h>           <1>   .walk_fw_2 incbin "data/sprites/walk_fw_2.bin"
+     6 00000777 <bin C0h>           <1>   .walk_left_1 incbin "data/sprites/walk_left_1.bin"
+     7 00000837 <bin C0h>           <1>   .walk_left_2 incbin "data/sprites/walk_left_2.bin"
+     8 000008F7 <bin C0h>           <1>   .walk_left_3 incbin "data/sprites/walk_left_3.bin"
+     9 000009B7 <bin C0h>           <1>   .walk_left_4 incbin "data/sprites/walk_left_4.bin"
+    10 00000A77 <bin C0h>           <1>   .walk_right_1 incbin "data/sprites/walk_right_1.bin"
+    11 00000B37 <bin C0h>           <1>   .walk_right_2 incbin "data/sprites/walk_right_2.bin"
+    12 00000BF7 <bin C0h>           <1>   .walk_right_3 incbin "data/sprites/walk_right_3.bin"
+    13 00000CB7 <bin C0h>           <1>   .walk_right_4 incbin "data/sprites/walk_right_4.bin"
+    14 00000D77 <bin C0h>           <1>   .stand_1 incbin "data/sprites/stand_1.bin"
+    15 00000E37 <bin C0h>           <1>   .stand_2 incbin "data/sprites/stand_2.bin"
+    16 00000EF7 <bin C0h>           <1>   .stand_3 incbin "data/sprites/stand_3.bin"
+    17 00000FB7 <bin C0h>           <1>   .stand_4 incbin "data/sprites/stand_4.bin"
     18                              <1> 
     19                              <1> 
-   177                                  ; kipjes: incbin "data/bg/200x176.bin"
-   178                                  
-   179                                  
-   180                                  
-   181 00002501 00<rep 2AAFFh>          times (180*1024)-($-$$) db 0
-   182                                  
-   183                                  
-   184                                  
+   188                                  ; kipjes: incbin "data/bg/200x176.bin"
+   189                                  
+   190                                  
+   191 00001077 <bin 302h>              img1: incbin "data/ship/ship-1.spr"
+   192 00001379 <bin 302h>              img2: incbin "data/ship/ship-2.spr"
+   193 0000167B <bin 302h>              img3: incbin "data/ship/ship-3.spr"
+   194 0000197D <bin 302h>              img4: incbin "data/ship/ship-4.spr"
+   195 00001C7F <bin 302h>              img5: incbin "data/ship/ship-5.spr"
+   196 00001F81 <bin 302h>              img6: incbin "data/ship/ship-6.spr"
+   197 00002283 <bin 302h>              img7: incbin "data/ship/ship-7.spr"
+   198 00002585 <bin 302h>              img8: incbin "data/ship/ship-8.spr"
+   199 00002887 <bin 302h>              img9: incbin "data/ship/ship-9.spr"
+   200 00002B89 <bin 302h>              img10: incbin "data/ship/ship-10.spr"
+   201 00002E8B <bin 302h>              img11: incbin "data/ship/ship-11.spr"
+   202 0000318D <bin 302h>              img12: incbin "data/ship/ship-12.spr"
+   203 0000348F <bin 302h>              img13: incbin "data/ship/ship-13.spr"
+   204 00003791 <bin 302h>              img14: incbin "data/ship/ship-14.spr"
+   205 00003A93 <bin 302h>              img15: incbin "data/ship/ship-15.spr"
+   206 00003D95 <bin 302h>              img16: incbin "data/ship/ship-16.spr"
+   207 00004097 <bin 302h>              img17: incbin "data/ship/ship-17.spr"
+   208 00004399 <bin 302h>              img18: incbin "data/ship/ship-18.spr"
+   209 0000469B <bin 302h>              img19: incbin "data/ship/ship-19.spr"
+   210 0000499D <bin 302h>              img20: incbin "data/ship/ship-20.spr"
+   211 00004C9F <bin 302h>              img21: incbin "data/ship/ship-21.spr"
+   212 00004FA1 <bin 302h>              img22: incbin "data/ship/ship-22.spr"
+   213 000052A3 <bin 302h>              img23: incbin "data/ship/ship-23.spr"
+   214 000055A5 <bin 302h>              img24: incbin "data/ship/ship-24.spr"
+   215                                  
+   216                                  
+   217 000058A7 00<rep 27759h>          times (180*1024)-($-$$) db 0
+   218                                  
+   219                                  
+   220                                  

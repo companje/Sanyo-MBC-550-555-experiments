@@ -1,4 +1,4 @@
-prefix="0289. kb-sprite-"
+prefix="0290. move-sprite-"
 base=app
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
 

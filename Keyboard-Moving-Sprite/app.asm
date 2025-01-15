@@ -1,182 +1,253 @@
 %include "sanyo.asm"
 %include "player.asm"
 
-msg_a:            db '"a"         ',0
-msg_shift_a:      db 'Shift+A     ',0
-msg_ctrl_a:       db 'Ctrl+A      ',0
-msg_ctrl_shift_a: db 'Ctrl+Shift+A',0
-msg_left:         db 'LEFT        ',0
-msg_right:        db 'RIGHT       ',0
-msg_up:           db 'UP          ',0
-msg_down:         db 'DOWN        ',0
-msg_other_key:    db 'Other key   ',0
+msg_other_key: db 'Other key   ',0
+msg_spaces:    db '     ',0
 
-img1: incbin "data/ship-1.spr"
-img2: incbin "data/ship-2.spr"
-img3: incbin "data/ship-3.spr"
-img4: incbin "data/ship-4.spr"
-img5: incbin "data/ship-5.spr"
-img6: incbin "data/ship-6.spr"
-img7: incbin "data/ship-7.spr"
+ship:
+ .pos:
+ .pos.x: dw 73728/2
+ .pos.y: dw 51200/2 + 2000
+ .vel: 
+ .vel.x: dw -10
+ .vel.y: dw 0
+ .vel.flags: dw 0
+ .acc:
+ .acc.x: dw 0
+ .acc.y: dw 0
+ .forces:
+ .forces.x: dw 0
+ .forces.y: dw 0
+ .angle: dw 0
 
-size equ 0
-w equ 0
-h equ 1
-pos equ 2
-x equ 2
-y equ 3
-vel equ 4
-vx equ 4
-vy equ 5
-frame equ 6
-frames equ 7
-framesize equ 8
-img_data equ 9
+color: db Color.G
 
-ship: 
-  .size.w db 4
-  .size.h db 4
-  .pos.x db 0
-  .pos.y db 0
-  .vel.vx db -1
-  .vel.vy db 1
-  .frame db 0
-  .frames db 4
-  .framesize db 192
-  .img_data dw img1+2
-
-
-DELAY equ 4000
-
-; img_player: incbin "data/player/Sprite-0013-32x32.spr"
-
-; %macro set_cursor 2
-;   mov di,%1 * BYTES_PER_ROW + %2 * 4  ; zero based
-;   ; mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4   ; one based
-; %endmacro
-
-%macro draw_frame 1
-  set_cursor 10,10
-  mov si,%1
-  call draw_spr
-  call _wait
-%endmacro
+; ───────────────────────────────────────────────────────────────────────────
 
 setup:
   xor bp,bp
-
   jmp draw
 
-_wait:
-  mov cx,DELAY
-  .lp aam
-  loop .lp
+; ───────────────────────────────────────────────────────────────────────────
+
+; vec_mult:   ; cx scalar, ax=x, bx=y
+  
+
+update_ship:
+  
+  ; x+=vx
+  mov ax,[ship.pos.x]       ; 0..73728  (65536)
+  add ax,[ship.vel.x]
+  mov [ship.pos.x],ax
+
+  ; y+=vy
+  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
+  add ax,[ship.vel.y]
+  mov [ship.pos.y],ax
+
+  ; vx*=98%
+  mov ax, [ship.vel.x]
+  cwd                 ; Convert word to double word (sign-extend AX into DX)
+  mov cx, 98
+  imul cx             ; Signed multiplication
+  mov cx, 100
+  idiv cx             ; Signed division
+  mov [ship.vel.x], ax
+
+  ; vy*=98%
+  mov ax, [ship.vel.y]
+  cwd                 ; Convert word to double word (sign-extend AX into DX)
+  mov cx, 98
+  imul cx             ; Signed multiplication
+  mov cx, 100
+  idiv cx             ; Signed division
+  mov [ship.vel.y], ax
+
+  ; velocity flags
+  or word [ship.vel.x],0
+  pushf
+  or word [ship.vel.y],0
+  pushf
+  pop ax
+
+  mov bh,0
+  mov bl,al
+  mov cl,6
+  shr bl,cl
+  mov cl,2
+  shl bl,cl
+
+  pop ax
+  mov cl,6
+  shr ax,cl
+  or ax,bx
+  mov ah,bl
+
+  and ax,0b1111
+  mov word [ship.vel.flags],ax
+
+
   ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
+draw_ship:
+  mov ax,[ship.pos.x]
+  mov bx,[ship.pos.y]
+  call world2screen
+  call calc_di_from_bx
+  mov ax,GREEN
+  mov es,ax
+  mov ax,-1
+  stosw
+  stosw
+
+  ret
+
+; ───────────────────────────────────────────────────────────────────────────
 
 draw:
   push cs
-  pop ds
+  pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
+
+  push word [ship.pos.x] ; prev pos.x
+  push word [ship.pos.y] ; prev pos.y
+
+  call update_ship
+
+.if_moved
+  pop bx;  prev ship.pos.y
+  pop ax;  prev ship.pos.x
+  cmp bx,[ship.pos.y]
+  jne .undraw_ship
+  cmp ax,[ship.pos.x]
+  jne .undraw_ship
+  jmp .end_if_moved
+.undraw_ship
+  call world2screen ; ax and bx are already set by pop bx, pop ax
+  call calc_di_from_bx
+  mov ax,GREEN
+  mov es,ax
+  mov ax,0
+  stosw
+  stosw
+.end_if_moved
 
 
-  draw_frame img1
-  draw_frame img2
-  draw_frame img3
-  draw_frame img4
-  draw_frame img5
-  draw_frame img6
-  draw_frame img7
-  draw_frame img7
-  draw_frame img6
-  draw_frame img4
-  draw_frame img3
-  draw_frame img2
-  draw_frame img1
-
-  
-  ; call player.update
-  ; call player.draw
+  call draw_ship
+  call _wait
 
   inc bp
   mov ax,bp
   set_cursor 12,50
   call write_number_word     ; draw frame counter
-  
-  call check_keys
-  jnz .onkey
-  ;else
-  jmp draw            ; else continue draw loop
-
-
-
-
-.onkey:
-  set_cursor 2,10
-  mov ax,[cs:key]
-  call write_binary_word
-
-  cmp ax,CTRL+'a'
-    je .on_key_ctrl_a
-  cmp ax,CTRL+'A'
-    je .on_key_ctrl_shift_a
-  cmp ax,'a'
-    je .on_key_a
-  cmp ax,'A'
-    je .on_key_shift_a
-  cmp ax,KEY_LEFT
-    je .on_key_left
-  cmp ax,KEY_RIGHT
-    je .on_key_right
-  cmp ax,KEY_UP
-    je .on_key_up
-  cmp ax,KEY_DOWN
-    je .on_key_down
-  ;else
-    mov bx, msg_other_key             ; msg_other_key
-    jmp .print_msg
-
-.on_key_ctrl_a:
-  mov bx, msg_ctrl_a                  ; msg_ctrl_a
-  jmp .print_msg
-
-.on_key_ctrl_shift_a:
-  mov bx, msg_ctrl_shift_a            ; msg_ctrl_shift_a
-  jmp .print_msg
-
-.on_key_a:
-  mov bx, msg_a                       ; msg_a
-  jmp .print_msg
-
-.on_key_shift_a:
-  mov bx, msg_shift_a                 ; msg_shift_a
-  jmp .print_msg
-
-.on_key_left:
-  mov bx, msg_left                    ; msg_left
-  jmp .print_msg
-
-.on_key_right:
-  mov bx, msg_right                   ; msg_right
-  jmp .print_msg
-
-.on_key_up:
-  mov bx, msg_up                      ; msg_up
-  jmp .print_msg
-
-.on_key_down:
-  mov bx, msg_down                    ; msg_down
-  jmp .print_msg
-
-.print_msg:
-  set_cursor 1,10
+  mov bx,msg_spaces
   call write_string
 
-  jmp draw
+  mov ax,[ship.vel.x]
+  set_cursor 13,50
+  call write_number_word     ; draw vx
+  mov bx,msg_spaces
+  call write_string
+
+  mov ax,[ship.vel.y]
+  set_cursor 14,50
+  call write_number_word     ; draw vy
+  mov bx,msg_spaces
+  call write_string
+
+  mov ax,[ship.vel.flags]
+  set_cursor 15,50
+  call write_binary_word     ; flags
+
+  call check_keys
+  jnz on_key
+  ;else
+  jmp draw          ; this code is only getting called when no key is pressed
+
+; ───────────────────────────────────────────────────────────────────────────
+
+on_key:
+  set_cursor 2,10
+  mov ax,[key]
+  call write_binary_word
+  cmp ax,'w'
+  je on_key_w
+  cmp ax,'a'
+  je on_key_a
+  cmp ax,'s'
+  je on_key_s
+  cmp ax,'d'
+  je on_key_d
+  mov bx, msg_other_key             ; msg_other_key
+  call print_msg
+.done
+  jmp draw  ; no ret here because onkey is called by jnz
 
 
-%include "assets.asm"
-; kipjes: incbin "data/bg/200x176.bin"
+STEP equ 100
 
+; ───────────────────────────────────────────────────────────────────────────
 
+on_key_w:
+  sub word [ship.vel.y], STEP
+  jmp on_key.done
+
+; ───────────────────────────────────────────────────────────────────────────
+
+on_key_a:
+  sub word [ship.vel.x], STEP
+  jmp on_key.done
+
+; ───────────────────────────────────────────────────────────────────────────
+
+on_key_s:
+  add word [ship.vel.y], STEP
+  jmp on_key.done
+
+; ───────────────────────────────────────────────────────────────────────────
+
+on_key_d:
+  add word [ship.vel.x], STEP
+  jmp on_key.done
+
+; ───────────────────────────────────────────────────────────────────────────
+
+print_msg:
+  set_cursor 1,10
+  call write_string
+  ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
+_wait:
+  DELAY EQU 250
+  mov cx,DELAY
+  .lp aam
+  loop .lp
+  ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
+world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
+  ; WORLD:
+  ;   0..73728  (65536) -> col
+  ;   0..51200  (=1024*50) -> row
+  ; SCREEN (ROW,COL):
+  ;   0..49 (row)
+  ;   0..71 (col)
+  mov cl,10
+  shr bx,cl   ; //bl=row 0..49
+  shr ax,cl   ; 
+  mov bh,al   ; //bh=col 0..71
+  xchg bh,bl
+  ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
+; 180 items but full 360 range divide AX by 2 or SHR AX,1 then do XLAT
+; lut_sin: db 0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,50,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99,100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,50,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-49,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-50,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3
+; lut_cos: db 100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,49,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-50,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-49,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3,0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,49,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99
 
 times (180*1024)-($-$$) db 0
 

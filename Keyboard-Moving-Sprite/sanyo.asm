@@ -3,7 +3,7 @@ cpu 8086
 
 jmp boot
 
-NUM_SECTORS equ 30          ; number of sectors to read
+NUM_SECTORS equ 20          ; number of sectors to read
 BAR_WIDTH equ 30
 COLS  equ 72
 ROWS  equ 50
@@ -216,6 +216,10 @@ clear_channel:
 
 write_char:   ; ds=FONT, es=GREEN, al=charcode
   ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
+  
+  push ds
+  push es
+
   push ax
   push ax
   mov ax,GREEN
@@ -237,6 +241,9 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   xor di,di      ; move to left top. change later to scroll
 .return
   pop ax
+
+  pop es
+  pop ds
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────

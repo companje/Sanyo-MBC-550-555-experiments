@@ -3,7 +3,7 @@ cpu 8086
 
 jmp boot
 
-NUM_SECTORS equ 30          ; number of sectors to read
+NUM_SECTORS equ 50          ; number of sectors to read
 BAR_WIDTH equ 30
 COLS  equ 72
 ROWS  equ 50
