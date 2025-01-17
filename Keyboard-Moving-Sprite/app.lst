@@ -161,7 +161,7 @@
    160 000000A1 E82D00              <1>   call clear_green
    161 000000A4 0E                  <1>   push cs
    162 000000A5 1F                  <1>   pop ds
-   163 000000A6 E9DE01              <1>   jmp setup
+   163 000000A6 E9F201              <1>   jmp setup
    164                              <1> 
    165                              <1> ; ───────────────────────────────────────────────────────────────────────────
    166                              <1> 
@@ -612,247 +612,334 @@
     22                                  
     23 00000286 02                      color: db Color.G
     24                                  
-    25                                  ; ───────────────────────────────────────────────────────────────────────────
+    25 00000287 [0A1F][1028][1631]-     img_lut: dw img_down_right, img_down, img_down_left, img_right, img_up, img_left, img_up, img_up_right, img_up, img_up_left
+    25 0000028D [0416][F803][1C3A]-
+    25 00000293 [F803][FE0C][F803]-
+    25 00000299 [2243]             
     26                                  
-    27                                  setup:
-    28 00000287 31ED                      xor bp,bp
-    29 00000289 EB77                      jmp draw
-    30                                  
-    31                                  ; ───────────────────────────────────────────────────────────────────────────
+    27                                  ; ───────────────────────────────────────────────────────────────────────────
+    28                                  
+    29                                  setup:
+    30 0000029B 31ED                      xor bp,bp
+    31 0000029D EB7E                      jmp draw
     32                                  
-    33                                  ; vec_mult:   ; cx scalar, ax=x, bx=y
-    34                                    
-    35                                  
-    36                                  update_ship:
-    37                                    
-    38                                    ; x+=vx
-    39 0000028B A1[7202]                  mov ax,[ship.pos.x]       ; 0..73728  (65536)
-    40 0000028E 0306[7602]                add ax,[ship.vel.x]
-    41 00000292 A3[7202]                  mov [ship.pos.x],ax
-    42                                  
-    43                                    ; y+=vy
-    44 00000295 A1[7402]                  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
-    45 00000298 0306[7802]                add ax,[ship.vel.y]
-    46 0000029C A3[7402]                  mov [ship.pos.y],ax
-    47                                  
-    48                                    ; vx*=98%
-    49 0000029F A1[7602]                  mov ax, [ship.vel.x]
-    50 000002A2 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
-    51 000002A3 B96200                    mov cx, 98
-    52 000002A6 F7E9                      imul cx             ; Signed multiplication
-    53 000002A8 B96400                    mov cx, 100
-    54 000002AB F7F9                      idiv cx             ; Signed division
-    55 000002AD A3[7602]                  mov [ship.vel.x], ax
-    56                                  
-    57                                    ; vy*=98%
-    58 000002B0 A1[7802]                  mov ax, [ship.vel.y]
-    59 000002B3 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
-    60 000002B4 B96200                    mov cx, 98
-    61 000002B7 F7E9                      imul cx             ; Signed multiplication
-    62 000002B9 B96400                    mov cx, 100
-    63 000002BC F7F9                      idiv cx             ; Signed division
-    64 000002BE A3[7802]                  mov [ship.vel.y], ax
-    65                                  
-    66                                    ; velocity flags
-    67 000002C1 830E[7602]00              or word [ship.vel.x],0
-    68 000002C6 9C                        pushf
-    69 000002C7 830E[7802]00              or word [ship.vel.y],0
-    70 000002CC 9C                        pushf
-    71 000002CD 58                        pop ax
-    72                                  
-    73 000002CE B700                      mov bh,0
-    74 000002D0 88C3                      mov bl,al
-    75 000002D2 B106                      mov cl,6
-    76 000002D4 D2EB                      shr bl,cl
-    77 000002D6 B102                      mov cl,2
-    78 000002D8 D2E3                      shl bl,cl
-    79                                    ; and bl,0b11000000
-    80                                  
-    81 000002DA 58                        pop ax
-    82 000002DB B106                      mov cl,6
-    83 000002DD D3E8                      shr ax,cl
-    84 000002DF 09D8                      or ax,bx
-    85 000002E1 88DC                      mov ah,bl
-    86                                  
-    87 000002E3 83E00F                    and ax,0b1111
-    88 000002E6 A3[7A02]                  mov word [ship.vel.flags],ax
-    89                                  
-    90                                  
-    91 000002E9 C3                        ret
-    92                                  
-    93                                  ; ───────────────────────────────────────────────────────────────────────────
+    33                                  ; ───────────────────────────────────────────────────────────────────────────
+    34                                  
+    35                                  ; vec_mult:   ; cx scalar, ax=x, bx=y
+    36                                    
+    37                                  
+    38                                  update_ship:
+    39                                    
+    40                                    ; x+=vx
+    41 0000029F A1[7202]                  mov ax,[ship.pos.x]       ; 0..73728  (65536)
+    42 000002A2 0306[7602]                add ax,[ship.vel.x]
+    43 000002A6 A3[7202]                  mov [ship.pos.x],ax
+    44                                  
+    45                                    ; y+=vy
+    46 000002A9 A1[7402]                  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
+    47 000002AC 0306[7802]                add ax,[ship.vel.y]
+    48 000002B0 A3[7402]                  mov [ship.pos.y],ax
+    49                                  
+    50                                    ; vx*=98%
+    51 000002B3 A1[7602]                  mov ax, [ship.vel.x]
+    52 000002B6 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
+    53 000002B7 B96300                    mov cx, 99
+    54 000002BA F7E9                      imul cx             ; Signed multiplication
+    55 000002BC B96400                    mov cx, 100
+    56 000002BF F7F9                      idiv cx             ; Signed division
+    57 000002C1 A3[7602]                  mov [ship.vel.x], ax
+    58                                  
+    59                                    ; vy*=98%
+    60 000002C4 A1[7802]                  mov ax, [ship.vel.y]
+    61 000002C7 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
+    62 000002C8 B96300                    mov cx, 99
+    63 000002CB F7E9                      imul cx             ; Signed multiplication
+    64 000002CD B96400                    mov cx, 100
+    65 000002D0 F7F9                      idiv cx             ; Signed division
+    66 000002D2 A3[7802]                  mov [ship.vel.y], ax
+    67                                  
+    68                                  ; 0=down-right
+    69                                  ; 1=down
+    70                                  ; 2=down-left
+    71                                  ; 4=rechts
+    72                                  ; 5=#### IDLE ####
+    73                                  ; 6=links
+    74                                  ; 8=up-right?
+    75                                  ; 9=up
+    76                                  ; 10=up-left
+    77                                  
+    78                                    ; velocity flags
+    79 000002D5 A0[7602]                  mov al,[ship.vel.x]
+    80 000002D8 0C00                      or al,0
+    81 000002DA 9C                        pushf
+    82 000002DB 58                        pop ax
+    83 000002DC B106                      mov cl,6
+    84 000002DE D2E8                      shr al,cl
+    85 000002E0 86D8                      xchg al,bl
+    86 000002E2 A0[7802]                  mov al,[ship.vel.y]
+    87 000002E5 0C00                      or al,0
+    88 000002E7 9C                        pushf
+    89 000002E8 58                        pop ax
+    90 000002E9 B104                      mov cl,4
+    91 000002EB D2E8                      shr al,cl
+    92 000002ED 09D8                      or ax,bx
+    93 000002EF 83E00F                    and ax,0b1111
     94                                  
-    95                                  draw_ship:
-    96 000002EA A1[7202]                  mov ax,[ship.pos.x]
-    97 000002ED 8B1E[7402]                mov bx,[ship.pos.y]
-    98 000002F1 E8CF00                    call world2screen
-    99 000002F4 E856FF                    call calc_di_from_bx
-   100 000002F7 B8001C                    mov ax,GREEN
-   101 000002FA 8EC0                      mov es,ax
-   102 000002FC B8FFFF                    mov ax,-1
-   103 000002FF AB                        stosw
-   104 00000300 AB                        stosw
-   105                                  
-   106 00000301 C3                        ret
-   107                                  
-   108                                  ; ───────────────────────────────────────────────────────────────────────────
+    95                                    ; or word [ship.vel.y],0
+    96                                    ; pushf
+    97                                    ; pop bx
+    98                                  
+    99                                    ; xchg ah,al
+   100                                    ; or ax,bx
+   101                                    ; and ax,0b000
+   102                                  
+   103                                    ; mov bh,0
+   104                                    ; mov bl,al
+   105                                    ; mov cl,6
+   106                                    ; shr bl,cl
+   107                                    ; mov cl,2
+   108                                    ; shl bl,cl
    109                                  
-   110                                  draw:
-   111 00000302 0E                        push cs
-   112 00000303 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
-   113                                  
-   114 00000304 FF36[7202]                push word [ship.pos.x] ; prev pos.x
-   115 00000308 FF36[7402]                push word [ship.pos.y] ; prev pos.y
+   110                                    ; pop ax
+   111                                    ; mov cl,6
+   112                                    ; shr ax,cl
+   113                                    ; or ax,bx
+   114                                    ; mov ah,bl
+   115                                  
    116                                  
-   117 0000030C E87CFF                    call update_ship
+   117 000002F2 A3[7A02]                  mov word [ship.vel.flags],ax
    118                                  
-   119                                  .if_moved
-   120 0000030F 5B                        pop bx;  prev ship.pos.y
-   121 00000310 58                        pop ax;  prev ship.pos.x
-   122 00000311 3B1E[7402]                cmp bx,[ship.pos.y]
-   123 00000315 7508                      jne .undraw_ship
-   124 00000317 3B06[7202]                cmp ax,[ship.pos.x]
-   125 0000031B 7502                      jne .undraw_ship
-   126 0000031D EB10                      jmp .end_if_moved
-   127                                  .undraw_ship
-   128 0000031F E8A100                    call world2screen ; ax and bx are already set by pop bx, pop ax
-   129 00000322 E828FF                    call calc_di_from_bx
-   130 00000325 B8001C                    mov ax,GREEN
-   131 00000328 8EC0                      mov es,ax
-   132 0000032A B80000                    mov ax,0
-   133 0000032D AB                        stosw
-   134 0000032E AB                        stosw
-   135                                  .end_if_moved
-   136                                  
-   137                                  
-   138 0000032F E8B8FF                    call draw_ship
-   139 00000332 E88600                    call _wait
-   140                                  
-   141 00000335 45                        inc bp
-   142 00000336 89E8                      mov ax,bp
-   143                                    set_cursor 12,50
-    45 00000338 BFC81B              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   119                                  
+   120 000002F5 C3                        ret
+   121                                  
+   122                                  ; ───────────────────────────────────────────────────────────────────────────
+   123                                  
+   124                                  draw_ship:
+   125                                    set_cursor 10,10
+    45 000002F6 BFA816              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   144 0000033B E820FE                    call write_number_word     ; draw frame counter
-   145 0000033E BB[6C02]                  mov bx,msg_spaces
-   146 00000341 E8DEFD                    call write_string
+   126                                    ; mov bp,[ship.vel.flags]
+   127                                    ; shl bp,1 ; *=2
+   128 000002F9 BD0500                    mov bp,5
+   129 000002FC 8B9E[8702]                mov bx,[img_lut+bp]
+   130 00000300 89DE                      mov si,bx
+   131 00000302 E80EFF                    call draw_spr
+   132                                  
+   133                                  
+   134 00000305 A1[7202]                  mov ax,[ship.pos.x]
+   135 00000308 8B1E[7402]                mov bx,[ship.pos.y]
+   136 0000030C E8DE00                    call world2screen
+   137 0000030F E83BFF                    call calc_di_from_bx
+   138 00000312 B8001C                    mov ax,GREEN
+   139 00000315 8EC0                      mov es,ax
+   140 00000317 B8FFFF                    mov ax,-1
+   141 0000031A AB                        stosw
+   142 0000031B AB                        stosw
+   143                                  
+   144 0000031C C3                        ret
+   145                                  
+   146                                  ; ───────────────────────────────────────────────────────────────────────────
    147                                  
-   148 00000344 A1[7602]                  mov ax,[ship.vel.x]
-   149                                    set_cursor 13,50
-    45 00000347 BF081E              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   148                                  draw:
+   149 0000031D 0E                        push cs
+   150 0000031E 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
+   151                                  
+   152 0000031F FF36[7202]                push word [ship.pos.x] ; prev pos.x
+   153 00000323 FF36[7402]                push word [ship.pos.y] ; prev pos.y
+   154                                  
+   155 00000327 E875FF                    call update_ship
+   156                                  
+   157                                  .if_moved
+   158 0000032A 5B                        pop bx;  prev ship.pos.y
+   159 0000032B 58                        pop ax;  prev ship.pos.x
+   160 0000032C 3B1E[7402]                cmp bx,[ship.pos.y]
+   161 00000330 7508                      jne .undraw_ship
+   162 00000332 3B06[7202]                cmp ax,[ship.pos.x]
+   163 00000336 7502                      jne .undraw_ship
+   164 00000338 EB10                      jmp .end_if_moved
+   165                                  .undraw_ship
+   166 0000033A E8B000                    call world2screen ; ax and bx are already set by pop bx, pop ax
+   167 0000033D E80DFF                    call calc_di_from_bx
+   168 00000340 B8001C                    mov ax,GREEN
+   169 00000343 8EC0                      mov es,ax
+   170 00000345 B80000                    mov ax,0
+   171 00000348 AB                        stosw
+   172 00000349 AB                        stosw
+   173                                  .end_if_moved
+   174                                  
+   175                                  
+   176 0000034A E8A9FF                    call draw_ship
+   177 0000034D E89500                    call _wait
+   178                                  
+   179 00000350 45                        inc bp
+   180 00000351 89E8                      mov ax,bp
+   181                                    set_cursor 12,50
+    45 00000353 BFC81B              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   150 0000034A E811FE                    call write_number_word     ; draw vx
-   151 0000034D BB[6C02]                  mov bx,msg_spaces
-   152 00000350 E8CFFD                    call write_string
-   153                                  
-   154 00000353 A1[7802]                  mov ax,[ship.vel.y]
-   155                                    set_cursor 14,50
-    45 00000356 BF4820              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   182 00000356 E805FE                    call write_number_word     ; draw frame counter
+   183 00000359 BB[6C02]                  mov bx,msg_spaces
+   184 0000035C E8C3FD                    call write_string
+   185                                  
+   186 0000035F A1[7602]                  mov ax,[ship.vel.x]
+   187                                    set_cursor 13,50
+    45 00000362 BF081E              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   156 00000359 E802FE                    call write_number_word     ; draw vy
-   157 0000035C BB[6C02]                  mov bx,msg_spaces
-   158 0000035F E8C0FD                    call write_string
-   159                                  
-   160 00000362 A1[7A02]                  mov ax,[ship.vel.flags]
-   161                                    set_cursor 15,50
-    45 00000365 BF8822              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   188 00000365 E8F6FD                    call write_number_word     ; draw vx
+   189 00000368 BB[6C02]                  mov bx,msg_spaces
+   190 0000036B E8B4FD                    call write_string
+   191                                  
+   192 0000036E A1[7802]                  mov ax,[ship.vel.y]
+   193                                    set_cursor 14,50
+    45 00000371 BF4820              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   162 00000368 E8DBFD                    call write_binary_word     ; flags
-   163                                  
-   164 0000036B E815FE                    call check_keys
-   165 0000036E 7502                      jnz on_key
-   166                                    ;else
-   167 00000370 EB90                      jmp draw          ; this code is only getting called when no key is pressed
-   168                                  
-   169                                  ; ───────────────────────────────────────────────────────────────────────────
-   170                                  
-   171                                  on_key:
-   172                                    set_cursor 2,10
-    45 00000372 BFA804              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   194 00000374 E8E7FD                    call write_number_word     ; draw vy
+   195 00000377 BB[6C02]                  mov bx,msg_spaces
+   196 0000037A E8A5FD                    call write_string
+   197                                  
+   198 0000037D A1[7A02]                  mov ax,[ship.vel.flags]
+   199                                    set_cursor 15,50
+    45 00000380 BF8822              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   173 00000375 A1[0400]                  mov ax,[key]
-   174 00000378 E8CBFD                    call write_binary_word
-   175 0000037B 83F877                    cmp ax,'w'
-   176 0000037E 7418                      je on_key_w
-   177 00000380 83F861                    cmp ax,'a'
-   178 00000383 741A                      je on_key_a
-   179 00000385 83F873                    cmp ax,'s'
-   180 00000388 741C                      je on_key_s
-   181 0000038A 83F864                    cmp ax,'d'
-   182 0000038D 741E                      je on_key_d
-   183 0000038F BB[5F02]                  mov bx, msg_other_key             ; msg_other_key
-   184 00000392 E81F00                    call print_msg
-   185                                  .done
-   186 00000395 E96AFF                    jmp draw  ; no ret here because onkey is called by jnz
-   187                                  
-   188                                  
-   189                                  STEP equ 100
-   190                                  
-   191                                  ; ───────────────────────────────────────────────────────────────────────────
-   192                                  
-   193                                  on_key_w:
-   194 00000398 832E[7802]64              sub word [ship.vel.y], STEP
-   195 0000039D EBF6                      jmp on_key.done
-   196                                  
-   197                                  ; ───────────────────────────────────────────────────────────────────────────
-   198                                  
-   199                                  on_key_a:
-   200 0000039F 832E[7602]64              sub word [ship.vel.x], STEP
-   201 000003A4 EBEF                      jmp on_key.done
-   202                                  
-   203                                  ; ───────────────────────────────────────────────────────────────────────────
+   200                                    ; call write_binary_word     ; flags
+   201 00000383 E8D8FD                    call write_number_word     
+   202 00000386 BB[6C02]                  mov bx,msg_spaces
+   203 00000389 E896FD                    call write_string
    204                                  
-   205                                  on_key_s:
-   206 000003A6 8306[7802]64              add word [ship.vel.y], STEP
-   207 000003AB EBE8                      jmp on_key.done
-   208                                  
-   209                                  ; ───────────────────────────────────────────────────────────────────────────
-   210                                  
-   211                                  on_key_d:
-   212 000003AD 8306[7602]64              add word [ship.vel.x], STEP
-   213 000003B2 EBE1                      jmp on_key.done
-   214                                  
-   215                                  ; ───────────────────────────────────────────────────────────────────────────
-   216                                  
-   217                                  print_msg:
-   218                                    set_cursor 1,10
-    45 000003B4 BF6802              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   205 0000038C A1[7A02]                  mov ax,[ship.vel.flags]
+   206                                    set_cursor 16,50
+    45 0000038F BFC824              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   219 000003B7 E868FD                    call write_string
-   220 000003BA C3                        ret
-   221                                  
-   222                                  ; ───────────────────────────────────────────────────────────────────────────
-   223                                  
-   224                                  _wait:
-   225                                    DELAY EQU 250
-   226 000003BB B9FA00                    mov cx,DELAY
-   227 000003BE D40A                      .lp aam
-   228 000003C0 E2FC                      loop .lp
-   229 000003C2 C3                        ret
-   230                                  
-   231                                  ; ───────────────────────────────────────────────────────────────────────────
+   207 00000392 E8B1FD                    call write_binary_word     ; flags
+   208                                  
+   209 00000395 E8EBFD                    call check_keys
+   210 00000398 7502                      jnz on_key
+   211                                    ;else
+   212 0000039A EB81                      jmp draw          ; this code is only getting called when no key is pressed
+   213                                  
+   214                                  ; ───────────────────────────────────────────────────────────────────────────
+   215                                  
+   216                                  on_key:
+   217                                    set_cursor 2,10
+    45 0000039C BFA804              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   218 0000039F A1[0400]                  mov ax,[key]
+   219 000003A2 E8A1FD                    call write_binary_word
+   220 000003A5 83F877                    cmp ax,'w'
+   221 000003A8 7418                      je on_key_w
+   222 000003AA 83F861                    cmp ax,'a'
+   223 000003AD 741A                      je on_key_a
+   224 000003AF 83F873                    cmp ax,'s'
+   225 000003B2 741C                      je on_key_s
+   226 000003B4 83F864                    cmp ax,'d'
+   227 000003B7 741E                      je on_key_d
+   228 000003B9 BB[5F02]                  mov bx, msg_other_key             ; msg_other_key
+   229 000003BC E81F00                    call print_msg
+   230                                  .done
+   231 000003BF E95BFF                    jmp draw  ; no ret here because onkey is called by jnz
    232                                  
-   233                                  world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
-   234                                    ; WORLD:
-   235                                    ;   0..73728  (65536) -> col
-   236                                    ;   0..51200  (=1024*50) -> row
-   237                                    ; SCREEN (ROW,COL):
-   238                                    ;   0..49 (row)
-   239                                    ;   0..71 (col)
-   240 000003C3 B10A                      mov cl,10
-   241 000003C5 D3EB                      shr bx,cl   ; //bl=row 0..49
-   242 000003C7 D3E8                      shr ax,cl   ; 
-   243 000003C9 88C7                      mov bh,al   ; //bh=col 0..71
-   244 000003CB 86DF                      xchg bh,bl
-   245 000003CD C3                        ret
-   246                                  
-   247                                  ; ───────────────────────────────────────────────────────────────────────────
-   248                                  
-   249                                  ; 180 items but full 360 range divide AX by 2 or SHR AX,1 then do XLAT
-   250                                  ; lut_sin: db 0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,50,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99,100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,50,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-49,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-50,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3
-   251                                  ; lut_cos: db 100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,49,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-50,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-49,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3,0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,49,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99
-   252                                  
-   253 000003CE 00<rep 2CC32h>          times (180*1024)-($-$$) db 0
-   254                                  
+   233                                  
+   234                                  STEP equ 100
+   235                                  
+   236                                  ; ───────────────────────────────────────────────────────────────────────────
+   237                                  
+   238                                  on_key_w:
+   239 000003C2 832E[7802]64              sub word [ship.vel.y], STEP
+   240 000003C7 EBF6                      jmp on_key.done
+   241                                  
+   242                                  ; ───────────────────────────────────────────────────────────────────────────
+   243                                  
+   244                                  on_key_a:
+   245 000003C9 832E[7602]64              sub word [ship.vel.x], STEP
+   246 000003CE EBEF                      jmp on_key.done
+   247                                  
+   248                                  ; ───────────────────────────────────────────────────────────────────────────
+   249                                  
+   250                                  on_key_s:
+   251 000003D0 8306[7802]64              add word [ship.vel.y], STEP
+   252 000003D5 EBE8                      jmp on_key.done
+   253                                  
+   254                                  ; ───────────────────────────────────────────────────────────────────────────
    255                                  
-   256                                  
+   256                                  on_key_d:
+   257 000003D7 8306[7602]64              add word [ship.vel.x], STEP
+   258 000003DC EBE1                      jmp on_key.done
+   259                                  
+   260                                  ; ───────────────────────────────────────────────────────────────────────────
+   261                                  
+   262                                  print_msg:
+   263                                    set_cursor 1,10
+    45 000003DE BF6802              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   264 000003E1 E83EFD                    call write_string
+   265 000003E4 C3                        ret
+   266                                  
+   267                                  ; ───────────────────────────────────────────────────────────────────────────
+   268                                  
+   269                                  _wait:
+   270                                    DELAY EQU 250
+   271 000003E5 B9FA00                    mov cx,DELAY
+   272 000003E8 D40A                      .lp aam
+   273 000003EA E2FC                      loop .lp
+   274 000003EC C3                        ret
+   275                                  
+   276                                  ; ───────────────────────────────────────────────────────────────────────────
+   277                                  
+   278                                  world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
+   279                                    ; WORLD:
+   280                                    ;   0..73728  (65536) -> col
+   281                                    ;   0..51200  (=1024*50) -> row
+   282                                    ; SCREEN (ROW,COL):
+   283                                    ;   0..49 (row)
+   284                                    ;   0..71 (col)
+   285 000003ED B10A                      mov cl,10
+   286 000003EF D3EB                      shr bx,cl   ; //bl=row 0..49
+   287 000003F1 D3E8                      shr ax,cl   ; 
+   288 000003F3 88C7                      mov bh,al   ; //bh=col 0..71
+   289 000003F5 86DF                      xchg bh,bl
+   290 000003F7 C3                        ret
+   291                                  
+   292                                  ; ───────────────────────────────────────────────────────────────────────────
+   293                                  
+   294                                  ; 180 items but full 360 range divide AX by 2 or SHR AX,1 then do XLAT
+   295                                  ; lut_sin: db 0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,50,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99,100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,50,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-49,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-50,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3
+   296                                  ; lut_cos: db 100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,49,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-50,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-49,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3,0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,49,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99
+   297                                  
+   298                                  
+   299                                  img_up:
+   300 000003F8 <bin 302h>              img1: incbin "data/ship-1.spr" ;up
+   301 000006FA <bin 302h>              img2: incbin "data/ship-2.spr"
+   302 000009FC <bin 302h>              img3: incbin "data/ship-3.spr"
+   303                                  img_up_right:
+   304 00000CFE <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
+   305 00001000 <bin 302h>              img5: incbin "data/ship-5.spr"
+   306 00001302 <bin 302h>              img6: incbin "data/ship-6.spr"
+   307                                  img_right:
+   308 00001604 <bin 302h>              img7: incbin "data/ship-7.spr" ;right
+   309 00001906 <bin 302h>              img8: incbin "data/ship-8.spr"
+   310 00001C08 <bin 302h>              img9: incbin "data/ship-9.spr"
+   311                                  img_down_right:
+   312 00001F0A <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
+   313 0000220C <bin 302h>              img11: incbin "data/ship-11.spr"
+   314 0000250E <bin 302h>              img12: incbin "data/ship-12.spr"
+   315                                  img_down:
+   316 00002810 <bin 302h>              img13: incbin "data/ship-13.spr" ;down
+   317 00002B12 <bin 302h>              img14: incbin "data/ship-14.spr"
+   318 00002E14 <bin 302h>              img15: incbin "data/ship-15.spr"
+   319                                  img_down_left:
+   320 00003116 <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
+   321 00003418 <bin 302h>              img17: incbin "data/ship-17.spr"
+   322 0000371A <bin 302h>              img18: incbin "data/ship-18.spr"
+   323                                  img_left:
+   324 00003A1C <bin 302h>              img19: incbin "data/ship-19.spr" ;left
+   325 00003D1E <bin 302h>              img20: incbin "data/ship-20.spr"
+   326 00004020 <bin 302h>              img21: incbin "data/ship-21.spr"
+   327                                  img_up_left:
+   328 00004322 <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
+   329 00004624 <bin 302h>              img23: incbin "data/ship-23.spr"
+   330 00004926 <bin 302h>              img24: incbin "data/ship-24.spr"
+   331                                  
+   332                                  
+   333 00004C28 00<rep 283D8h>          times (180*1024)-($-$$) db 0
+   334                                  
+   335                                  
+   336                                  
