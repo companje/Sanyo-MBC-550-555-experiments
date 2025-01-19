@@ -1,5 +1,9 @@
 %include "sanyo.asm"
-%include "atan.asm"
+%include "player.asm"
+
+msg_other_key: db 'Other key   ',0
+msg_spaces:    db '     ',0
+msg_vx:    db 'vx: ',0
 
 ship:
  .pos:
@@ -20,30 +24,13 @@ ship:
 
 color: db Color.G
 
+img_lut: dw img_down_right, img_down, img_down_left, img_NONE, img_right, img_NONE, img_left, img_NONE, img_up_right, img_up, img_up_left
+
 ; ───────────────────────────────────────────────────────────────────────────
 
 setup:
-
-  set_cursor 2,5
-  ; print "atan(426)="
-
-  ; mov cx,426
-  ; call atan
-
-  ; mov ax,426
-  ; push ax             ; put z on the stack
-  ; call atan
-  
-  mov ax, 12321       ; 12321 = 111*111 (squared scale)
-  ; xor dx,dx           ; dx=0 (prevent overflow) 
-  ; idiv cx             ; ax/=z
-  call write_number_word
-
-  hlt
-
-
-  ; xor bp,bp
-  ; jmp draw
+  xor bp,bp
+  jmp draw
 
 ; ───────────────────────────────────────────────────────────────────────────
 
@@ -81,6 +68,36 @@ update_ship:
   idiv cx             ; Signed division
   mov [ship.vel.y], ax
 
+  ; velocity flags
+  mov ax,[ship.vel.x]
+  or ax,0
+  pushf
+  pop ax
+  mov cl,6
+  shr al,cl
+  xchg al,bl
+  mov ax,[ship.vel.y]
+  or ax,0
+  pushf
+  pop ax
+  mov cl,4
+  shr al,cl
+  or ax,bx
+  and ax,15
+  mov word [ship.vel.flags],ax
+
+  ; 0=down-right
+  ; 1=down
+  ; 2=down-left
+  ; 3=################
+  ; 4=rechts
+  ; 5=#### IDLE ####
+  ; 6=links
+  ; 4=###############
+  ; 8=up-right
+  ; 9=up
+  ; 10=up-left
+
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────
@@ -100,8 +117,17 @@ draw_ship:
 
   mov di,[ship.prev_di]
   
+  mov ax,RED
   mov bx,0x0808  ; rows,cols
-  ; call fill_rect_black
+  call clear_area
+
+  mov ax,GREEN
+  mov bx,0x0808  ; rows,cols
+  call clear_area
+
+  mov ax,BLUE
+  mov bx,0x0808  ; rows,cols
+  call clear_area
 
   mov ax,[ship.pos.x]
   mov bx,[ship.pos.y]
@@ -109,17 +135,54 @@ draw_ship:
   call calc_di_from_bx
   mov [ship.prev_di],di
 
+  ; mov ax,GREEN
+  ; mov es,ax
+  ; mov ax,-1
+  ; stosw
+  ; stosw
 
-  mov si,img_up
+  ;select sprite frame based on ship direction
+  mov bp,[ship.vel.flags]
+  shl bp,1 ; *=2
+  mov si,[img_lut+bp]
+
   mov ax,[ship.pos.x]
   mov bx,[ship.pos.y]
   call world2screen ; ax and bx are already set by pop bx, pop ax
   call calc_di_from_bx
-  call draw_spr
 
+  call draw_spr
 .return
   ret
 
+; ───────────────────────────────────────────────────────────────────────────
+
+clear_area: ; ax=channel, bx=area, di=start pos
+  push bx
+  push di
+  mov es,ax
+  xor cx,cx
+  mov cl,bh        ; rows (bl)
+.rows_loop:
+  push cx
+  xor cx,cx
+  mov cl,bl        ; cols (bh)
+.cols_loop:
+  mov ax,0
+  stosw
+  stosw
+  loop .cols_loop
+  add di,COLS*4    ; one row down
+  mov ah,0
+  mov al,bl
+  times 2 shl ax,1
+  sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
+  pop cx
+  loop .rows_loop
+  pop di
+  pop bx
+  ret
+  
 ; ───────────────────────────────────────────────────────────────────────────
 
 draw:
@@ -151,6 +214,17 @@ draw:
   call write_signed_number_word     ; draw vy
   print "  "
 
+  set_cursor 15,45
+  print "flags: "
+  mov ax,[ship.vel.flags]
+  call write_number_word     
+  print "  "
+
+  set_cursor 16,45
+  print "flags: "
+  mov ax,[ship.vel.flags]
+  call write_binary_word     ; flags
+
   call check_keys
   jnz on_key
   ;else
@@ -170,6 +244,8 @@ on_key:
   je on_key_s
   cmp ax,'d'
   je on_key_d
+  mov bx, msg_other_key             ; msg_other_key
+  call print_msg
 .done
   jmp draw  ; no ret here because onkey is called by jnz
 
@@ -233,6 +309,10 @@ world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────
+
+; 180 items but full 360 range divide AX by 2 or SHR AX,1 then do XLAT
+; lut_sin: db 0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,50,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99,100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,50,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-49,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-50,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3
+; lut_cos: db 100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,49,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-50,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-49,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3,0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,49,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99
 
 ; FIXME
 img_NONE: incbin "data/ship-24.spr"

@@ -54,46 +54,14 @@ key:
   call write_string
 %endmacro
 
-%macro register_interrupt 2
-  ;DS shoud be 0
-  mov word [%1*4+0],%2
-  mov word [%1*4+2],cs
-%endmacro
-
-%macro halt 1
-  push cs
-  pop ds
-  xor di,di
-  mov bx,%%str
-  call write_string
-  hlt
-  %%str: db %1,0
-%endmacro
-
-int0: halt "int0" ;  Division by zero"
-int1: halt "int1" ;  Single step debugging"
-int2: halt "int2" ;  Non maskable interrupt"
-int3: halt "int3" ;  For one-byte interrupt"
-int4: halt "int4" ;  Signed overflow"
-
 boot:
   cli
   cld
+
   call clear_green          
   mov al, 5
   out 10h, al           ; select address 0x1c000 as green video page
 
-  ; register interrupts
-  mov ax,0
-  mov ds,ax ; segment 0
-  register_interrupt 0, int0
-  register_interrupt 1, int1
-  register_interrupt 2, int2
-  register_interrupt 3, int3
-  register_interrupt 4, int4
-
-int3
-  
   mov al,0
   out 0x3a,al           ; keyboard \force state/
   out 0x3a,al           ; keyboard \force state/
@@ -256,10 +224,6 @@ clear_channel:
 write_char:   ; ds=FONT, es=GREEN, al=charcode
   ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
   
-  ; je zou de huidige kleur op een adres willen bewaren. nu doet ie alleen maar groen.
-
-  ; deze functie zou ook korter/lichter kunnen/moeten. wellicht twee functies maken. een slimme en een domme snelle..
-
   push ds
   push es
 
@@ -408,107 +372,68 @@ check_keys:
 ; wide font by stretching the font horizontally using bitshift
 
 
-; fill_white:
-;   mov ax,0xffff
-;   call fill_red
-;   call fill_green
-;   call fill_blue
-;   ret
+fill_white:
+  mov ax,0xffff
+  call fill_red
+  call fill_green
+  call fill_blue
+  ret
 
-; fill_pink:
-;   mov ax,0xffff
-;   call fill_red
-;   mov ah,0b01010101
-;   mov al,0b10101010
-;   call fill_green
-;   call fill_blue
-;   ret
+fill_pink:
+  mov ax,0xffff
+  call fill_red
+  mov ah,0b01010101
+  mov al,0b10101010
+  call fill_green
+  call fill_blue
+  ret
 
-; fill_pink2:
-;   mov ax,0xffff
-;   call fill_red
-;   mov ah,0b11001100
-;   mov al,0b00110011
-;   call fill_green
-;   call fill_blue
-;   ret
+fill_pink2:
+  mov ax,0xffff
+  call fill_red
+  mov ah,0b11001100
+  mov al,0b00110011
+  call fill_green
+  call fill_blue
+  ret
 
-; fill_pink3:
-;   mov ax,0xffff
-;   call fill_red
-;   mov ah,0b00010001
-;   mov al,0b01000100
-;   call fill_green
-;   call fill_blue
-;   ret
+fill_pink3:
+  mov ax,0xffff
+  call fill_red
+  mov ah,0b00010001
+  mov al,0b01000100
+  call fill_green
+  call fill_blue
+  ret
 
-; fill_pink4:
-;   mov ax,0xffff
-;   call fill_red
-;   mov ah,0b11110111
-;   mov al,0b01111111
-;   call fill_green
-;   call fill_blue
-;   ret
+fill_pink4:
+  mov ax,0xffff
+  call fill_red
+  mov ah,0b11110111
+  mov al,0b01111111
+  call fill_green
+  call fill_blue
+  ret
 
-; fill_red:
-;   mov bx,RED
-;   call fill_channel
-;   ret
-; fill_green:
-;   mov bx,GREEN
-;   call fill_channel
-;   ret
-; fill_blue:
-;   mov bx,BLUE
-;   call fill_channel
-;   ret
+fill_red:
+  mov bx,RED
+  call fill_channel
+  ret
+fill_green:
+  mov bx,GREEN
+  call fill_channel
+  ret
+fill_blue:
+  mov bx,BLUE
+  call fill_channel
+  ret
 
-; fill_channel: ;ax=pattern
-;   mov es,bx
-;   mov cx,COLS*ROWS*2
-;   xor di,di
-;   rep stosw
-;   ret
-
-; ───────────────────────────────────────────────────────────────────────────
-
-; clear_area: ; ax=channel, bx=area, di=start pos
-;   push bx
-;   push di
-;   mov es,ax
-;   xor cx,cx
-;   mov cl,bh        ; rows (bl)
-; .rows_loop:
-;   push cx
-;   xor cx,cx
-;   mov cl,bl        ; cols (bh)
-; .cols_loop:
-;   mov ax,0
-;   stosw
-;   stosw
-;   loop .cols_loop
-;   add di,COLS*4    ; one row down
-;   mov ah,0
-;   mov al,bl
-;   times 2 shl ax,1
-;   sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
-;   pop cx
-;   loop .rows_loop
-;   pop di
-;   pop bx
-;   ret
-
-; ───────────────────────────────────────────────────────────────────────────
-
-; fill_rect_black: 
-;   mov ax,RED
-;   call clear_area
-;   mov ax,GREEN
-;   call clear_area
-;   mov ax,BLUE
-;   call clear_area
-;   ret
+fill_channel: ;ax=pattern
+  mov es,bx
+  mov cx,COLS*ROWS*2
+  xor di,di
+  rep stosw
+  ret
 
 ; ───────────────────────────────────────────────────────────────────────────
 

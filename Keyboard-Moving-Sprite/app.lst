@@ -2,9 +2,9 @@
      1                              <1> org 0
      2                              <1> cpu 8086
      3                              <1> 
-     4 00000000 EB04                <1> jmp boot
+     4 00000000 EB54                <1> jmp boot
      5                              <1> 
-     6                              <1> NUM_SECTORS equ 20          ; number of sectors to read
+     6                              <1> NUM_SECTORS equ 40          ; number of sectors to read
      7                              <1> BAR_WIDTH equ 30
      8                              <1> COLS  equ 72
      9                              <1> ROWS  equ 50
@@ -47,899 +47,974 @@
     46                              <1>   ; mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4   ; one based
     47                              <1> %endmacro
     48                              <1> 
-    49                              <1> 
-    50                              <1> boot:
-    51 00000006 FA                  <1>   cli
-    52 00000007 FC                  <1>   cld
-    53                              <1> 
-    54 00000008 E8C600              <1>   call clear_green          
-    55 0000000B B005                <1>   mov al, 5
-    56 0000000D E610                <1>   out 10h, al           ; select address 0x1c000 as green video page
-    57                              <1> 
-    58 0000000F B000                <1>   mov al,0
-    59 00000011 E63A                <1>   out 0x3a,al           ; keyboard \force state/
-    60 00000013 E63A                <1>   out 0x3a,al           ; keyboard \force state/
-    61 00000015 B0FF                <1>   mov al,0xFF
-    62 00000017 E63A                <1>   out 0x3a,al           ; keyboard \reset/
-    63 00000019 E63A                <1>   out 0x3a,al           ; keyboard \mode/
-    64 0000001B B037                <1>   mov al,0x37
-    65 0000001D E63A                <1>   out 0x3a,al           ; keyboard \set command
-    66                              <1> 
-    67 0000001F B8001C              <1>   mov ax,GREEN      
-    68 00000022 8ED8                <1>   mov ds,ax                 ; GREEN video segment used for progress bar
-    69 00000024 B83800              <1>   mov ax,DST                
-    70 00000027 8EC0                <1>   mov es,ax                 ; DST segment used for storing data read from disk
-    71 00000029 BF0000              <1>   mov di,0                  ;
-    72 0000002C B200                <1>   mov dl,0                  ; track=0
-    73 0000002E B601                <1>   mov dh,1                  ; sector=1
-    74 00000030 B91400              <1>   mov cx,NUM_SECTORS        ; read 48h (72) sectors (36864 bytes)
-    75 00000033 EB0B                <1>   jmp move_head
-    76                              <1> 
-    77                              <1> ; ───────────────────────────────────────────────────────────────────────────
+    49                              <1> %macro print 1
+    50                              <1>   jmp %%endstr 
+    51                              <1>   %%str: db %1,0
+    52                              <1>   %%endstr: 
+    53                              <1>   mov bx,%%str
+    54                              <1>   call write_string
+    55                              <1> %endmacro
+    56                              <1> 
+    57                              <1> %macro register_interrupt 2
+    58                              <1>   ;DS shoud be 0
+    59                              <1>   mov word [%1*4+0],%2
+    60                              <1>   mov word [%1*4+2],cs
+    61                              <1> %endmacro
+    62                              <1> 
+    63                              <1> %macro halt 1
+    64                              <1>   push cs
+    65                              <1>   pop ds
+    66                              <1>   xor di,di
+    67                              <1>   mov bx,%%str
+    68                              <1>   call write_string
+    69                              <1>   hlt
+    70                              <1>   %%str: db %1,0
+    71                              <1> %endmacro
+    72                              <1> 
+    73                              <1> int0: halt "int0" ;  - Division by zero"
+    73                              <2> int0: 
+    64 00000006 0E                  <2>  push cs
+    65 00000007 1F                  <2>  pop ds
+    66 00000008 31FF                <2>  xor di,di
+    67 0000000A BB[1100]            <2>  mov bx,%%str
+    68 0000000D E89A01              <2>  call write_string
+    69 00000010 F4                  <2>  hlt
+    70 00000011 696E743000          <2>  %%str: db %1,0
+    74                              <1> int1: halt "int1" ;  - Single step debugging"
+    74                              <2> int1: 
+    64 00000016 0E                  <2>  push cs
+    65 00000017 1F                  <2>  pop ds
+    66 00000018 31FF                <2>  xor di,di
+    67 0000001A BB[2100]            <2>  mov bx,%%str
+    68 0000001D E88A01              <2>  call write_string
+    69 00000020 F4                  <2>  hlt
+    70 00000021 696E743100          <2>  %%str: db %1,0
+    75                              <1> int2: halt "int2" ;  - Non maskable interrupt"
+    75                              <2> int2: 
+    64 00000026 0E                  <2>  push cs
+    65 00000027 1F                  <2>  pop ds
+    66 00000028 31FF                <2>  xor di,di
+    67 0000002A BB[3100]            <2>  mov bx,%%str
+    68 0000002D E87A01              <2>  call write_string
+    69 00000030 F4                  <2>  hlt
+    70 00000031 696E743200          <2>  %%str: db %1,0
+    76                              <1> int3: halt "int3" ;  - For one-byte interrupt"
+    76                              <2> int3: 
+    64 00000036 0E                  <2>  push cs
+    65 00000037 1F                  <2>  pop ds
+    66 00000038 31FF                <2>  xor di,di
+    67 0000003A BB[4100]            <2>  mov bx,%%str
+    68 0000003D E86A01              <2>  call write_string
+    69 00000040 F4                  <2>  hlt
+    70 00000041 696E743300          <2>  %%str: db %1,0
+    77                              <1> int4: halt "int4" ;  - Signed overflow"
+    77                              <2> int4: 
+    64 00000046 0E                  <2>  push cs
+    65 00000047 1F                  <2>  pop ds
+    66 00000048 31FF                <2>  xor di,di
+    67 0000004A BB[5100]            <2>  mov bx,%%str
+    68 0000004D E85A01              <2>  call write_string
+    69 00000050 F4                  <2>  hlt
+    70 00000051 696E743400          <2>  %%str: db %1,0
     78                              <1> 
-    79                              <1> next_sector:
-    80 00000035 FEC6                <1>   inc dh                    ; sector++
-    81 00000037 80FE0A              <1>   cmp dh,10
-    82 0000003A 7218                <1>   jb read_sector            ; if (dh<9) read_sector
-    83 0000003C B601                <1>   mov dh,1
-    84 0000003E FEC2                <1>   inc dl                    ; else track++ ; sector=1
+    79                              <1> boot:
+    80 00000056 FA                  <1>   cli
+    81 00000057 FC                  <1>   cld
+    82 00000058 E8FE00              <1>   call clear_green          
+    83 0000005B B005                <1>   mov al, 5
+    84 0000005D E610                <1>   out 10h, al           ; select address 0x1c000 as green video page
     85                              <1> 
-    86                              <1> move_head:
-    87 00000040 88D0                <1>   mov al,dl
-    88 00000042 E60E                <1>   out 0Eh,al               ; set track number
-    89 00000044 B018                <1>   mov al,18h     
-    90 00000046 E608                <1>   out 8,al                 ; seek track, load head
-    91 00000048 B000                <1>   mov al,0
-    92 0000004A E61C                <1>   out 1Ch,al               ; set desired drive/side
-    93 0000004C D40A                <1>   aam
+    86                              <1>   ; register interrupts
+    87 0000005F B80000              <1>   mov ax,0
+    88 00000062 8ED8                <1>   mov ds,ax ; segment 0
+    89                              <1>   register_interrupt 0, int0
+    58                              <2> 
+    59 00000064 C7060000[0600]      <2>  mov word [%1*4+0],%2
+    60 0000006A 8C0E0200            <2>  mov word [%1*4+2],cs
+    90                              <1>   register_interrupt 1, int1
+    58                              <2> 
+    59 0000006E C7060400[1600]      <2>  mov word [%1*4+0],%2
+    60 00000074 8C0E0600            <2>  mov word [%1*4+2],cs
+    91                              <1>   register_interrupt 2, int2
+    58                              <2> 
+    59 00000078 C7060800[2600]      <2>  mov word [%1*4+0],%2
+    60 0000007E 8C0E0A00            <2>  mov word [%1*4+2],cs
+    92                              <1>   register_interrupt 3, int3
+    58                              <2> 
+    59 00000082 C7060C00[3600]      <2>  mov word [%1*4+0],%2
+    60 00000088 8C0E0E00            <2>  mov word [%1*4+2],cs
+    93                              <1>   register_interrupt 4, int4
+    58                              <2> 
+    59 0000008C C7061000[4600]      <2>  mov word [%1*4+0],%2
+    60 00000092 8C0E1200            <2>  mov word [%1*4+2],cs
     94                              <1> 
-    95                              <1> head_moving:
-    96 0000004E E408                <1>   in al,8
-    97 00000050 A801                <1>   test al,1
-    98 00000052 75FA                <1>   jnz head_moving
-    99                              <1> 
-   100                              <1> read_sector:
-   101 00000054 88F0                <1>   mov al,dh
-   102 00000056 E60C                <1>   out 0Ch,al                ; sector number
-   103 00000058 B702                <1>   mov bh,2                  ; 00000010b
-   104 0000005A B396                <1>   mov bl,96h                ; 10010110b
-   105 0000005C B400                <1>   mov ah,0
-   106 0000005E B080                <1>   mov al,80h
-   107 00000060 E608                <1>   out 8,al                  ; read sector
-   108 00000062 D40A<rep 4h>        <1>   times 4 aam               ; wait
-   109                              <1> 
-   110                              <1> check_status_1:
-   111 0000006A E408                <1>   in al,8                   ; read status
-   112 0000006C D0F8                <1>   sar al,1                  ; status/=2
-   113 0000006E 731F                <1>   jnb check_status_3
-   114 00000070 75F8                <1>   jnz check_status_1
+    95 00000096 CC                  <1> int3
+    96                              <1>   
+    97 00000097 B000                <1>   mov al,0
+    98 00000099 E63A                <1>   out 0x3a,al           ; keyboard \force state/
+    99 0000009B E63A                <1>   out 0x3a,al           ; keyboard \force state/
+   100 0000009D B0FF                <1>   mov al,0xFF
+   101 0000009F E63A                <1>   out 0x3a,al           ; keyboard \reset/
+   102 000000A1 E63A                <1>   out 0x3a,al           ; keyboard \mode/
+   103 000000A3 B037                <1>   mov al,0x37
+   104 000000A5 E63A                <1>   out 0x3a,al           ; keyboard \set command
+   105                              <1> 
+   106 000000A7 B8001C              <1>   mov ax,GREEN      
+   107 000000AA 8ED8                <1>   mov ds,ax                 ; GREEN video segment used for progress bar
+   108 000000AC B83800              <1>   mov ax,DST                
+   109 000000AF 8EC0                <1>   mov es,ax                 ; DST segment used for storing data read from disk
+   110 000000B1 BF0000              <1>   mov di,0                  ;
+   111 000000B4 B200                <1>   mov dl,0                  ; track=0
+   112 000000B6 B601                <1>   mov dh,1                  ; sector=1
+   113 000000B8 B92800              <1>   mov cx,NUM_SECTORS        ; read 48h (72) sectors (36864 bytes)
+   114 000000BB EB0B                <1>   jmp move_head
    115                              <1> 
-   116                              <1> wait_for_data:
-   117 00000072 E408                <1>   in al,8                   ; read status
-   118 00000074 20D8                <1>   and al,bl                 ; 96h
-   119 00000076 74FA                <1>   jz wait_for_data
-   120                              <1> 
-   121                              <1> store_byte_1:
-   122 00000078 E40E                <1>   in al,0Eh
-   123 0000007A AA                  <1>   stosb
+   116                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   117                              <1> 
+   118                              <1> next_sector:
+   119 000000BD FEC6                <1>   inc dh                    ; sector++
+   120 000000BF 80FE0A              <1>   cmp dh,10
+   121 000000C2 7218                <1>   jb read_sector            ; if (dh<9) read_sector
+   122 000000C4 B601                <1>   mov dh,1
+   123 000000C6 FEC2                <1>   inc dl                    ; else track++ ; sector=1
    124                              <1> 
-   125                              <1> check_status_2:
-   126 0000007B E408                <1>   in al,8                   ; read status
-   127 0000007D 48                  <1>   dec ax                    ; status--
-   128 0000007E 74FB                <1>   jz check_status_2         ; if (status==0) repeat
-   129 00000080 38F8                <1>   cmp al, bh                ; bh=2
-   130 00000082 750B                <1>   jnz check_status_3        ; if (status==1) 
-   131                              <1> 
-   132                              <1> store_byte_2:
-   133 00000084 E40E                <1>   in al,0Eh  
-   134 00000086 AA                  <1>   stosb
-   135                              <1> 
-   136                              <1> check_status_4:
-   137 00000087 E408                <1>   in al,8                   ; read status
-   138 00000089 38F8                <1>   cmp al, bh                ; bh=2
-   139 0000008B 74F7                <1>   jz store_byte_2           ; if (status==2) repeat
-   140 0000008D EBEC                <1>   jmp check_status_2        ; else: was jmp SI
-   141                              <1> 
-   142                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   143                              <1> 
-   144                              <1> check_status_3:
-   145 0000008F E408                <1>   in al, 8                  ; read status
-   146 00000091 A81C                <1>   test al, 1Ch              ; 00011100
-   147 00000093 7402                <1>   jz while_sectors
-   148 00000095 EBBD                <1>   jmp read_sector
-   149                              <1> 
-   150                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   151                              <1> 
-   152                              <1> while_sectors:
-   153 00000097 E80F00              <1>   call progress_bar
-   154 0000009A E299                <1>   loop next_sector
-   155                              <1> 
-   156                              <1> done_reading:
-   157 0000009C 0E                  <1>   push cs
-   158 0000009D 17                  <1>   pop ss
-   159 0000009E BC0000              <1>   mov sp,0
-   160 000000A1 E82D00              <1>   call clear_green
-   161 000000A4 0E                  <1>   push cs
-   162 000000A5 1F                  <1>   pop ds
-   163 000000A6 E9F201              <1>   jmp setup
-   164                              <1> 
-   165                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   166                              <1> 
-   167                              <1> progress_bar:
-   168                              <1>   ;dit kan veel korter als NUM_SECTORS een vaste waarde heeft.
-   169 000000A9 52                  <1>   push dx
-   170 000000AA 53                  <1>   push bx
-   171 000000AB 31D2                <1>   xor dx,dx
-   172 000000AD B81E00              <1>   mov ax,BAR_WIDTH
-   173 000000B0 BB1400              <1>   mov bx,NUM_SECTORS    
-   174 000000B3 F7E1                <1>   mul cx
-   175 000000B5 F7F3                <1>   div bx
-   176 000000B7 5B                  <1>   pop bx
-   177 000000B8 5A                  <1>   pop dx
-   178 000000B9 89C6                <1>   mov si,ax                 ; ax is nu 0..BAR_WIDTH
-   179 000000BB D1E6                <1>   shl si,1                  ; *=2
-   180 000000BD D1E6                <1>   shl si,1                  ; *=2  
-   181 000000BF BDEC1C              <1>   mov bp,CENTER+BAR_WIDTH*2
-   182 000000C2 29F5                <1>   sub bp,si
-   183 000000C4 3EC64600FF          <1>   mov byte [ds:bp],-1
-   184 000000C9 C3                  <1>   ret
-   185                              <1> 
-   186                              <1> clear_red:
-   187 000000CA B800F0              <1>   mov ax,RED
-   188 000000CD E81900              <1>   call clear_channel
-   189 000000D0 C3                  <1>   ret
+   125                              <1> move_head:
+   126 000000C8 88D0                <1>   mov al,dl
+   127 000000CA E60E                <1>   out 0Eh,al               ; set track number
+   128 000000CC B018                <1>   mov al,18h     
+   129 000000CE E608                <1>   out 8,al                 ; seek track, load head
+   130 000000D0 B000                <1>   mov al,0
+   131 000000D2 E61C                <1>   out 1Ch,al               ; set desired drive/side
+   132 000000D4 D40A                <1>   aam
+   133                              <1> 
+   134                              <1> head_moving:
+   135 000000D6 E408                <1>   in al,8
+   136 000000D8 A801                <1>   test al,1
+   137 000000DA 75FA                <1>   jnz head_moving
+   138                              <1> 
+   139                              <1> read_sector:
+   140 000000DC 88F0                <1>   mov al,dh
+   141 000000DE E60C                <1>   out 0Ch,al                ; sector number
+   142 000000E0 B702                <1>   mov bh,2                  ; 00000010b
+   143 000000E2 B396                <1>   mov bl,96h                ; 10010110b
+   144 000000E4 B400                <1>   mov ah,0
+   145 000000E6 B080                <1>   mov al,80h
+   146 000000E8 E608                <1>   out 8,al                  ; read sector
+   147 000000EA D40A<rep 4h>        <1>   times 4 aam               ; wait
+   148                              <1> 
+   149                              <1> check_status_1:
+   150 000000F2 E408                <1>   in al,8                   ; read status
+   151 000000F4 D0F8                <1>   sar al,1                  ; status/=2
+   152 000000F6 731F                <1>   jnb check_status_3
+   153 000000F8 75F8                <1>   jnz check_status_1
+   154                              <1> 
+   155                              <1> wait_for_data:
+   156 000000FA E408                <1>   in al,8                   ; read status
+   157 000000FC 20D8                <1>   and al,bl                 ; 96h
+   158 000000FE 74FA                <1>   jz wait_for_data
+   159                              <1> 
+   160                              <1> store_byte_1:
+   161 00000100 E40E                <1>   in al,0Eh
+   162 00000102 AA                  <1>   stosb
+   163                              <1> 
+   164                              <1> check_status_2:
+   165 00000103 E408                <1>   in al,8                   ; read status
+   166 00000105 48                  <1>   dec ax                    ; status--
+   167 00000106 74FB                <1>   jz check_status_2         ; if (status==0) repeat
+   168 00000108 38F8                <1>   cmp al, bh                ; bh=2
+   169 0000010A 750B                <1>   jnz check_status_3        ; if (status==1) 
+   170                              <1> 
+   171                              <1> store_byte_2:
+   172 0000010C E40E                <1>   in al,0Eh  
+   173 0000010E AA                  <1>   stosb
+   174                              <1> 
+   175                              <1> check_status_4:
+   176 0000010F E408                <1>   in al,8                   ; read status
+   177 00000111 38F8                <1>   cmp al, bh                ; bh=2
+   178 00000113 74F7                <1>   jz store_byte_2           ; if (status==2) repeat
+   179 00000115 EBEC                <1>   jmp check_status_2        ; else: was jmp SI
+   180                              <1> 
+   181                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   182                              <1> 
+   183                              <1> check_status_3:
+   184 00000117 E408                <1>   in al, 8                  ; read status
+   185 00000119 A81C                <1>   test al, 1Ch              ; 00011100
+   186 0000011B 7402                <1>   jz while_sectors
+   187 0000011D EBBD                <1>   jmp read_sector
+   188                              <1> 
+   189                              <1> ; ───────────────────────────────────────────────────────────────────────────
    190                              <1> 
-   191                              <1> clear_green:
-   192 000000D1 B8001C              <1>   mov ax,GREEN
-   193 000000D4 E81200              <1>   call clear_channel
-   194 000000D7 C3                  <1>   ret
-   195                              <1> 
-   196                              <1> clear_blue:
-   197 000000D8 B800F4              <1>   mov ax,BLUE
-   198 000000DB E80B00              <1>   call clear_channel
-   199 000000DE C3                  <1>   ret
-   200                              <1> 
-   201                              <1> clear_screen:
-   202 000000DF E8E8FF              <1>   call clear_red
-   203 000000E2 E8ECFF              <1>   call clear_green
-   204 000000E5 E8F0FF              <1>   call clear_blue
-   205 000000E8 C3                  <1>   ret
-   206                              <1> 
-   207                              <1> clear_channel:
-   208 000000E9 8EC0                <1>   mov es,ax
-   209 000000EB B9201C              <1>   mov cx,COLS*ROWS*2
-   210 000000EE 31FF                <1>   xor di,di
-   211 000000F0 31C0                <1>   xor ax,ax
-   212 000000F2 F3AB                <1>   rep stosw         ; clear screen
-   213 000000F4 C3                  <1>   ret
-   214                              <1> 
-   215                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   216                              <1> 
-   217                              <1> write_char:   ; ds=FONT, es=GREEN, al=charcode
-   218                              <1>   ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
-   219                              <1>   
-   220 000000F5 1E                  <1>   push ds
-   221 000000F6 06                  <1>   push es
-   222                              <1> 
-   223 000000F7 50                  <1>   push ax
-   224 000000F8 50                  <1>   push ax
-   225 000000F9 B8001C              <1>   mov ax,GREEN
-   226 000000FC 8EC0                <1>   mov es,ax
-   227 000000FE B800FF              <1>   mov ax,FONT
-   228 00000101 8ED8                <1>   mov ds,ax
-   229 00000103 58                  <1>   pop ax
-   230 00000104 B408                <1>   mov ah,8
-   231 00000106 F6E4                <1>   mul ah        ; al*=ah
-   232 00000108 89C6                <1>   mov si,ax
-   233 0000010A A5                  <1>   movsw
-   234 0000010B A5                  <1>   movsw
-   235 0000010C 81C71C01            <1>   add di,0x11c
-   236 00000110 A5                  <1>   movsw
-   237 00000111 A5                  <1>   movsw
-   238 00000112 81EF2001            <1>   sub di,0x120
-   239 00000116 81FF4038            <1>   cmp di,14400   ; dit later oplossen met cursor positie
-   240 0000011A 7202                <1>   jb .return
-   241 0000011C 31FF                <1>   xor di,di      ; move to left top. change later to scroll
-   242                              <1> .return
-   243 0000011E 58                  <1>   pop ax
-   244                              <1> 
-   245 0000011F 07                  <1>   pop es
-   246 00000120 1F                  <1>   pop ds
-   247 00000121 C3                  <1>   ret
-   248                              <1> 
-   249                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   250                              <1> 
-   251                              <1> write_string:
-   252 00000122 2E8A07              <1>   mov al,[cs:bx]
-   253 00000125 43                  <1>   inc bx
-   254 00000126 08C0                <1>   or al,al
-   255 00000128 7405                <1>   jz .return
-   256 0000012A E8C8FF              <1>   call write_char
-   257 0000012D EBF3                <1>   jmp short write_string
-   258                              <1> .return
-   259 0000012F C3                  <1>   ret
+   191                              <1> while_sectors:
+   192 0000011F E80F00              <1>   call progress_bar
+   193 00000122 E299                <1>   loop next_sector
+   194                              <1> 
+   195                              <1> done_reading:
+   196 00000124 0E                  <1>   push cs
+   197 00000125 17                  <1>   pop ss
+   198 00000126 BC0000              <1>   mov sp,0
+   199 00000129 E82D00              <1>   call clear_green
+   200 0000012C 0E                  <1>   push cs
+   201 0000012D 1F                  <1>   pop ds
+   202 0000012E E9CE01              <1>   jmp setup
+   203                              <1> 
+   204                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   205                              <1> 
+   206                              <1> progress_bar:
+   207                              <1>   ;dit kan veel korter als NUM_SECTORS een vaste waarde heeft.
+   208 00000131 52                  <1>   push dx
+   209 00000132 53                  <1>   push bx
+   210 00000133 31D2                <1>   xor dx,dx
+   211 00000135 B81E00              <1>   mov ax,BAR_WIDTH
+   212 00000138 BB2800              <1>   mov bx,NUM_SECTORS    
+   213 0000013B F7E1                <1>   mul cx
+   214 0000013D F7F3                <1>   div bx
+   215 0000013F 5B                  <1>   pop bx
+   216 00000140 5A                  <1>   pop dx
+   217 00000141 89C6                <1>   mov si,ax                 ; ax is nu 0..BAR_WIDTH
+   218 00000143 D1E6                <1>   shl si,1                  ; *=2
+   219 00000145 D1E6                <1>   shl si,1                  ; *=2  
+   220 00000147 BDEC1C              <1>   mov bp,CENTER+BAR_WIDTH*2
+   221 0000014A 29F5                <1>   sub bp,si
+   222 0000014C 3EC64600FF          <1>   mov byte [ds:bp],-1
+   223 00000151 C3                  <1>   ret
+   224                              <1> 
+   225                              <1> clear_red:
+   226 00000152 B800F0              <1>   mov ax,RED
+   227 00000155 E81900              <1>   call clear_channel
+   228 00000158 C3                  <1>   ret
+   229                              <1> 
+   230                              <1> clear_green:
+   231 00000159 B8001C              <1>   mov ax,GREEN
+   232 0000015C E81200              <1>   call clear_channel
+   233 0000015F C3                  <1>   ret
+   234                              <1> 
+   235                              <1> clear_blue:
+   236 00000160 B800F4              <1>   mov ax,BLUE
+   237 00000163 E80B00              <1>   call clear_channel
+   238 00000166 C3                  <1>   ret
+   239                              <1> 
+   240                              <1> clear_screen:
+   241 00000167 E8E8FF              <1>   call clear_red
+   242 0000016A E8ECFF              <1>   call clear_green
+   243 0000016D E8F0FF              <1>   call clear_blue
+   244 00000170 C3                  <1>   ret
+   245                              <1> 
+   246                              <1> clear_channel:
+   247 00000171 8EC0                <1>   mov es,ax
+   248 00000173 B9201C              <1>   mov cx,COLS*ROWS*2
+   249 00000176 31FF                <1>   xor di,di
+   250 00000178 31C0                <1>   xor ax,ax
+   251 0000017A F3AB                <1>   rep stosw         ; clear screen
+   252 0000017C C3                  <1>   ret
+   253                              <1> 
+   254                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   255                              <1> 
+   256                              <1> write_char:   ; ds=FONT, es=GREEN, al=charcode
+   257                              <1>   ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
+   258                              <1>   
+   259                              <1>   ; je zou de huidige kleur op een adres willen bewaren. nu doet ie alleen maar groen.
    260                              <1> 
-   261                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   261                              <1>   ; deze functie zou ook korter/lichter kunnen/moeten. wellicht twee functies maken. een slimme en een domme snelle..
    262                              <1> 
-   263                              <1> write_binary_byte:    ; input AL
-   264 00000130 50                  <1>   push ax
-   265 00000131 88C3                <1>   mov bl, al          ; Kopieer AL naar BL (we werken op BL)
-   266 00000133 B90800              <1>   mov cx, 8           ; We gaan 8 bits schrijven
-   267                              <1> .lp:
-   268 00000136 D0C3                <1>   rol bl, 1           ; Rotate BL naar links (hoogste bit komt in Carry Flag)
-   269 00000138 B80000              <1>   mov ax, 0           ; AH leegmaken
-   270 0000013B 1430                <1>   adc al, 48          ; Als Carry Flag 1 is, wordt '1', anders '0'  
-   271 0000013D 51                  <1>   push cx             ; CX opslaan
-   272 0000013E E8B4FF              <1>   call write_char      ; Schrijf het karakter naar het scherm
-   273 00000141 59                  <1>   pop cx              ; CX herstellen
-   274 00000142 E2F2                <1>   loop .lp            ; Loop voor alle 8 bits
-   275 00000144 58                  <1>   pop ax
-   276 00000145 C3                  <1>   ret
-   277                              <1> 
-   278                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   279                              <1> 
-   280                              <1> write_binary_word:    ; input AX
-   281 00000146 50                  <1>   push ax
-   282 00000147 52                  <1>   push dx            ; DX opslaan (we gebruiken het later)
-   283 00000148 89C2                <1>   mov dx, ax         ; Kopieer AX naar DX (we werken op DX)
-   284 0000014A B91000              <1>   mov cx, 16         ; We gaan 16 bits schrijven
-   285                              <1> .lp:
-   286 0000014D D1C2                <1>   rol dx, 1          ; Rotate DX naar links (hoogste bit komt in Carry Flag)
-   287 0000014F B80000              <1>   mov ax, 0          ; AH leegmaken
-   288 00000152 1430                <1>   adc al, 48         ; Als Carry Flag 1 is, wordt '1', anders '0'  
-   289 00000154 51                  <1>   push cx            ; CX opslaan
-   290 00000155 E89DFF              <1>   call write_char    ; Schrijf het karakter naar het scherm
-   291 00000158 59                  <1>   pop cx             ; CX herstellen
-   292 00000159 E2F2                <1>   loop .lp           ; Loop voor alle 16 bits
-   293 0000015B 5A                  <1>   pop dx             ; DX herstellen
-   294 0000015C 58                  <1>   pop ax
-   295 0000015D C3                  <1>   ret
-   296                              <1> 
-   297                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   298                              <1> 
-   299                              <1> write_number_word:
-   300 0000015E 50                  <1>     push ax
-   301 0000015F 52                  <1>     push dx
-   302 00000160 31D2                <1>     xor dx,dx
-   303 00000162 52                  <1>     push dx ;high byte is zero
-   304 00000163 31D2                <1> .clp xor dx,dx
-   305 00000165 2EF736[8101]        <1>     cs div word [.base]
-   306 0000016A 92                  <1>     xchg ax,dx
-   307 0000016B 05300E              <1>     add ax,0xe30
-   308 0000016E 50                  <1>     push ax
-   309 0000016F 92                  <1>     xchg ax,dx
-   310 00000170 09C0                <1>     or ax,ax
-   311 00000172 75EF                <1>     jnz .clp
-   312 00000174 58                  <1> .dlp pop ax
-   313 00000175 08E4                <1>     or ah,ah
-   314 00000177 7405                <1>     jz .done
-   315 00000179 E879FF              <1>     call write_char
-   316 0000017C EBF6                <1>     jmp short .dlp
-   317 0000017E 5A                  <1> .done pop dx
-   318 0000017F 58                  <1>     pop ax
-   319 00000180 C3                  <1>     ret
-   320 00000181 0A00                <1> .base dw 10
-   321                              <1> 
-   322                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   323                              <1> 
-   324                              <1> check_keys:
-   325 00000183 E43A                <1>   in al,0x3a        ; get keyboard status
-   326 00000185 88C4                <1>   mov ah,al
-   327 00000187 2408                <1>   and al,0b00001000 ; keep only 1 for 'ctrl'
-   328 00000189 2EA2[0500]          <1>   mov [cs:key.ctrl],al
-   329 0000018D F6C402              <1>   test ah,2         ; keypressed flag is in ah, not in al anymore
-   330 00000190 7410                <1>   jz .return
-   331 00000192 E438                <1>   in al,0x38        ; get data byte from keyboard  
-   332 00000194 2EA2[0400]          <1>   mov [cs:key.code],al
-   333 00000198 B037                <1>   mov al,0x37
-   334 0000019A E63A                <1>   out 0x3a,al       ; drop key?  
-   335 0000019C 0C01                <1>   or al,1           ; set zero flag to false to indicate a keypress
-   336 0000019E 2EA1[0400]          <1>   mov ax,[cs:key]   ; ctrl status in ah, keycode in al, ZF low means a key was pressed
-   337 000001A2 C3                  <1> .return ret
-   338                              <1> 
+   263 0000017D 1E                  <1>   push ds
+   264 0000017E 06                  <1>   push es
+   265                              <1> 
+   266 0000017F 50                  <1>   push ax
+   267 00000180 50                  <1>   push ax
+   268 00000181 B8001C              <1>   mov ax,GREEN
+   269 00000184 8EC0                <1>   mov es,ax
+   270 00000186 B800FF              <1>   mov ax,FONT
+   271 00000189 8ED8                <1>   mov ds,ax
+   272 0000018B 58                  <1>   pop ax
+   273 0000018C B408                <1>   mov ah,8
+   274 0000018E F6E4                <1>   mul ah        ; al*=ah
+   275 00000190 89C6                <1>   mov si,ax
+   276 00000192 A5                  <1>   movsw
+   277 00000193 A5                  <1>   movsw
+   278 00000194 81C71C01            <1>   add di,0x11c
+   279 00000198 A5                  <1>   movsw
+   280 00000199 A5                  <1>   movsw
+   281 0000019A 81EF2001            <1>   sub di,0x120
+   282 0000019E 81FF4038            <1>   cmp di,14400   ; dit later oplossen met cursor positie
+   283 000001A2 7202                <1>   jb .return
+   284 000001A4 31FF                <1>   xor di,di      ; move to left top. change later to scroll
+   285                              <1> .return
+   286 000001A6 58                  <1>   pop ax
+   287                              <1> 
+   288 000001A7 07                  <1>   pop es
+   289 000001A8 1F                  <1>   pop ds
+   290 000001A9 C3                  <1>   ret
+   291                              <1> 
+   292                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   293                              <1> 
+   294                              <1> write_string:
+   295 000001AA 2E8A07              <1>   mov al,[cs:bx]
+   296 000001AD 43                  <1>   inc bx
+   297 000001AE 08C0                <1>   or al,al
+   298 000001B0 7405                <1>   jz .return
+   299 000001B2 E8C8FF              <1>   call write_char
+   300 000001B5 EBF3                <1>   jmp short write_string
+   301                              <1> .return
+   302 000001B7 C3                  <1>   ret
+   303                              <1> 
+   304                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   305                              <1> 
+   306                              <1> write_binary_byte:    ; input AL
+   307 000001B8 50                  <1>   push ax
+   308 000001B9 88C3                <1>   mov bl, al          ; Kopieer AL naar BL (we werken op BL)
+   309 000001BB B90800              <1>   mov cx, 8           ; We gaan 8 bits schrijven
+   310                              <1> .lp:
+   311 000001BE D0C3                <1>   rol bl, 1           ; Rotate BL naar links (hoogste bit komt in Carry Flag)
+   312 000001C0 B80000              <1>   mov ax, 0           ; AH leegmaken
+   313 000001C3 1430                <1>   adc al, 48          ; Als Carry Flag 1 is, wordt '1', anders '0'  
+   314 000001C5 51                  <1>   push cx             ; CX opslaan
+   315 000001C6 E8B4FF              <1>   call write_char      ; Schrijf het karakter naar het scherm
+   316 000001C9 59                  <1>   pop cx              ; CX herstellen
+   317 000001CA E2F2                <1>   loop .lp            ; Loop voor alle 8 bits
+   318 000001CC 58                  <1>   pop ax
+   319 000001CD C3                  <1>   ret
+   320                              <1> 
+   321                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   322                              <1> 
+   323                              <1> write_binary_word:    ; input AX
+   324 000001CE 50                  <1>   push ax
+   325 000001CF 52                  <1>   push dx            ; DX opslaan (we gebruiken het later)
+   326 000001D0 89C2                <1>   mov dx, ax         ; Kopieer AX naar DX (we werken op DX)
+   327 000001D2 B91000              <1>   mov cx, 16         ; We gaan 16 bits schrijven
+   328                              <1> .lp:
+   329 000001D5 D1C2                <1>   rol dx, 1          ; Rotate DX naar links (hoogste bit komt in Carry Flag)
+   330 000001D7 B80000              <1>   mov ax, 0          ; AH leegmaken
+   331 000001DA 1430                <1>   adc al, 48         ; Als Carry Flag 1 is, wordt '1', anders '0'  
+   332 000001DC 51                  <1>   push cx            ; CX opslaan
+   333 000001DD E89DFF              <1>   call write_char    ; Schrijf het karakter naar het scherm
+   334 000001E0 59                  <1>   pop cx             ; CX herstellen
+   335 000001E1 E2F2                <1>   loop .lp           ; Loop voor alle 16 bits
+   336 000001E3 5A                  <1>   pop dx             ; DX herstellen
+   337 000001E4 58                  <1>   pop ax
+   338 000001E5 C3                  <1>   ret
    339                              <1> 
-   340                              <1> 
-   341                              <1> ;fillscreen:  ; al=lower 3 bits = Color RGBWCMYK - 4th bit = method???? - support for mask?? - or dither pattern??
-   342                              <1> ;   ret
-   343                              <1> 
-   344                              <1> ;fillarea (minx,miny,maxx,maxy) color, pattern
-   345                              <1> 
-   346                              <1> ;rect (x,y,width,height) stroke color, strokeweight, fill
-   347                              <1> ; much faster and simpler on the grid than off the grid
-   348                              <1> ; zou je de randen buiten het grid vooraf of naderhand kunnen doen. en het deel op het grid met de snelle methode
-   349                              <1> 
-   350                              <1> 
-   351                              <1> ; wide font by stretching the font horizontally using bitshift
-   352                              <1> 
-   353                              <1> 
-   354                              <1> fill_white:
-   355 000001A3 B8FFFF              <1>   mov ax,0xffff
-   356 000001A6 E84B00              <1>   call fill_red
-   357 000001A9 E84F00              <1>   call fill_green
-   358 000001AC E85300              <1>   call fill_blue
-   359 000001AF C3                  <1>   ret
-   360                              <1> 
-   361                              <1> fill_pink:
-   362 000001B0 B8FFFF              <1>   mov ax,0xffff
-   363 000001B3 E83E00              <1>   call fill_red
-   364 000001B6 B455                <1>   mov ah,0b01010101
-   365 000001B8 B0AA                <1>   mov al,0b10101010
-   366 000001BA E83E00              <1>   call fill_green
-   367 000001BD E84200              <1>   call fill_blue
-   368 000001C0 C3                  <1>   ret
-   369                              <1> 
-   370                              <1> fill_pink2:
-   371 000001C1 B8FFFF              <1>   mov ax,0xffff
-   372 000001C4 E82D00              <1>   call fill_red
-   373 000001C7 B4CC                <1>   mov ah,0b11001100
-   374 000001C9 B033                <1>   mov al,0b00110011
-   375 000001CB E82D00              <1>   call fill_green
-   376 000001CE E83100              <1>   call fill_blue
-   377 000001D1 C3                  <1>   ret
+   340                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   341                              <1> 
+   342                              <1> write_number_word:
+   343 000001E6 50                  <1>     push ax
+   344 000001E7 52                  <1>     push dx
+   345 000001E8 31D2                <1>     xor dx,dx
+   346 000001EA 52                  <1>     push dx ;high byte is zero
+   347 000001EB 31D2                <1> .clp xor dx,dx
+   348 000001ED 2EF736[0902]        <1>     cs div word [.base]
+   349 000001F2 92                  <1>     xchg ax,dx
+   350 000001F3 05300E              <1>     add ax,0xe30
+   351 000001F6 50                  <1>     push ax
+   352 000001F7 92                  <1>     xchg ax,dx
+   353 000001F8 09C0                <1>     or ax,ax
+   354 000001FA 75EF                <1>     jnz .clp
+   355 000001FC 58                  <1> .dlp pop ax
+   356 000001FD 08E4                <1>     or ah,ah
+   357 000001FF 7405                <1>     jz .done
+   358 00000201 E879FF              <1>     call write_char
+   359 00000204 EBF6                <1>     jmp short .dlp
+   360 00000206 5A                  <1> .done pop dx
+   361 00000207 58                  <1>     pop ax
+   362 00000208 C3                  <1>     ret
+   363 00000209 0A00                <1> .base dw 10
+   364                              <1> 
+   365                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   366                              <1> 
+   367                              <1> write_signed_number_word:    
+   368 0000020B 09C0                <1>     or ax,ax
+   369 0000020D 790A                <1>     jns .write_return        ; if >0 write and return
+   370 0000020F 50                  <1>     push ax
+   371 00000210 B82D00              <1>     mov ax,'-'
+   372 00000213 E867FF              <1>     call write_char
+   373 00000216 58                  <1>     pop ax
+   374 00000217 F7D8                <1>     neg ax                   ; destroys ax when negative
+   375                              <1> .write_return:
+   376 00000219 E8CAFF              <1>     call write_number_word
+   377 0000021C C3                  <1>     ret
    378                              <1> 
-   379                              <1> fill_pink3:
-   380 000001D2 B8FFFF              <1>   mov ax,0xffff
-   381 000001D5 E81C00              <1>   call fill_red
-   382 000001D8 B411                <1>   mov ah,0b00010001
-   383 000001DA B044                <1>   mov al,0b01000100
-   384 000001DC E81C00              <1>   call fill_green
-   385 000001DF E82000              <1>   call fill_blue
-   386 000001E2 C3                  <1>   ret
-   387                              <1> 
-   388                              <1> fill_pink4:
-   389 000001E3 B8FFFF              <1>   mov ax,0xffff
-   390 000001E6 E80B00              <1>   call fill_red
-   391 000001E9 B4F7                <1>   mov ah,0b11110111
-   392 000001EB B07F                <1>   mov al,0b01111111
-   393 000001ED E80B00              <1>   call fill_green
-   394 000001F0 E80F00              <1>   call fill_blue
-   395 000001F3 C3                  <1>   ret
+   379                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   380                              <1> 
+   381                              <1> check_keys:
+   382 0000021D E43A                <1>   in al,0x3a        ; get keyboard status
+   383 0000021F 88C4                <1>   mov ah,al
+   384 00000221 2408                <1>   and al,0b00001000 ; keep only 1 for 'ctrl'
+   385 00000223 2EA2[0500]          <1>   mov [cs:key.ctrl],al
+   386 00000227 F6C402              <1>   test ah,2         ; keypressed flag is in ah, not in al anymore
+   387 0000022A 7410                <1>   jz .return
+   388 0000022C E438                <1>   in al,0x38        ; get data byte from keyboard  
+   389 0000022E 2EA2[0400]          <1>   mov [cs:key.code],al
+   390 00000232 B037                <1>   mov al,0x37
+   391 00000234 E63A                <1>   out 0x3a,al       ; drop key?  
+   392 00000236 0C01                <1>   or al,1           ; set zero flag to false to indicate a keypress
+   393 00000238 2EA1[0400]          <1>   mov ax,[cs:key]   ; ctrl status in ah, keycode in al, ZF low means a key was pressed
+   394 0000023C C3                  <1> .return ret
+   395                              <1> 
    396                              <1> 
-   397                              <1> fill_red:
-   398 000001F4 BB00F0              <1>   mov bx,RED
-   399 000001F7 E80F00              <1>   call fill_channel
-   400 000001FA C3                  <1>   ret
-   401                              <1> fill_green:
-   402 000001FB BB001C              <1>   mov bx,GREEN
-   403 000001FE E80800              <1>   call fill_channel
-   404 00000201 C3                  <1>   ret
-   405                              <1> fill_blue:
-   406 00000202 BB00F4              <1>   mov bx,BLUE
-   407 00000205 E80100              <1>   call fill_channel
-   408 00000208 C3                  <1>   ret
+   397                              <1> 
+   398                              <1> ;fillscreen:  ; al=lower 3 bits = Color RGBWCMYK - 4th bit = method???? - support for mask?? - or dither pattern??
+   399                              <1> ;   ret
+   400                              <1> 
+   401                              <1> ;fillarea (minx,miny,maxx,maxy) color, pattern
+   402                              <1> 
+   403                              <1> ;rect (x,y,width,height) stroke color, strokeweight, fill
+   404                              <1> ; much faster and simpler on the grid than off the grid
+   405                              <1> ; zou je de randen buiten het grid vooraf of naderhand kunnen doen. en het deel op het grid met de snelle methode
+   406                              <1> 
+   407                              <1> 
+   408                              <1> ; wide font by stretching the font horizontally using bitshift
    409                              <1> 
-   410                              <1> fill_channel: ;ax=pattern
-   411 00000209 8EC3                <1>   mov es,bx
-   412 0000020B B9201C              <1>   mov cx,COLS*ROWS*2
-   413 0000020E 31FF                <1>   xor di,di
-   414 00000210 F3AB                <1>   rep stosw
-   415 00000212 C3                  <1>   ret
-   416                              <1> 
-   417                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   418                              <1> 
-   419                              <1> draw_spr:
-   420 00000213 8B1C                <1>   mov bx,[si]
-   421 00000215 46<rep 2h>          <1>   times 2 inc si
-   422                              <1> draw_pic:
-   423 00000217 B800F0              <1>   mov ax, RED
-   424 0000021A E80D00              <1>   call draw_channel
-   425 0000021D B8001C              <1>   mov ax, GREEN
-   426 00000220 E80700              <1>   call draw_channel
-   427 00000223 B800F4              <1>   mov ax, BLUE
-   428 00000226 E80100              <1>   call draw_channel
-   429 00000229 C3                  <1>   ret
-   430                              <1> 
-   431                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   432                              <1> 
-   433                              <1> draw_channel:
-   434 0000022A 57                  <1>   push di
-   435 0000022B 8EC0                <1>   mov es,ax
-   436 0000022D 31C9                <1>   xor cx,cx
-   437 0000022F 88F9                <1>   mov cl,bh        ; rows (bl)
-   438                              <1> .rows_loop:
-   439 00000231 51                  <1>   push cx
-   440 00000232 31C9                <1>   xor cx,cx
-   441 00000234 88D9                <1>   mov cl,bl        ; cols (bh)
-   442                              <1> .cols_loop:
-   443 00000236 A5                  <1>   movsw
-   444 00000237 A5                  <1>   movsw
-   445 00000238 E2FC                <1>   loop .cols_loop
-   446 0000023A 81C72001            <1>   add di,COLS*4    ; one row down
-   447 0000023E B400                <1>   mov ah,0
-   448 00000240 88D8                <1>   mov al,bl
-   449 00000242 D1E0<rep 2h>        <1>   times 2 shl ax,1
-   450 00000246 29C7                <1>   sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
-   451 00000248 59                  <1>   pop cx
-   452 00000249 E2E6                <1>   loop .rows_loop
-   453 0000024B 5F                  <1>   pop di
-   454 0000024C C3                  <1>   ret
-   455                              <1> 
-   456                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   457                              <1> 
-   458                              <1> calc_di_from_bx:  ; input bl,bh [0,0,71,49]
-   459 0000024D B89000              <1>   mov ax,144      ; 2*72 cols
-   460 00000250 F6E7                <1>   mul bh          ; bh*=144 resultaat in AX
-   461 00000252 D1E0                <1>   shl ax,1        ; verdubbel AX
-   462 00000254 89C7                <1>   mov di,ax       ; di=ax (=bh*288)
-   463 00000256 D0E3                <1>   shl bl,1        ; bl*=2
-   464 00000258 D0E3                <1>   shl bl,1        ; bl*=2
-   465 0000025A B700                <1>   mov bh,0
-   466 0000025C 01DF                <1>   add di,bx       ; di+=bl
-   467 0000025E C3                  <1>   ret
-   468                              <1> ; ───────────────────────────────────────────────────────────────────────────
-   469                              <1> 
-   470                              <1> 
-   471                              <1> ; set_cursor:
-   472                              <1> ; cursor_next_char
+   410                              <1> 
+   411                              <1> ; fill_white:
+   412                              <1> ;   mov ax,0xffff
+   413                              <1> ;   call fill_red
+   414                              <1> ;   call fill_green
+   415                              <1> ;   call fill_blue
+   416                              <1> ;   ret
+   417                              <1> 
+   418                              <1> ; fill_pink:
+   419                              <1> ;   mov ax,0xffff
+   420                              <1> ;   call fill_red
+   421                              <1> ;   mov ah,0b01010101
+   422                              <1> ;   mov al,0b10101010
+   423                              <1> ;   call fill_green
+   424                              <1> ;   call fill_blue
+   425                              <1> ;   ret
+   426                              <1> 
+   427                              <1> ; fill_pink2:
+   428                              <1> ;   mov ax,0xffff
+   429                              <1> ;   call fill_red
+   430                              <1> ;   mov ah,0b11001100
+   431                              <1> ;   mov al,0b00110011
+   432                              <1> ;   call fill_green
+   433                              <1> ;   call fill_blue
+   434                              <1> ;   ret
+   435                              <1> 
+   436                              <1> ; fill_pink3:
+   437                              <1> ;   mov ax,0xffff
+   438                              <1> ;   call fill_red
+   439                              <1> ;   mov ah,0b00010001
+   440                              <1> ;   mov al,0b01000100
+   441                              <1> ;   call fill_green
+   442                              <1> ;   call fill_blue
+   443                              <1> ;   ret
+   444                              <1> 
+   445                              <1> ; fill_pink4:
+   446                              <1> ;   mov ax,0xffff
+   447                              <1> ;   call fill_red
+   448                              <1> ;   mov ah,0b11110111
+   449                              <1> ;   mov al,0b01111111
+   450                              <1> ;   call fill_green
+   451                              <1> ;   call fill_blue
+   452                              <1> ;   ret
+   453                              <1> 
+   454                              <1> ; fill_red:
+   455                              <1> ;   mov bx,RED
+   456                              <1> ;   call fill_channel
+   457                              <1> ;   ret
+   458                              <1> ; fill_green:
+   459                              <1> ;   mov bx,GREEN
+   460                              <1> ;   call fill_channel
+   461                              <1> ;   ret
+   462                              <1> ; fill_blue:
+   463                              <1> ;   mov bx,BLUE
+   464                              <1> ;   call fill_channel
+   465                              <1> ;   ret
+   466                              <1> 
+   467                              <1> ; fill_channel: ;ax=pattern
+   468                              <1> ;   mov es,bx
+   469                              <1> ;   mov cx,COLS*ROWS*2
+   470                              <1> ;   xor di,di
+   471                              <1> ;   rep stosw
+   472                              <1> ;   ret
    473                              <1> 
-   474                              <1> 
+   474                              <1> ; ───────────────────────────────────────────────────────────────────────────
    475                              <1> 
-   476                              <1> ; times (512)-($-$$) db 0             ; doesn't fit in the bootsector anymore
-   477                              <1> 
-     2                                  %include "player.asm"
-     1                              <1> ; %include "sprite.asm"
-     2                              <1> 
-     3                              <1> ; player:
-     4                              <1> 
-     5                              <1> ; .mode dw .walk_left 
+   476                              <1> ; clear_area: ; ax=channel, bx=area, di=start pos
+   477                              <1> ;   push bx
+   478                              <1> ;   push di
+   479                              <1> ;   mov es,ax
+   480                              <1> ;   xor cx,cx
+   481                              <1> ;   mov cl,bh        ; rows (bl)
+   482                              <1> ; .rows_loop:
+   483                              <1> ;   push cx
+   484                              <1> ;   xor cx,cx
+   485                              <1> ;   mov cl,bl        ; cols (bh)
+   486                              <1> ; .cols_loop:
+   487                              <1> ;   mov ax,0
+   488                              <1> ;   stosw
+   489                              <1> ;   stosw
+   490                              <1> ;   loop .cols_loop
+   491                              <1> ;   add di,COLS*4    ; one row down
+   492                              <1> ;   mov ah,0
+   493                              <1> ;   mov al,bl
+   494                              <1> ;   times 2 shl ax,1
+   495                              <1> ;   sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
+   496                              <1> ;   pop cx
+   497                              <1> ;   loop .rows_loop
+   498                              <1> ;   pop di
+   499                              <1> ;   pop bx
+   500                              <1> ;   ret
+   501                              <1> 
+   502                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   503                              <1> 
+   504                              <1> ; fill_rect_black: 
+   505                              <1> ;   mov ax,RED
+   506                              <1> ;   call clear_area
+   507                              <1> ;   mov ax,GREEN
+   508                              <1> ;   call clear_area
+   509                              <1> ;   mov ax,BLUE
+   510                              <1> ;   call clear_area
+   511                              <1> ;   ret
+   512                              <1> 
+   513                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   514                              <1> 
+   515                              <1> draw_spr:
+   516 0000023D 8B1C                <1>   mov bx,[si]
+   517 0000023F 46<rep 2h>          <1>   times 2 inc si
+   518                              <1> draw_pic:
+   519 00000241 B800F0              <1>   mov ax, RED
+   520 00000244 E80D00              <1>   call draw_channel
+   521 00000247 B8001C              <1>   mov ax, GREEN
+   522 0000024A E80700              <1>   call draw_channel
+   523 0000024D B800F4              <1>   mov ax, BLUE
+   524 00000250 E80100              <1>   call draw_channel
+   525 00000253 C3                  <1>   ret
+   526                              <1> 
+   527                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   528                              <1> 
+   529                              <1> draw_channel:
+   530 00000254 57                  <1>   push di
+   531 00000255 8EC0                <1>   mov es,ax
+   532 00000257 31C9                <1>   xor cx,cx
+   533 00000259 88F9                <1>   mov cl,bh        ; rows (bl)
+   534                              <1> .rows_loop:
+   535 0000025B 51                  <1>   push cx
+   536 0000025C 31C9                <1>   xor cx,cx
+   537 0000025E 88D9                <1>   mov cl,bl        ; cols (bh)
+   538                              <1> .cols_loop:
+   539 00000260 A5                  <1>   movsw
+   540 00000261 A5                  <1>   movsw
+   541 00000262 E2FC                <1>   loop .cols_loop
+   542 00000264 81C72001            <1>   add di,COLS*4    ; one row down
+   543 00000268 B400                <1>   mov ah,0
+   544 0000026A 88D8                <1>   mov al,bl
+   545 0000026C D1E0<rep 2h>        <1>   times 2 shl ax,1
+   546 00000270 29C7                <1>   sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
+   547 00000272 59                  <1>   pop cx
+   548 00000273 E2E6                <1>   loop .rows_loop
+   549 00000275 5F                  <1>   pop di
+   550 00000276 C3                  <1>   ret
+   551                              <1> 
+   552                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   553                              <1> 
+   554                              <1> calc_di_from_bx:  ; input bl,bh [0,0,71,49]
+   555 00000277 B89000              <1>   mov ax,144      ; 2*72 cols
+   556 0000027A F6E7                <1>   mul bh          ; bh*=144 resultaat in AX
+   557 0000027C D1E0                <1>   shl ax,1        ; verdubbel AX
+   558 0000027E 89C7                <1>   mov di,ax       ; di=ax (=bh*288)
+   559 00000280 D0E3                <1>   shl bl,1        ; bl*=2
+   560 00000282 D0E3                <1>   shl bl,1        ; bl*=2
+   561 00000284 B700                <1>   mov bh,0
+   562 00000286 01DF                <1>   add di,bx       ; di+=bl
+   563 00000288 C3                  <1>   ret
+   564                              <1> ; ───────────────────────────────────────────────────────────────────────────
+   565                              <1> 
+   566                              <1> 
+   567                              <1> ; set_cursor:
+   568                              <1> ; cursor_next_char
+   569                              <1> 
+   570                              <1> 
+   571                              <1> 
+   572                              <1> ; times (512)-($-$$) db 0             ; doesn't fit in the bootsector anymore
+   573                              <1> 
+     2                                  %include "atan.asm"
+     1                              <1> atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
+     2 00000289 59                  <1>   pop cx  ; get z from the stack
+     3                              <1> 
+     4 0000028A 83F96F              <1>   cmp cx,111
+     5 0000028D 7732                <1>   ja .if_z_gt_scale  ; if (z>111)
      6                              <1> 
-     7                              <1> ; .update:
-     8                              <1> 
+     7 0000028F 83F991              <1>   cmp cx,-111        ; if (z<-111) 
+     8 00000292 7241                <1>   jb .if_z_lt_minus_scale
      9                              <1> 
-    10                              <1> ;   ret
-    11                              <1> 
-    12                              <1> ; .draw:
-    13                              <1> ;   ; xor di,di
-    14                              <1> ;   ; push cs
-    15                              <1> ;   ; pop ds
-    16                              <1> ;   ; mov si, img.stand_1
-    17                              <1> ;   ; mov bh,4 ; cols 
-    18                              <1> ;   ; mov bl,4 ; rows
-    19                              <1> ;   ; call draw_pic
-    20                              <1> ;   ; ret
-    21                              <1> 
-    22                              <1> ;   push cs
-    23                              <1> ;   pop ds
-    24                              <1> 
-    25                              <1> ;   push bp
-    26                              <1> ;   mov bp,[.mode]
-    27                              <1> 
-    28                              <1> ;   mov bx,[bp+pos]
-    29                              <1> ;   call calc_di_from_bx
-    30                              <1> ;   mov si,[bp+img_data]
-    31                              <1> ;   mov cl,[bp+framesize]
-    32                              <1> ;   mov byte al,[bp+frame]
-    33                              <1> ;   mul cl
-    34                              <1> ;   add si,ax
-    35                              <1> ;   mov bx,[bp+size]
-    36                              <1> ;   call draw_pic
-    37                              <1> ;   call .next_frame
-    38                              <1> ;   pop bp
-    39                              <1> ;   ret
-    40                              <1> 
-    41                              <1> ; .next_frame:
-    42                              <1> ;   ; mov bp, .stand
-    43                              <1> ;   inc byte [bp+frame]
-    44                              <1> ;   mov cl,[bp+frames]
-    45                              <1> ;   cmp byte [bp+frame],cl
-    46                              <1> ;   jb .done
-    47                              <1> ;   mov byte [bp+frame],0
-    48                              <1> ; .done
-    49                              <1> ;   ret
-    50                              <1> 
-    51                              <1> ; ; ───────────────────────────────────────────────────────────────────────────
+    10                              <1>   ;else
+    11 00000294 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    12 00000296 F7E8                <1>   imul ax              ; ax *= ax  (z*z)
+    13 00000298 BB4D01              <1>   mov bx,333
+    14 0000029B 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    15 0000029D F7FB                <1>   idiv bx             ; ax /= 333   Taylor-benadering
+    16 0000029F 89C3                <1>   mov bx,ax
+    17 000002A1 B86F00              <1>   mov ax,111
+    18 000002A4 29D8                <1>   sub ax,bx          ; ax-=111
+    19 000002A6 BBB400              <1>   mov bx,180
+    20 000002A9 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    21 000002AB F7EB                <1>   imul bx             ; ax*=180
+    22 000002AD 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    23 000002AF F7E9                <1>   imul cx             ; ax*=z
+    24 000002B1 BB6F00              <1>   mov bx,111
+    25 000002B4 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    26 000002B6 F7FB                <1>   idiv bx             ; ax/=111
+    27 000002B8 BB3A01              <1>   mov bx,314
+    28 000002BB 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    29 000002BD F7FB                <1>   idiv bx             ; ax/=314
+    30 000002BF EB26                <1>   jmp .return
+    31                              <1> 
+    32                              <1> .if_z_gt_scale:
+    33 000002C1 B82130              <1>   mov ax, 12321       ; 12321 = 111*111 (squared scale)
+    34 000002C4 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    35 000002C6 F7F9                <1>   idiv cx             ; ax/=z
+    36 000002C8 50                  <1>   push ax   ; put on the stack for recursion
+    37 000002C9 E8BDFF              <1>   call atan          ; recursion
+    38 000002CC 89C3                <1>   mov bx,ax
+    39 000002CE B85A00              <1>   mov ax,90
+    40 000002D1 29D8                <1>   sub ax,bx
+    41 000002D3 EB12                <1>   jmp .return
+    42                              <1> 
+    43                              <1> .if_z_lt_minus_scale:
+    44 000002D5 B82130              <1>   mov ax, 12321      ; 12321 = 111*111 (squared scale)
+    45 000002D8 31D2                <1>   xor dx,dx           ; dx=0 (prevent overflow) 
+    46 000002DA F7F9                <1>   idiv cx             ; ax/=z
+    47 000002DC 50                  <1>   push ax   ; put on the stack for recursion
+    48 000002DD E8A9FF              <1>   call atan          ; recursion
+    49 000002E0 89C3                <1>   mov bx,ax
+    50 000002E2 B8A6FF              <1>   mov ax,-90
+    51 000002E5 29D8                <1>   sub ax,bx
     52                              <1> 
-    53                              <1> 
-    54                              <1> ; player.stand:
-    55                              <1> ;   .size.w db 4
-    56                              <1> ;   .size.h db 4
-    57                              <1> ;   .pos.x db 5
-    58                              <1> ;   .pos.y db 36
-    59                              <1> ;   .vel.vx db 1
-    60                              <1> ;   .vel.vy db -1
-    61                              <1> ;   .frame db 0
-    62                              <1> ;   .frames db 4
-    63                              <1> ;   .framesize db 192
-    64                              <1> ;   .data dw img.stand_1
-    65                              <1> 
-    66                              <1> ; player.walk_fw:
-    67                              <1> ;   .size.w db 4
-    68                              <1> ;   .size.h db 4
-    69                              <1> ;   .pos.x db 42
-    70                              <1> ;   .pos.y db 5
-    71                              <1> ;   .vel.vx db -1
-    72                              <1> ;   .vel.vy db 1
-    73                              <1> ;   .frame db 0
-    74                              <1> ;   .frames db 2
-    75                              <1> ;   .framesize db 192
-    76                              <1> ;   .data dw img.walk_fw_1
-    77                              <1> 
-    78                              <1> ; player.walk_bw:
-    79                              <1> ;   .size.w db 4
-    80                              <1> ;   .size.h db 4
-    81                              <1> ;   .pos.x db 38
-    82                              <1> ;   .pos.y db 29
-    83                              <1> ;   .vel.vx db -1
-    84                              <1> ;   .vel.vy db 1
-    85                              <1> ;   .frame db 0
-    86                              <1> ;   .frames db 2
-    87                              <1> ;   .framesize db 192
-    88                              <1> ;   .data dw img.walk_bw_1
-    89                              <1> 
-    90                              <1> ; player.walk_left:
-    91                              <1> ;   .size.w db 4
-    92                              <1> ;   .size.h db 4
-    93                              <1> ;   .pos.x db 31
-    94                              <1> ;   .pos.y db 19
-    95                              <1> ;   .vel.vx db 1
-    96                              <1> ;   .vel.vy db 1
-    97                              <1> ;   .frame db 0
-    98                              <1> ;   .frames db 4
-    99                              <1> ;   .framesize db 192
-   100                              <1> ;   .data dw img.walk_left_1
-   101                              <1> 
-   102                              <1> ; player.walk_right:
-   103                              <1> ;   .size.w db 4
-   104                              <1> ;   .size.h db 4
-   105                              <1> ;   .pos.x db 29
-   106                              <1> ;   .pos.y db 13
-   107                              <1> ;   .vel.vx db 1
-   108                              <1> ;   .vel.vy db -1
-   109                              <1> ;   .frame db 0
-   110                              <1> ;   .frames db 4
-   111                              <1> ;   .framesize db 192
-   112                              <1> ;   .data dw img.walk_right_1
+    53                              <1> .return:
+    54 000002E7 C3                  <1>   ret
+    55                              <1> 
+    56                              <1> 
+    57                              <1> ; int atan2(int y, int x) {
+    58                              <1> ;   if (x!=0) {
+    59                              <1> ;     ax = y;
+    60                              <1> ;     ax *= 111;
+    61                              <1> ;     ax /= x;
+    62                              <1> ;     ax = atan(ax);
+    63                              <1> ;   }
+    64                              <1> ;   if (x < 0 && y >= 0) ax+=180;
+    65                              <1> ;   else if (x < 0 && y < 0) ax-=180;
+    66                              <1> ;   else if (x == 0 && y > 0) ax=90;
+    67                              <1> ;   else if (x == 0 && y < 0) ax=-90;
+    68                              <1> ;   return ax;
+    69                              <1> ; }
+    70                              <1> 
+    71                              <1> 
+    72                              <1> ; ───────────────────────────────────────────────────────────────────────────
      3                                  
-     4 0000025F 4F74686572206B6579-     msg_other_key: db 'Other key   ',0
-     4 00000268 20202000           
-     5 0000026C 202020202000            msg_spaces:    db '     ',0
-     6                                  
-     7                                  ship:
-     8                                   .pos:
-     9 00000272 0090                     .pos.x: dw 73728/2
-    10 00000274 D06B                     .pos.y: dw 51200/2 + 2000
-    11                                   .vel: 
-    12 00000276 F6FF                     .vel.x: dw -10
-    13 00000278 0000                     .vel.y: dw 0
-    14 0000027A 0000                     .vel.flags: dw 0
-    15                                   .acc:
-    16 0000027C 0000                     .acc.x: dw 0
-    17 0000027E 0000                     .acc.y: dw 0
-    18                                   .forces:
-    19 00000280 0000                     .forces.x: dw 0
-    20 00000282 0000                     .forces.y: dw 0
-    21 00000284 0000                     .angle: dw 0
+     4                                  ship:
+     5                                   .pos:
+     6 000002E8 0090                     .pos.x: dw 73728/2
+     7 000002EA D06B                     .pos.y: dw 51200/2 + 2000
+     8                                   .vel: 
+     9 000002EC F6FF                     .vel.x: dw -10
+    10 000002EE 0000                     .vel.y: dw 0
+    11 000002F0 0000                     .vel.flags: dw 0
+    12                                   .acc:
+    13 000002F2 0000                     .acc.x: dw 0
+    14 000002F4 0000                     .acc.y: dw 0
+    15                                   .forces:
+    16 000002F6 0000                     .forces.x: dw 0
+    17 000002F8 0000                     .forces.y: dw 0
+    18 000002FA 0000                     .angle: dw 0
+    19 000002FC 0000                     .prev_di: dw 0
+    20                                  
+    21 000002FE 02                      color: db Color.G
     22                                  
-    23 00000286 02                      color: db Color.G
+    23                                  ; ───────────────────────────────────────────────────────────────────────────
     24                                  
-    25 00000287 [0A1F][1028][1631]-     img_lut: dw img_down_right, img_down, img_down_left, img_right, img_up, img_left, img_up, img_up_right, img_up, img_up_left
-    25 0000028D [0416][F803][1C3A]-
-    25 00000293 [F803][FE0C][F803]-
-    25 00000299 [2243]             
+    25                                  setup:
     26                                  
-    27                                  ; ───────────────────────────────────────────────────────────────────────────
-    28                                  
-    29                                  setup:
-    30 0000029B 31ED                      xor bp,bp
-    31 0000029D EB7E                      jmp draw
+    27                                    set_cursor 2,5
+    45 000002FF BF9404              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+    28                                    ; print "atan(426)="
+    29                                  
+    30                                    ; mov cx,426
+    31                                    ; call atan
     32                                  
-    33                                  ; ───────────────────────────────────────────────────────────────────────────
-    34                                  
-    35                                  ; vec_mult:   ; cx scalar, ax=x, bx=y
+    33                                    ; mov ax,426
+    34                                    ; push ax             ; put z on the stack
+    35                                    ; call atan
     36                                    
-    37                                  
-    38                                  update_ship:
-    39                                    
-    40                                    ; x+=vx
-    41 0000029F A1[7202]                  mov ax,[ship.pos.x]       ; 0..73728  (65536)
-    42 000002A2 0306[7602]                add ax,[ship.vel.x]
-    43 000002A6 A3[7202]                  mov [ship.pos.x],ax
+    37 00000302 B82130                    mov ax, 12321       ; 12321 = 111*111 (squared scale)
+    38                                    ; xor dx,dx           ; dx=0 (prevent overflow) 
+    39                                    ; idiv cx             ; ax/=z
+    40 00000305 E8DEFE                    call write_number_word
+    41                                  
+    42 00000308 F4                        hlt
+    43                                  
     44                                  
-    45                                    ; y+=vy
-    46 000002A9 A1[7402]                  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
-    47 000002AC 0306[7802]                add ax,[ship.vel.y]
-    48 000002B0 A3[7402]                  mov [ship.pos.y],ax
+    45                                    ; xor bp,bp
+    46                                    ; jmp draw
+    47                                  
+    48                                  ; ───────────────────────────────────────────────────────────────────────────
     49                                  
-    50                                    ; vx*=98%
-    51 000002B3 A1[7602]                  mov ax, [ship.vel.x]
-    52 000002B6 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
-    53 000002B7 B96300                    mov cx, 99
-    54 000002BA F7E9                      imul cx             ; Signed multiplication
-    55 000002BC B96400                    mov cx, 100
-    56 000002BF F7F9                      idiv cx             ; Signed division
-    57 000002C1 A3[7602]                  mov [ship.vel.x], ax
-    58                                  
-    59                                    ; vy*=98%
-    60 000002C4 A1[7802]                  mov ax, [ship.vel.y]
-    61 000002C7 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
-    62 000002C8 B96300                    mov cx, 99
-    63 000002CB F7E9                      imul cx             ; Signed multiplication
-    64 000002CD B96400                    mov cx, 100
-    65 000002D0 F7F9                      idiv cx             ; Signed division
-    66 000002D2 A3[7802]                  mov [ship.vel.y], ax
-    67                                  
-    68                                  ; 0=down-right
-    69                                  ; 1=down
-    70                                  ; 2=down-left
-    71                                  ; 4=rechts
-    72                                  ; 5=#### IDLE ####
-    73                                  ; 6=links
-    74                                  ; 8=up-right?
-    75                                  ; 9=up
-    76                                  ; 10=up-left
-    77                                  
-    78                                    ; velocity flags
-    79 000002D5 A0[7602]                  mov al,[ship.vel.x]
-    80 000002D8 0C00                      or al,0
-    81 000002DA 9C                        pushf
-    82 000002DB 58                        pop ax
-    83 000002DC B106                      mov cl,6
-    84 000002DE D2E8                      shr al,cl
-    85 000002E0 86D8                      xchg al,bl
-    86 000002E2 A0[7802]                  mov al,[ship.vel.y]
-    87 000002E5 0C00                      or al,0
-    88 000002E7 9C                        pushf
-    89 000002E8 58                        pop ax
-    90 000002E9 B104                      mov cl,4
-    91 000002EB D2E8                      shr al,cl
-    92 000002ED 09D8                      or ax,bx
-    93 000002EF 83E00F                    and ax,0b1111
+    50                                  ; vec_mult:   ; cx scalar, ax=x, bx=y
+    51                                    
+    52                                  FRICTION equ 94
+    53                                  
+    54                                  update_ship:
+    55                                    
+    56                                    ; x+=vx
+    57 00000309 A1[E802]                  mov ax,[ship.pos.x]       ; 0..73728  (65536)
+    58 0000030C 0306[EC02]                add ax,[ship.vel.x]
+    59 00000310 A3[E802]                  mov [ship.pos.x],ax
+    60                                  
+    61                                    ; y+=vy
+    62 00000313 A1[EA02]                  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
+    63 00000316 0306[EE02]                add ax,[ship.vel.y]
+    64 0000031A A3[EA02]                  mov [ship.pos.y],ax
+    65                                  
+    66                                    ; vx*=98%
+    67 0000031D A1[EC02]                  mov ax, [ship.vel.x]
+    68 00000320 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
+    69 00000321 B95E00                    mov cx, FRICTION
+    70 00000324 F7E9                      imul cx             ; Signed multiplication
+    71 00000326 B96400                    mov cx, 100
+    72 00000329 F7F9                      idiv cx             ; Signed division
+    73 0000032B A3[EC02]                  mov [ship.vel.x], ax
+    74                                  
+    75                                    ; vy*=98%
+    76 0000032E A1[EE02]                  mov ax, [ship.vel.y]
+    77 00000331 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
+    78 00000332 B95E00                    mov cx, FRICTION
+    79 00000335 F7E9                      imul cx             ; Signed multiplication
+    80 00000337 B96400                    mov cx, 100
+    81 0000033A F7F9                      idiv cx             ; Signed division
+    82 0000033C A3[EE02]                  mov [ship.vel.y], ax
+    83                                  
+    84 0000033F C3                        ret
+    85                                  
+    86                                  ; ───────────────────────────────────────────────────────────────────────────
+    87                                  
+    88                                  draw_ship:
+    89                                  
+    90 00000340 A1[E802]                  mov ax,[ship.pos.x]
+    91 00000343 8B1E[EA02]                mov bx,[ship.pos.y]
+    92 00000347 E8FC00                    call world2screen
+    93 0000034A E82AFF                    call calc_di_from_bx
     94                                  
-    95                                    ; or word [ship.vel.y],0
-    96                                    ; pushf
-    97                                    ; pop bx
-    98                                  
-    99                                    ; xchg ah,al
-   100                                    ; or ax,bx
-   101                                    ; and ax,0b000
-   102                                  
-   103                                    ; mov bh,0
-   104                                    ; mov bl,al
-   105                                    ; mov cl,6
-   106                                    ; shr bl,cl
-   107                                    ; mov cl,2
-   108                                    ; shl bl,cl
-   109                                  
-   110                                    ; pop ax
-   111                                    ; mov cl,6
-   112                                    ; shr ax,cl
-   113                                    ; or ax,bx
-   114                                    ; mov ah,bl
-   115                                  
-   116                                  
-   117 000002F2 A3[7A02]                  mov word [ship.vel.flags],ax
-   118                                  
+    95 0000034D 393E[FC02]                cmp [ship.prev_di],di
+    96 00000351 742B                      je .return
+    97                                  
+    98                                    ; call world2screen ; ax and bx are already set by pop bx, pop ax
+    99                                    ; call calc_di_from_bx
+   100                                  
+   101 00000353 8B3E[FC02]                mov di,[ship.prev_di]
+   102                                    
+   103 00000357 BB0808                    mov bx,0x0808  ; rows,cols
+   104                                    ; call fill_rect_black
+   105                                  
+   106 0000035A A1[E802]                  mov ax,[ship.pos.x]
+   107 0000035D 8B1E[EA02]                mov bx,[ship.pos.y]
+   108 00000361 E8E200                    call world2screen
+   109 00000364 E810FF                    call calc_di_from_bx
+   110 00000367 893E[FC02]                mov [ship.prev_di],di
+   111                                  
+   112                                  
+   113 0000036B BE[5307]                  mov si,img_up
+   114 0000036E A1[E802]                  mov ax,[ship.pos.x]
+   115 00000371 8B1E[EA02]                mov bx,[ship.pos.y]
+   116 00000375 E8CE00                    call world2screen ; ax and bx are already set by pop bx, pop ax
+   117 00000378 E8FCFE                    call calc_di_from_bx
+   118 0000037B E8BFFE                    call draw_spr
    119                                  
-   120 000002F5 C3                        ret
-   121                                  
-   122                                  ; ───────────────────────────────────────────────────────────────────────────
-   123                                  
-   124                                  draw_ship:
-   125                                    set_cursor 10,10
-    45 000002F6 BFA816              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   126                                    ; mov bp,[ship.vel.flags]
-   127                                    ; shl bp,1 ; *=2
-   128 000002F9 BD0500                    mov bp,5
-   129 000002FC 8B9E[8702]                mov bx,[img_lut+bp]
-   130 00000300 89DE                      mov si,bx
-   131 00000302 E80EFF                    call draw_spr
-   132                                  
+   120                                  .return
+   121 0000037E C3                        ret
+   122                                  
+   123                                  ; ───────────────────────────────────────────────────────────────────────────
+   124                                  
+   125                                  draw:
+   126 0000037F 0E                        push cs
+   127 00000380 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
+   128                                  
+   129 00000381 E885FF                    call update_ship
+   130 00000384 E8B9FF                    call draw_ship
+   131                                  
+   132 00000387 E8B400                    call _wait
    133                                  
-   134 00000305 A1[7202]                  mov ax,[ship.pos.x]
-   135 00000308 8B1E[7402]                mov bx,[ship.pos.y]
-   136 0000030C E8DE00                    call world2screen
-   137 0000030F E83BFF                    call calc_di_from_bx
-   138 00000312 B8001C                    mov ax,GREEN
-   139 00000315 8EC0                      mov es,ax
-   140 00000317 B8FFFF                    mov ax,-1
-   141 0000031A AB                        stosw
-   142 0000031B AB                        stosw
-   143                                  
-   144 0000031C C3                        ret
-   145                                  
-   146                                  ; ───────────────────────────────────────────────────────────────────────────
+   134 0000038A 45                        inc bp
+   135                                  
+   136                                    set_cursor 12,45
+    45 0000038B BFB41B              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   137                                    print "frame: "
+    50 0000038E EB08                <1>  jmp %%endstr
+    51 00000390 6672616D653A2000    <1>  %%str: db %1,0
+    52                              <1>  %%endstr:
+    53 00000398 BB[9003]            <1>  mov bx,%%str
+    54 0000039B E80CFE              <1>  call write_string
+   138 0000039E 89E8                      mov ax,bp
+   139 000003A0 E843FE                    call write_number_word     ; draw frame counter
+   140                                    print "  "
+    50 000003A3 EB03                <1>  jmp %%endstr
+    51 000003A5 202000              <1>  %%str: db %1,0
+    52                              <1>  %%endstr:
+    53 000003A8 BB[A503]            <1>  mov bx,%%str
+    54 000003AB E8FCFD              <1>  call write_string
+   141                                  
+   142                                    set_cursor 13,45
+    45 000003AE BFF41D              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   143                                    print "vx: "
+    50 000003B1 EB05                <1>  jmp %%endstr
+    51 000003B3 76783A2000          <1>  %%str: db %1,0
+    52                              <1>  %%endstr:
+    53 000003B8 BB[B303]            <1>  mov bx,%%str
+    54 000003BB E8ECFD              <1>  call write_string
+   144 000003BE A1[EC02]                  mov ax,[ship.vel.x]  
+   145 000003C1 E847FE                    call write_signed_number_word
+   146                                    print "  "
+    50 000003C4 EB03                <1>  jmp %%endstr
+    51 000003C6 202000              <1>  %%str: db %1,0
+    52                              <1>  %%endstr:
+    53 000003C9 BB[C603]            <1>  mov bx,%%str
+    54 000003CC E8DBFD              <1>  call write_string
    147                                  
-   148                                  draw:
-   149 0000031D 0E                        push cs
-   150 0000031E 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
-   151                                  
-   152 0000031F FF36[7202]                push word [ship.pos.x] ; prev pos.x
-   153 00000323 FF36[7402]                push word [ship.pos.y] ; prev pos.y
-   154                                  
-   155 00000327 E875FF                    call update_ship
-   156                                  
-   157                                  .if_moved
-   158 0000032A 5B                        pop bx;  prev ship.pos.y
-   159 0000032B 58                        pop ax;  prev ship.pos.x
-   160 0000032C 3B1E[7402]                cmp bx,[ship.pos.y]
-   161 00000330 7508                      jne .undraw_ship
-   162 00000332 3B06[7202]                cmp ax,[ship.pos.x]
-   163 00000336 7502                      jne .undraw_ship
-   164 00000338 EB10                      jmp .end_if_moved
-   165                                  .undraw_ship
-   166 0000033A E8B000                    call world2screen ; ax and bx are already set by pop bx, pop ax
-   167 0000033D E80DFF                    call calc_di_from_bx
-   168 00000340 B8001C                    mov ax,GREEN
-   169 00000343 8EC0                      mov es,ax
-   170 00000345 B80000                    mov ax,0
-   171 00000348 AB                        stosw
-   172 00000349 AB                        stosw
-   173                                  .end_if_moved
-   174                                  
+   148                                    set_cursor 14,45
+    45 000003CF BF3420              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   149                                    print "vy: "
+    50 000003D2 EB05                <1>  jmp %%endstr
+    51 000003D4 76793A2000          <1>  %%str: db %1,0
+    52                              <1>  %%endstr:
+    53 000003D9 BB[D403]            <1>  mov bx,%%str
+    54 000003DC E8CBFD              <1>  call write_string
+   150 000003DF A1[EE02]                  mov ax,[ship.vel.y]
+   151 000003E2 E826FE                    call write_signed_number_word     ; draw vy
+   152                                    print "  "
+    50 000003E5 EB03                <1>  jmp %%endstr
+    51 000003E7 202000              <1>  %%str: db %1,0
+    52                              <1>  %%endstr:
+    53 000003EA BB[E703]            <1>  mov bx,%%str
+    54 000003ED E8BAFD              <1>  call write_string
+   153                                  
+   154 000003F0 E82AFE                    call check_keys
+   155 000003F3 7502                      jnz on_key
+   156                                    ;else
+   157 000003F5 EB88                      jmp draw          ; this code is only getting called when no key is pressed
+   158                                  
+   159                                  ; ───────────────────────────────────────────────────────────────────────────
+   160                                  
+   161                                  on_key:
+   162                                    set_cursor 2,10
+    45 000003F7 BFA804              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+    46                              <1> 
+   163 000003FA A1[0400]                  mov ax,[key]
+   164 000003FD E8CEFD                    call write_binary_word
+   165 00000400 83F877                    cmp ax,'w'
+   166 00000403 7412                      je on_key_w
+   167 00000405 83F861                    cmp ax,'a'
+   168 00000408 7415                      je on_key_a
+   169 0000040A 83F873                    cmp ax,'s'
+   170 0000040D 7418                      je on_key_s
+   171 0000040F 83F864                    cmp ax,'d'
+   172 00000412 741B                      je on_key_d
+   173                                  .done
+   174 00000414 E968FF                    jmp draw  ; no ret here because onkey is called by jnz
    175                                  
-   176 0000034A E8A9FF                    call draw_ship
-   177 0000034D E89500                    call _wait
+   176                                  
+   177                                  STEP equ 500
    178                                  
-   179 00000350 45                        inc bp
-   180 00000351 89E8                      mov ax,bp
-   181                                    set_cursor 12,50
-    45 00000353 BFC81B              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   182 00000356 E805FE                    call write_number_word     ; draw frame counter
-   183 00000359 BB[6C02]                  mov bx,msg_spaces
-   184 0000035C E8C3FD                    call write_string
-   185                                  
-   186 0000035F A1[7602]                  mov ax,[ship.vel.x]
-   187                                    set_cursor 13,50
-    45 00000362 BF081E              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   188 00000365 E8F6FD                    call write_number_word     ; draw vx
-   189 00000368 BB[6C02]                  mov bx,msg_spaces
-   190 0000036B E8B4FD                    call write_string
-   191                                  
-   192 0000036E A1[7802]                  mov ax,[ship.vel.y]
-   193                                    set_cursor 14,50
-    45 00000371 BF4820              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   194 00000374 E8E7FD                    call write_number_word     ; draw vy
-   195 00000377 BB[6C02]                  mov bx,msg_spaces
-   196 0000037A E8A5FD                    call write_string
-   197                                  
-   198 0000037D A1[7A02]                  mov ax,[ship.vel.flags]
-   199                                    set_cursor 15,50
-    45 00000380 BF8822              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   200                                    ; call write_binary_word     ; flags
-   201 00000383 E8D8FD                    call write_number_word     
-   202 00000386 BB[6C02]                  mov bx,msg_spaces
-   203 00000389 E896FD                    call write_string
+   179                                  ; ───────────────────────────────────────────────────────────────────────────
+   180                                  
+   181                                  on_key_w:
+   182 00000417 812E[EE02]F401            sub word [ship.vel.y], STEP
+   183 0000041D EBF5                      jmp on_key.done
+   184                                  
+   185                                  ; ───────────────────────────────────────────────────────────────────────────
+   186                                  
+   187                                  on_key_a:
+   188 0000041F 812E[EC02]F401            sub word [ship.vel.x], STEP
+   189 00000425 EBED                      jmp on_key.done
+   190                                  
+   191                                  ; ───────────────────────────────────────────────────────────────────────────
+   192                                  
+   193                                  on_key_s:
+   194 00000427 8106[EE02]F401            add word [ship.vel.y], STEP
+   195 0000042D EBE5                      jmp on_key.done
+   196                                  
+   197                                  ; ───────────────────────────────────────────────────────────────────────────
+   198                                  
+   199                                  on_key_d:
+   200 0000042F 8106[EC02]F401            add word [ship.vel.x], STEP
+   201 00000435 EBDD                      jmp on_key.done
+   202                                  
+   203                                  ; ───────────────────────────────────────────────────────────────────────────
    204                                  
-   205 0000038C A1[7A02]                  mov ax,[ship.vel.flags]
-   206                                    set_cursor 16,50
-    45 0000038F BFC824              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
+   205                                  print_msg:
+   206                                    set_cursor 1,10
+    45 00000437 BF6802              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
     46                              <1> 
-   207 00000392 E8B1FD                    call write_binary_word     ; flags
-   208                                  
-   209 00000395 E8EBFD                    call check_keys
-   210 00000398 7502                      jnz on_key
-   211                                    ;else
-   212 0000039A EB81                      jmp draw          ; this code is only getting called when no key is pressed
-   213                                  
-   214                                  ; ───────────────────────────────────────────────────────────────────────────
-   215                                  
-   216                                  on_key:
-   217                                    set_cursor 2,10
-    45 0000039C BFA804              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   218 0000039F A1[0400]                  mov ax,[key]
-   219 000003A2 E8A1FD                    call write_binary_word
-   220 000003A5 83F877                    cmp ax,'w'
-   221 000003A8 7418                      je on_key_w
-   222 000003AA 83F861                    cmp ax,'a'
-   223 000003AD 741A                      je on_key_a
-   224 000003AF 83F873                    cmp ax,'s'
-   225 000003B2 741C                      je on_key_s
-   226 000003B4 83F864                    cmp ax,'d'
-   227 000003B7 741E                      je on_key_d
-   228 000003B9 BB[5F02]                  mov bx, msg_other_key             ; msg_other_key
-   229 000003BC E81F00                    call print_msg
-   230                                  .done
-   231 000003BF E95BFF                    jmp draw  ; no ret here because onkey is called by jnz
-   232                                  
-   233                                  
-   234                                  STEP equ 100
-   235                                  
-   236                                  ; ───────────────────────────────────────────────────────────────────────────
-   237                                  
-   238                                  on_key_w:
-   239 000003C2 832E[7802]64              sub word [ship.vel.y], STEP
-   240 000003C7 EBF6                      jmp on_key.done
-   241                                  
-   242                                  ; ───────────────────────────────────────────────────────────────────────────
-   243                                  
-   244                                  on_key_a:
-   245 000003C9 832E[7602]64              sub word [ship.vel.x], STEP
-   246 000003CE EBEF                      jmp on_key.done
-   247                                  
-   248                                  ; ───────────────────────────────────────────────────────────────────────────
-   249                                  
-   250                                  on_key_s:
-   251 000003D0 8306[7802]64              add word [ship.vel.y], STEP
-   252 000003D5 EBE8                      jmp on_key.done
-   253                                  
-   254                                  ; ───────────────────────────────────────────────────────────────────────────
-   255                                  
-   256                                  on_key_d:
-   257 000003D7 8306[7602]64              add word [ship.vel.x], STEP
-   258 000003DC EBE1                      jmp on_key.done
-   259                                  
-   260                                  ; ───────────────────────────────────────────────────────────────────────────
-   261                                  
-   262                                  print_msg:
-   263                                    set_cursor 1,10
-    45 000003DE BF6802              <1>  mov di,%1 * BYTES_PER_ROW + %2 * 4
-    46                              <1> 
-   264 000003E1 E83EFD                    call write_string
-   265 000003E4 C3                        ret
-   266                                  
-   267                                  ; ───────────────────────────────────────────────────────────────────────────
-   268                                  
-   269                                  _wait:
-   270                                    DELAY EQU 250
-   271 000003E5 B9FA00                    mov cx,DELAY
-   272 000003E8 D40A                      .lp aam
-   273 000003EA E2FC                      loop .lp
-   274 000003EC C3                        ret
-   275                                  
-   276                                  ; ───────────────────────────────────────────────────────────────────────────
+   207 0000043A E86DFD                    call write_string
+   208 0000043D C3                        ret
+   209                                  
+   210                                  ; ───────────────────────────────────────────────────────────────────────────
+   211                                  
+   212                                  _wait:
+   213                                    DELAY EQU 250
+   214 0000043E B9FA00                    mov cx,DELAY
+   215 00000441 D40A                      .lp aam
+   216 00000443 E2FC                      loop .lp
+   217 00000445 C3                        ret
+   218                                  
+   219                                  ; ───────────────────────────────────────────────────────────────────────────
+   220                                  
+   221                                  world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
+   222                                    ; WORLD:
+   223                                    ;   0..73728  (65536) -> col
+   224                                    ;   0..51200  (=1024*50) -> row
+   225                                    ; SCREEN (ROW,COL):
+   226                                    ;   0..49 (row)
+   227                                    ;   0..71 (col)
+   228 00000446 B10A                      mov cl,10
+   229 00000448 D3EB                      shr bx,cl   ; //bl=row 0..49
+   230 0000044A D3E8                      shr ax,cl   ; 
+   231 0000044C 88C7                      mov bh,al   ; //bh=col 0..71
+   232 0000044E 86DF                      xchg bh,bl
+   233 00000450 C3                        ret
+   234                                  
+   235                                  ; ───────────────────────────────────────────────────────────────────────────
+   236                                  
+   237                                  ; FIXME
+   238 00000451 <bin 302h>              img_NONE: incbin "data/ship-24.spr"
+   239                                  
+   240                                  
+   241                                  img_up:
+   242 00000753 <bin 302h>              img1: incbin "data/ship-1.spr" ;up
+   243 00000A55 <bin 302h>              img2: incbin "data/ship-2.spr"
+   244 00000D57 <bin 302h>              img3: incbin "data/ship-3.spr"
+   245                                  img_up_right:
+   246 00001059 <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
+   247 0000135B <bin 302h>              img5: incbin "data/ship-5.spr"
+   248 0000165D <bin 302h>              img6: incbin "data/ship-6.spr"
+   249                                  img_right:
+   250 0000195F <bin 302h>              img7: incbin "data/ship-7.spr" ;right
+   251 00001C61 <bin 302h>              img8: incbin "data/ship-8.spr"
+   252 00001F63 <bin 302h>              img9: incbin "data/ship-9.spr"
+   253                                  img_down_right:
+   254 00002265 <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
+   255 00002567 <bin 302h>              img11: incbin "data/ship-11.spr"
+   256 00002869 <bin 302h>              img12: incbin "data/ship-12.spr"
+   257                                  img_down:
+   258 00002B6B <bin 302h>              img13: incbin "data/ship-13.spr" ;down
+   259 00002E6D <bin 302h>              img14: incbin "data/ship-14.spr"
+   260 0000316F <bin 302h>              img15: incbin "data/ship-15.spr"
+   261                                  img_down_left:
+   262 00003471 <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
+   263 00003773 <bin 302h>              img17: incbin "data/ship-17.spr"
+   264 00003A75 <bin 302h>              img18: incbin "data/ship-18.spr"
+   265                                  img_left:
+   266 00003D77 <bin 302h>              img19: incbin "data/ship-19.spr" ;left
+   267 00004079 <bin 302h>              img20: incbin "data/ship-20.spr"
+   268 0000437B <bin 302h>              img21: incbin "data/ship-21.spr"
+   269                                  img_up_left:
+   270 0000467D <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
+   271 0000497F <bin 302h>              img23: incbin "data/ship-23.spr"
+   272 00004C81 <bin 302h>              img24: incbin "data/ship-24.spr"
+   273                                  
+   274                                  
+   275 00004F83 00<rep 2807Dh>          times (180*1024)-($-$$) db 0
+   276                                  
    277                                  
-   278                                  world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
-   279                                    ; WORLD:
-   280                                    ;   0..73728  (65536) -> col
-   281                                    ;   0..51200  (=1024*50) -> row
-   282                                    ; SCREEN (ROW,COL):
-   283                                    ;   0..49 (row)
-   284                                    ;   0..71 (col)
-   285 000003ED B10A                      mov cl,10
-   286 000003EF D3EB                      shr bx,cl   ; //bl=row 0..49
-   287 000003F1 D3E8                      shr ax,cl   ; 
-   288 000003F3 88C7                      mov bh,al   ; //bh=col 0..71
-   289 000003F5 86DF                      xchg bh,bl
-   290 000003F7 C3                        ret
-   291                                  
-   292                                  ; ───────────────────────────────────────────────────────────────────────────
-   293                                  
-   294                                  ; 180 items but full 360 range divide AX by 2 or SHR AX,1 then do XLAT
-   295                                  ; lut_sin: db 0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,50,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99,100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,50,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-49,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-50,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3
-   296                                  ; lut_cos: db 100,99,99,99,99,98,97,97,96,95,93,92,91,89,88,86,84,82,80,78,76,74,71,69,66,64,61,58,55,52,49,46,43,40,37,34,30,27,24,20,17,13,10,6,3,0,-3,-6,-10,-13,-17,-20,-24,-27,-30,-34,-37,-40,-43,-46,-50,-52,-55,-58,-61,-64,-66,-69,-71,-74,-76,-78,-80,-82,-84,-86,-88,-89,-91,-92,-93,-95,-96,-97,-97,-98,-99,-99,-99,-99,-100,-99,-99,-99,-99,-98,-97,-97,-96,-95,-93,-92,-91,-89,-88,-86,-84,-82,-80,-78,-76,-74,-71,-69,-66,-64,-61,-58,-55,-52,-49,-46,-43,-40,-37,-34,-30,-27,-24,-20,-17,-13,-10,-6,-3,0,3,6,10,13,17,20,24,27,30,34,37,40,43,46,49,52,55,58,61,64,66,69,71,74,76,78,80,82,84,86,88,89,91,92,93,95,96,97,97,98,99,99,99,99
-   297                                  
-   298                                  
-   299                                  img_up:
-   300 000003F8 <bin 302h>              img1: incbin "data/ship-1.spr" ;up
-   301 000006FA <bin 302h>              img2: incbin "data/ship-2.spr"
-   302 000009FC <bin 302h>              img3: incbin "data/ship-3.spr"
-   303                                  img_up_right:
-   304 00000CFE <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
-   305 00001000 <bin 302h>              img5: incbin "data/ship-5.spr"
-   306 00001302 <bin 302h>              img6: incbin "data/ship-6.spr"
-   307                                  img_right:
-   308 00001604 <bin 302h>              img7: incbin "data/ship-7.spr" ;right
-   309 00001906 <bin 302h>              img8: incbin "data/ship-8.spr"
-   310 00001C08 <bin 302h>              img9: incbin "data/ship-9.spr"
-   311                                  img_down_right:
-   312 00001F0A <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
-   313 0000220C <bin 302h>              img11: incbin "data/ship-11.spr"
-   314 0000250E <bin 302h>              img12: incbin "data/ship-12.spr"
-   315                                  img_down:
-   316 00002810 <bin 302h>              img13: incbin "data/ship-13.spr" ;down
-   317 00002B12 <bin 302h>              img14: incbin "data/ship-14.spr"
-   318 00002E14 <bin 302h>              img15: incbin "data/ship-15.spr"
-   319                                  img_down_left:
-   320 00003116 <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
-   321 00003418 <bin 302h>              img17: incbin "data/ship-17.spr"
-   322 0000371A <bin 302h>              img18: incbin "data/ship-18.spr"
-   323                                  img_left:
-   324 00003A1C <bin 302h>              img19: incbin "data/ship-19.spr" ;left
-   325 00003D1E <bin 302h>              img20: incbin "data/ship-20.spr"
-   326 00004020 <bin 302h>              img21: incbin "data/ship-21.spr"
-   327                                  img_up_left:
-   328 00004322 <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
-   329 00004624 <bin 302h>              img23: incbin "data/ship-23.spr"
-   330 00004926 <bin 302h>              img24: incbin "data/ship-24.spr"
-   331                                  
-   332                                  
-   333 00004C28 00<rep 283D8h>          times (180*1024)-($-$$) db 0
-   334                                  
-   335                                  
-   336                                  
+   278                                  
