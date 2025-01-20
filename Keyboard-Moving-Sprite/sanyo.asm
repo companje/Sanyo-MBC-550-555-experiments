@@ -64,54 +64,29 @@ key:
   mov word [%1*4+2],cs
 %endmacro
 
-int0:; int0: Division by zero
-  mov al,0
-  jmp int_msg
-int1:; int1: Single step debugging
-  mov al,1
-  jmp int_msg
-int2:; int2: Non maskable interrupt
-  mov al,2
-  jmp int_msg
-int3:; int3: For one-byte interrupt
-  push ax
-  push bx
-  push cx
-  push dx
-  push si
-  push di
-  push bp
-  push ds
-  push es
-
-  xor di,di
-  print "x"
-  call write_char
-
-  pop es
-  pop ds
-  pop bp
-  pop di
-  pop si
-  pop dx
-  pop cx
-  pop bx
-  pop ax
-
-  iret
-  ; mov al,3
-  ; jmp int_msg
-int4:; int4: Signed overflow
-  mov al,4
-  jmp int_msg
-int_msg:
-  xor di,di
-  push ax
-  print "int"
-  pop ax
-  add al,'0'
-  call write_char
-  hlt
+; int0:; int0: Division by zero
+;   mov al,0
+;   jmp int_msg
+; int1:; int1: Single step debugging
+;   mov al,1
+;   jmp int_msg
+; int2:; int2: Non maskable interrupt
+;   mov al,2
+;   jmp int_msg
+; int3:; int3: For one-byte interrupt
+;   mov al,3
+;   jmp int_msg
+; int4:; int4: Signed overflow
+;   mov al,4
+;   jmp int_msg
+; int_msg:
+;   xor di,di
+;   push ax
+;   print "int"
+;   pop ax
+;   add al,'0'
+;   call write_char
+;   hlt
 
 boot:
   cli
@@ -123,13 +98,13 @@ boot:
   out 10h, al           ; select address 0x1c000 as green video page
  
   ; register interrupts
-  mov ax,0
-  mov ds,ax ; segment 0
-  register_interrupt 0, int0
-  register_interrupt 1, int1
-  register_interrupt 2, int2
-  register_interrupt 3, int3
-  register_interrupt 4, int4
+  ; mov ax,0
+  ; mov ds,ax ; segment 0
+  ; register_interrupt 0, int0
+  ; register_interrupt 1, int1
+  ; register_interrupt 2, int2
+  ; register_interrupt 3, int3
+  ; register_interrupt 4, int4
 
   ; init other hardware
   mov al,0
@@ -291,14 +266,93 @@ clear_channel:
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-write_char:   ; ds=FONT, es=GREEN, al=charcode
-  ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
-  ; je zou de huidige kleur op een adres willen bewaren. nu doet ie alleen maar groen.
-  ; deze functie zou ook korter/lichter kunnen/moeten. wellicht twee functies maken. een slimme en een domme snelle..
+; write_char:   ; ds=FONT, es=GREEN, al=charcode
+;   ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
+;   ; je zou de huidige kleur op een adres willen bewaren. nu doet ie alleen maar groen.
+;   ; deze functie zou ook korter/lichter kunnen/moeten. wellicht twee functies maken. een slimme en een domme snelle..
 
+;   push ds
+;   push es
+;   push ax
+;   push bx
+;   push cx
+
+;   push ax
+;   mov ax,GREEN
+;   mov es,ax
+;   mov ax,FONT
+;   mov ds,ax
+;   pop ax
+
+;   ; mov ax,65*8
+;   ; mov al,'x'
+;   mov ah,8
+;   mul ah        ; ax=al*ah
+
+;   mov si,ax
+;   movsw
+;   movsw
+;   add di,0x11c
+;   movsw
+;   movsw
+;   mov bx,288
+;   sub di,bx
+  
+;   ; pop ax
+;   ; pop es
+;   ; pop ds
+;   ; ret
+
+
+;   ; row snap
+;   xor dx,dx
+;   mov ax,di
+;   div bx
+;   cmp dx,0
+;   jne .return
+;   add di,bx
+
+
+;   ; wrap to top
+;   cmp di,14400   ; dit later oplossen met cursor positie
+;   jb .return
+;   ; xor di,di      ; move to left top. change later to scroll
+
+;   ; TODO: call scroll_down
+;   ; std
+;   ; push di
+;   ; push cx
+;   ; mov cx,4*72*24
+;   ; mov ax,0
+;   ; rep stosw
+;   ; pop cx
+;   ; pop di
+;   ; cld
+
+;   ; DONE: clear last line
+;   sub di,bx
+;   sub di,bx
+;   push di
+;   push cx
+;   mov cx,COLS*ROWS*2
+;   xor ax,ax
+;   rep stosw         ; clear screen
+;   pop cx
+;   pop di
+
+; .return
+;   push bx
+;   push cx
+;   pop ax
+;   pop es
+;   pop ds
+;   ret
+
+; ; ───────────────────────────────────────────────────────────────────────────
+
+write_char:   ; ds=FONT, es=GREEN, al=charcode
   push ds
   push es
-
   push ax
   push ax
   mov ax,GREEN
@@ -307,15 +361,18 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   mov ds,ax
   pop ax
   mov ah,8
-  mul ah        ; ax=al*ah
+  mul ah        ; al*=ah
   mov si,ax
   movsw
   movsw
   add di,0x11c
   movsw
   movsw
-  mov bx,288
-  sub di,bx
+  sub di,0x120
+  ; cmp di,14400   ; dit later oplossen met cursor positie
+  ; jb .return
+  ; xor di,di      ; move to left top. change later to scroll
+
 
   ; row snap
   xor dx,dx
@@ -324,43 +381,13 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   cmp dx,0
   jne .return
   add di,bx
-
-  ; wrap to top
-  cmp di,14400   ; dit later oplossen met cursor positie
-  jb .return
-  ; xor di,di      ; move to left top. change later to scroll
-
-  ; TODO: call scroll_down
-  ; std
-  ; push di
-  ; push cx
-  ; mov cx,4*72*24
-  ; mov ax,0
-  ; rep stosw
-  ; pop cx
-  ; pop di
-  ; cld
-
-  ; DONE: clear last line
-  sub di,bx
-  sub di,bx
-  push di
-  push cx
-  mov cx,COLS*ROWS*2
-  xor ax,ax
-  rep stosw         ; clear screen
-  pop cx
-  pop di
-
-
+  
 
 .return
   pop ax
   pop es
   pop ds
   ret
-
-; ───────────────────────────────────────────────────────────────────────────
 
 write_string:
   mov al,[cs:bx]
@@ -635,41 +662,41 @@ calc_di_from_bx:  ; input bl,bh [0,0,71,49]
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-calc_di_from_cursor:  ; input cursor, output di
-  mov ax,[cursor] 
-  sub ax,0x0101   ; cursor is 1 based
-  xchg ax,bx      ; bx=ax
-  mov ax,144      ; 2*72 cols
-  mul bh          ; bh*=144 resultaat in AX
-  shl ax,1        ; verdubbel AX
-  shl ax,1        ; verdubbel AX
-  mov di,ax       ; di=ax (=bh*288)
-  shl bl,1        ; bl*=2
-  shl bl,1        ; bl*=2
-  mov bh,0
-  add di,bx       ; di+=bl
-  ret
+; calc_di_from_cursor:  ; input cursor, output di
+;   mov ax,[cursor] 
+;   sub ax,0x0101   ; cursor is 1 based
+;   xchg ax,bx      ; bx=ax
+;   mov ax,144      ; 2*72 cols
+;   mul bh          ; bh*=144 resultaat in AX
+;   shl ax,1        ; verdubbel AX
+;   shl ax,1        ; verdubbel AX
+;   mov di,ax       ; di=ax (=bh*288)
+;   shl bl,1        ; bl*=2
+;   shl bl,1        ; bl*=2
+;   mov bh,0
+;   add di,bx       ; di+=bl
+;   ret
 
 
 
 
 ; als je cursor gebruikt is dit missch niet nodig.
-row_snap:  ; this code detects if DI is in between rows. When DI goes to the next half row it converts it to a whole row.
-  push ax
-  push bx
-  push dx
-  mov bx,288
-  mov ax,di
-  cwd ; xor dx,dx
-  div bx
-  jnp .done  ; if ax%288==0 
-  add di,bx
-  .done
-  ; add di,dx
-  pop dx
-  pop bx
-  pop ax
-  ret
+; row_snap:  ; this code detects if DI is in between rows. When DI goes to the next half row it converts it to a whole row.
+;   push ax
+;   push bx
+;   push dx
+;   mov bx,288
+;   mov ax,di
+;   cwd ; xor dx,dx
+;   div bx
+;   jnp .done  ; if ax%288==0 
+;   add di,bx
+;   .done
+;   ; add di,dx
+;   pop dx
+;   pop bx
+;   pop ax
+;   ret
 
 
 ; ; ───────────────────────────────────────────────────────────────────────────

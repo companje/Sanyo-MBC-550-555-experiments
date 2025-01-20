@@ -1,6 +1,8 @@
 atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   mov cx,ax   ; z
 
+  hlt
+  
   int3
 
   cmp cx,111

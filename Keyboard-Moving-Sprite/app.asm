@@ -32,8 +32,31 @@ color: db Color.G
 
 ; en alles heel lightweight?
 
+; msg: db "abcdef",0
 
 setup:
+  ; xor di,di
+  ; print "Test123"
+
+  ; set_cursor 2,1
+  ; mov al,'a'
+  ; call write_char
+  ; print "atan(426)="
+  ; jmp .tmp
+  ; .s db 
+  ; .tmp
+  ; mov bx, msg
+  ; call write_string
+
+  ; mov ax,12345
+  ; call write_number_word
+
+  ; hlt
+  ; mov ax,426
+  ; ; call atan
+  ; call write_number_word
+  ; hlt
+
   ; mov di,4*72 + 4*10
   ; call row_snap
   ; mov ax,12345
@@ -49,16 +72,16 @@ setup:
   ; pop word [cursor]
 
   ; call calc_di_from_cursor
-  set_cursor 1,1 ; 1,72
-  mov cx,500
-  .lp:
-    mov ax,cx
-    call write_number_word
-    mov al,' '
-    call write_char
-    loop .lp
+  ; set_cursor 1,1 ; 1,72
+  ; mov cx,500
+  ; .lp:
+  ;   mov ax,cx
+  ;   call write_number_word
+  ;   mov al,' '
+  ;   call write_char
+  ;   loop .lp
 
-  hlt
+  ; hlt
 
   ; mov word [cursor.index],36
   ; call calc_di_from_cursor_index
@@ -86,11 +109,7 @@ setup:
   ; loop .lp
 
 
-  ; set_cursor 2,5
-  ; print "atan(426)="
-  ; mov ax,426
-  ; call atan
-  ; call write_number_word
+  
 
   ; mov cx,426
   ; mov ax,12321        ; 12321 = 111*111 (squared scale)
@@ -98,7 +117,7 @@ setup:
   ; idiv cx             ; ax/=z
   ; call write_number_word
 
-  hlt
+  ; hlt
 
 
   ; xor bp,bp
