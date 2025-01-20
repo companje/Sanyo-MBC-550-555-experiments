@@ -9,12 +9,12 @@ nasm -w-label-orphan "$base.asm" -o "$base.img" -l "$base.lst"
 
 # -w-user 
 
-if [ -d $flashfloppy_image_folder ]; then
-	cp "$base.img" "$flashfloppy_image_folder$prefix$base.img"
-	hdiutil unmount $flashfloppy_image_folder -force
-else
-  echo "$flashfloppy_image_folder not found. No file copied."
-fi
+# if [ -d $flashfloppy_image_folder ]; then
+# 	cp "$base.img" "$flashfloppy_image_folder$prefix$base.img"
+# 	hdiutil unmount $flashfloppy_image_folder -force
+# else
+#   echo "$flashfloppy_image_folder not found. No file copied."
+# fi
 
 # /Users/rick/bin/hxcfe -finput:"$base.img" \
 #    -conv:HXC_HFE -foutput:"$base.hfe" \

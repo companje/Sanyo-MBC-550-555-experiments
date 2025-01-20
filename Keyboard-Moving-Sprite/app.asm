@@ -1,5 +1,5 @@
 %include "sanyo.asm"
-%include "atan.asm"
+; %include "atan.asm"
 
 ship:
  .pos:
@@ -20,24 +20,83 @@ ship:
 
 color: db Color.G
 
-; ───────────────────────────────────────────────────────────────────────────
+
+;kan ik een generieke cursor_next maken die de waarde 
+;van DI opvraagd en deze verhoogt
+;en als de cursor tussen twee regels staat 
+;deze verhoogd met 288
+
+; en als de waarde van DI boven de max uitkomt dat
+; er dan gescrollt wordt en DI wordt verplaatst naar
+; het begin van de regel
+
+; en alles heel lightweight?
+
 
 setup:
+  ; mov di,4*72 + 4*10
+  ; call row_snap
+  ; mov ax,12345
+  ; call write_number_word  
 
-  set_cursor 2,5
+  ; mov word [cursor],0x0208
+
+  ; ; mov byte [cursor.col],8
+  ; ; mov byte [cursor.row],2
+
+  ; inc byte [cursor.col]
+  ; push word [cursor]
+  ; pop word [cursor]
+
+  ; call calc_di_from_cursor
+  set_cursor 1,1 ; 1,72
+  mov cx,500
+  .lp:
+    mov ax,cx
+    call write_number_word
+    mov al,' '
+    call write_char
+    loop .lp
+
+  hlt
+
+  ; mov word [cursor.index],36
+  ; call calc_di_from_cursor_index
+
+  
+  ; hlt
+
+  ; ; mov bh,al
+  ; ; mov bl,dl
+
+
+  ; ; call calc_di_from_bx
+
+  
+  ; ; xor di,di
+  ; ; mov ax,cx
+  ; ; call write_number_word
+  ; mov al,'x'
+  ; call write_char
+
+  ; inc word [cursor.index]
+
+  ; ; print "   "
+
+  ; loop .lp
+
+
+  ; set_cursor 2,5
   ; print "atan(426)="
+  ; mov ax,426
+  ; call atan
+  ; call write_number_word
 
   ; mov cx,426
-  ; call atan
-
-  ; mov ax,426
-  ; push ax             ; put z on the stack
-  ; call atan
-  
-  mov ax, 12321       ; 12321 = 111*111 (squared scale)
+  ; mov ax,12321        ; 12321 = 111*111 (squared scale)
   ; xor dx,dx           ; dx=0 (prevent overflow) 
   ; idiv cx             ; ax/=z
-  call write_number_word
+  ; call write_number_word
 
   hlt
 

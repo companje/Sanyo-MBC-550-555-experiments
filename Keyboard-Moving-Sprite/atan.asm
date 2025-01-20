@@ -1,11 +1,14 @@
 atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
-  pop cx  ; get z from the stack
+  mov cx,ax   ; z
+
+  int3
 
   cmp cx,111
   ja .if_z_gt_scale  ; if (z>111)
 
   cmp cx,-111        ; if (z<-111) 
   jb .if_z_lt_minus_scale
+
 
   ;else
   xor dx,dx           ; dx=0 (prevent overflow) 
@@ -27,31 +30,29 @@ atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   mov bx,314
   xor dx,dx           ; dx=0 (prevent overflow) 
   idiv bx             ; ax/=314
-  jmp .return
+  ret
 
 .if_z_gt_scale:
   mov ax, 12321       ; 12321 = 111*111 (squared scale)
   xor dx,dx           ; dx=0 (prevent overflow) 
   idiv cx             ; ax/=z
-  push ax   ; put on the stack for recursion
+
   call atan          ; recursion
   mov bx,ax
   mov ax,90
   sub ax,bx
-  jmp .return
+  ret
 
 .if_z_lt_minus_scale:
   mov ax, 12321      ; 12321 = 111*111 (squared scale)
   xor dx,dx           ; dx=0 (prevent overflow) 
   idiv cx             ; ax/=z
-  push ax   ; put on the stack for recursion
   call atan          ; recursion
   mov bx,ax
   mov ax,-90
   sub ax,bx
-
-.return:
   ret
+
 
 
 ; int atan2(int y, int x) {
