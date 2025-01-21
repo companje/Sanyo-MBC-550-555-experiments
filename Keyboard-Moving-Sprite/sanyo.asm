@@ -39,12 +39,6 @@ key:
   .code db 0
   .ctrl db 0
 
-; cursor.index: dw 0
-
-; %macro set_cursor_row 1
-;   mov di,%1 * BYTES_PER_ROW
-; %endmacro
-
 %macro set_cursor 2
   ; mov di,%1 * BYTES_PER_ROW + %2 * 4  ; zero based
   mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4   ; one based
@@ -58,35 +52,67 @@ key:
   call write_string
 %endmacro
 
-%macro register_interrupt 2
-  ;DS shoud be 0
-  mov word [%1*4+0],%2
-  mov word [%1*4+2],cs
+%macro register_interrupt 1
+  mov ax,%1
+  stosw
+  mov ax,cs
+  stosw
 %endmacro
 
-; int0:; int0: Division by zero
-;   mov al,0
-;   jmp int_msg
-; int1:; int1: Single step debugging
-;   mov al,1
-;   jmp int_msg
-; int2:; int2: Non maskable interrupt
-;   mov al,2
-;   jmp int_msg
-; int3:; int3: For one-byte interrupt
-;   mov al,3
-;   jmp int_msg
-; int4:; int4: Signed overflow
-;   mov al,4
-;   jmp int_msg
-; int_msg:
-;   xor di,di
-;   push ax
-;   print "int"
-;   pop ax
-;   add al,'0'
-;   call write_char
-;   hlt
+; int0: hlt
+; int1: hlt
+; int2: hlt
+; int3: hlt
+; int4: hlt
+
+int0:; int0: Division by zero
+  mov al,0
+  jmp int_msg
+int1:; int1: Single step debugging
+  mov al,1
+  jmp int_msg
+int2:; int2: Non maskable interrupt
+  mov al,2
+  jmp int_msg
+int3:; int3: For one-byte interrupt
+  push ax
+  push bx
+  push cx
+  push dx
+  push si
+  push di
+  push bp
+  push ds
+  push es
+
+  ; mov di,10*4
+  print "int3:"
+
+  ; call write_number_word
+  pop es
+  pop ds
+  pop bp
+  pop di
+  pop si
+  pop dx
+  pop cx
+  pop bx
+  pop ax
+  iret
+
+int4:; int4: Signed overflow
+  mov al,4
+  jmp int_msg
+int_msg:
+  xor di,di
+  ; mov ax,di
+  ; mov cx,8*72  
+  ; rep stosw
+  ; xor di,di
+  add al,'0'
+  call write_char
+  print " int"
+  hlt
 
 boot:
   cli
@@ -98,13 +124,14 @@ boot:
   out 10h, al           ; select address 0x1c000 as green video page
  
   ; register interrupts
-  ; mov ax,0
-  ; mov ds,ax ; segment 0
-  ; register_interrupt 0, int0
-  ; register_interrupt 1, int1
-  ; register_interrupt 2, int2
-  ; register_interrupt 3, int3
-  ; register_interrupt 4, int4
+  xor di,di ; offset 0
+  mov es,di ; segment 0
+  register_interrupt int0
+  register_interrupt int1
+  register_interrupt int2
+  register_interrupt int3
+  register_interrupt int4
+
 
   ; init other hardware
   mov al,0
@@ -369,10 +396,10 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   movsw
   movsw
   sub di,0x120
+
   ; cmp di,14400   ; dit later oplossen met cursor positie
   ; jb .return
   ; xor di,di      ; move to left top. change later to scroll
-
 
   ; row snap
   xor dx,dx
@@ -381,8 +408,6 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   cmp dx,0
   jne .return
   add di,bx
-  
-
 .return
   pop ax
   pop es

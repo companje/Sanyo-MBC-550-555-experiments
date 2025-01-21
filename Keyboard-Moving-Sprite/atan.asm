@@ -1,7 +1,5 @@
 atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   mov cx,ax   ; z
-
-  hlt
   
   int3
 
@@ -10,7 +8,6 @@ atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
 
   cmp cx,-111        ; if (z<-111) 
   jb .if_z_lt_minus_scale
-
 
   ;else
   xor dx,dx           ; dx=0 (prevent overflow) 

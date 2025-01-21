@@ -1,5 +1,5 @@
 %include "sanyo.asm"
-; %include "atan.asm"
+%include "atan.asm"
 
 ship:
  .pos:
@@ -35,22 +35,39 @@ color: db Color.G
 ; msg: db "abcdef",0
 
 setup:
-  ; xor di,di
+  ; set_cursor 1,1
+  ; print "atan(426)="
+  ; mov ax,426
+  ; call atan
+  ; call write_number_word
+  
+  set_cursor 1,1
+  print "A"
+  int3
+  set_cursor 2,1
+  print "B"
+  int3
+  set_cursor 3,1
+  print "C"
+  int3
+  set_cursor 4,1
+  print "D"
+  int3
+
+  hlt
+  
   ; print "Test123"
 
   ; set_cursor 2,1
   ; mov al,'a'
   ; call write_char
-  ; print "atan(426)="
   ; jmp .tmp
   ; .s db 
   ; .tmp
   ; mov bx, msg
   ; call write_string
 
-  ; mov ax,12345
-  ; call write_number_word
-
+  
   ; hlt
   ; mov ax,426
   ; ; call atan
