@@ -288,7 +288,7 @@
    267 000000EF E82600              <1>   call clear_green
    268 000000F2 0E                  <1>   push cs
    269 000000F3 1F                  <1>   pop ds
-   270 000000F4 E96402              <1>   jmp setup
+   270 000000F4 E96502              <1>   jmp setup
    271                              <1> 
    272                              <1> ; ───────────────────────────────────────────────────────────────────────────
    273                              <1> 
@@ -864,271 +864,275 @@
     13                              <1> .x_not_0:
     14 00000274 50                  <1>   push ax
     15 00000275 50                  <1>   push ax   ; keep a copy of x
-    16 00000276 99                  <1>   cwd       ; dx=0
-    17 00000277 B96F00              <1>   mov cx,111
-    18 0000027A F7E9                <1>   imul cx
-    19 0000027C 59                  <1>   pop cx;   ; restore x
-    20 0000027D 99                  <1>   cwd
-    21 0000027E F7F9                <1>   idiv cx   ; ax/=x
-    22 00000280 99                  <1>   cwd
-    23 00000281 E81400              <1>   call atan
-    24 00000284 59                  <1>   pop cx;   ; restore x
-    25                              <1> 
-    26 00000285 83F900              <1>   cmp cx,0
-    27 00000288 7C01                <1>   jl .x_lt_0
-    28 0000028A C3                  <1>   ret
-    29                              <1> 
-    30                              <1> .x_lt_0:
-    31 0000028B 83FB00              <1>   cmp bx,0
-    32 0000028E 7D04                <1>   jge .y_gte_0
-    33 00000290 2DB400              <1>   sub ax,180
-    34 00000293 C3                  <1>   ret
-    35                              <1> 
-    36                              <1> .y_gte_0:
-    37 00000294 05B400              <1>   add ax,180
-    38 00000297 C3                  <1>   ret
-    39                              <1> 
-    40                              <1> ; ───────────────────────────────────────────────────────────────────────────
-    41                              <1> 
+    16 00000276 89D8                <1>   mov ax,bx
+    17 00000278 99                  <1>   cwd       ; dx=0
+    18 00000279 B96F00              <1>   mov cx,111
+    19 0000027C F7E9                <1>   imul cx
+    20 0000027E 59                  <1>   pop cx;   ; restore x
+    21                              <1>   ; cwd
+    22 0000027F F7F9                <1>   idiv cx   ; ax/=x
+    23 00000281 99                  <1>   cwd
+    24 00000282 E81400              <1>   call atan
+    25 00000285 59                  <1>   pop cx;   ; restore x
+    26                              <1> 
+    27 00000286 83F900              <1>   cmp cx,0
+    28 00000289 7C01                <1>   jl .x_lt_0
+    29 0000028B C3                  <1>   ret
+    30                              <1> 
+    31                              <1> .x_lt_0:
+    32 0000028C 83FB00              <1>   cmp bx,0
+    33 0000028F 7D04                <1>   jge .y_gte_0
+    34 00000291 2DB400              <1>   sub ax,180
+    35 00000294 C3                  <1>   ret
+    36                              <1> 
+    37                              <1> .y_gte_0:
+    38 00000295 05B400              <1>   add ax,180
+    39 00000298 C3                  <1>   ret
+    40                              <1> 
+    41                              <1> ; ───────────────────────────────────────────────────────────────────────────
     42                              <1> 
-    43                              <1> atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
-    44 00000298 89C1                <1>   mov cx,ax           ; z
-    45 0000029A 99                  <1>   cwd
-    46                              <1> 
-    47 0000029B 83F96F              <1>   cmp cx,111
-    48 0000029E 7F29                <1>   jg .if_z_gt_scale   ; if (z>111)
-    49                              <1> 
-    50 000002A0 83F991              <1>   cmp cx,-111         ; if (z<-111) 
-    51 000002A3 7C34                <1>   jl .if_z_lt_minus_scale
-    52                              <1> 
-    53 000002A5 99                  <1>   cwd
-    54 000002A6 F7E8                <1>   imul ax             ; ax *= ax  (z*z)
-    55 000002A8 BB4D01              <1>   mov bx,333     
-    56 000002AB F7FB                <1>   idiv bx             ; ax /= 333   Taylor-benadering
-    57 000002AD 99                  <1>   cwd
-    58 000002AE 89C3                <1>   mov bx,ax
-    59 000002B0 B86F00              <1>   mov ax,111
-    60 000002B3 29D8                <1>   sub ax,bx           ; ax-=111  
-    61 000002B5 BBB400              <1>   mov bx,180
-    62 000002B8 F7EB                <1>   imul bx             ; ax*=180 
-    63 000002BA F7E9                <1>   imul cx             ; ax*=z
-    64 000002BC BB6F00              <1>   mov bx,111
-    65 000002BF F7FB                <1>   idiv bx             ; ax/=111
-    66 000002C1 BB3A01              <1>   mov bx,314
-    67 000002C4 99                  <1>   cwd
-    68 000002C5 F7FB                <1>   idiv bx             ; ax/=314
-    69 000002C7 99                  <1>   cwd
-    70 000002C8 C3                  <1>   ret
-    71                              <1> 
-    72                              <1> .if_z_gt_scale:
-    73 000002C9 B82130              <1>   mov ax,12321        ; 12321 = 111*111 (squared scale)
-    74 000002CC F7F9                <1>   idiv cx             ; ax/=z
-    75 000002CE E8C7FF              <1>   call atan           ; recursion
-    76 000002D1 89C3                <1>   mov bx,ax
-    77 000002D3 B85A00              <1>   mov ax,90
-    78 000002D6 29D8                <1>   sub ax,bx
-    79 000002D8 C3                  <1>   ret
-    80                              <1> 
-    81                              <1> .if_z_lt_minus_scale:
-    82 000002D9 B82130              <1>   mov ax,12321        ; 12321 = 111*111 (squared scale)
-    83 000002DC F7F9                <1>   idiv cx             ; ax/=z
-    84 000002DE E8B7FF              <1>   call atan           ; recursion
-    85 000002E1 89C3                <1>   mov bx,ax
-    86 000002E3 B8A6FF              <1>   mov ax,-90
-    87 000002E6 29D8                <1>   sub ax,bx
-    88 000002E8 C3                  <1>   ret
-    89                              <1> 
+    43                              <1> 
+    44                              <1> atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
+    45 00000299 89C1                <1>   mov cx,ax           ; z
+    46 0000029B 99                  <1>   cwd
+    47                              <1> 
+    48 0000029C 83F96F              <1>   cmp cx,111
+    49 0000029F 7F29                <1>   jg .if_z_gt_scale   ; if (z>111)
+    50                              <1> 
+    51 000002A1 83F991              <1>   cmp cx,-111         ; if (z<-111) 
+    52 000002A4 7C34                <1>   jl .if_z_lt_minus_scale
+    53                              <1> 
+    54 000002A6 99                  <1>   cwd
+    55 000002A7 F7E8                <1>   imul ax             ; ax *= ax  (z*z)
+    56 000002A9 BB4D01              <1>   mov bx,333     
+    57 000002AC F7FB                <1>   idiv bx             ; ax /= 333   Taylor-benadering
+    58 000002AE 99                  <1>   cwd
+    59 000002AF 89C3                <1>   mov bx,ax
+    60 000002B1 B86F00              <1>   mov ax,111
+    61 000002B4 29D8                <1>   sub ax,bx           ; ax-=111  
+    62 000002B6 BBB400              <1>   mov bx,180
+    63 000002B9 F7EB                <1>   imul bx             ; ax*=180 
+    64 000002BB F7E9                <1>   imul cx             ; ax*=z
+    65 000002BD BB6F00              <1>   mov bx,111
+    66 000002C0 F7FB                <1>   idiv bx             ; ax/=111
+    67 000002C2 BB3A01              <1>   mov bx,314
+    68 000002C5 99                  <1>   cwd
+    69 000002C6 F7FB                <1>   idiv bx             ; ax/=314
+    70 000002C8 99                  <1>   cwd
+    71 000002C9 C3                  <1>   ret
+    72                              <1> 
+    73                              <1> .if_z_gt_scale:
+    74 000002CA B82130              <1>   mov ax,12321        ; 12321 = 111*111 (squared scale)
+    75 000002CD F7F9                <1>   idiv cx             ; ax/=z
+    76 000002CF E8C7FF              <1>   call atan           ; recursion
+    77 000002D2 89C3                <1>   mov bx,ax
+    78 000002D4 B85A00              <1>   mov ax,90
+    79 000002D7 29D8                <1>   sub ax,bx
+    80 000002D9 C3                  <1>   ret
+    81                              <1> 
+    82                              <1> .if_z_lt_minus_scale:
+    83 000002DA B82130              <1>   mov ax,12321        ; 12321 = 111*111 (squared scale)
+    84 000002DD F7F9                <1>   idiv cx             ; ax/=z
+    85 000002DF E8B7FF              <1>   call atan           ; recursion
+    86 000002E2 89C3                <1>   mov bx,ax
+    87 000002E4 B8A6FF              <1>   mov ax,-90
+    88 000002E7 29D8                <1>   sub ax,bx
+    89 000002E9 C3                  <1>   ret
     90                              <1> 
     91                              <1> 
     92                              <1> 
-    93                              <1> %macro _atan2 2
-    94                              <1>   mov ax,%1
-    95                              <1>   mov bx,%2
-    96                              <1>   call __atan2
-    97                              <1> %endmacro
-    98                              <1> 
-    99                              <1> __atan2:
-   100 000002E9 50                  <1>   push ax
-   101 000002EA 53                  <1>   push bx
-   102                              <1>   print "atan2(x="
-    48 000002EB 50                  <2>  push ax
-    49 000002EC 53                  <2>  push bx
-    50 000002ED 51                  <2>  push cx
-    51 000002EE 52                  <2>  push dx
-    52 000002EF EB09                <2>  jmp %%endstr
-    53 000002F1 6174616E3228783D00  <2>  %%str: db %1,0
+    93                              <1> 
+    94                              <1> %macro _atan2 2
+    95                              <1>   mov ax,%1
+    96                              <1>   mov bx,%2
+    97                              <1>   call __atan2
+    98                              <1> %endmacro
+    99                              <1> 
+   100                              <1> __atan2:
+   101 000002EA 50                  <1>   push ax
+   102 000002EB 53                  <1>   push bx
+   103                              <1>   print "atan2(x="
+    48 000002EC 50                  <2>  push ax
+    49 000002ED 53                  <2>  push bx
+    50 000002EE 51                  <2>  push cx
+    51 000002EF 52                  <2>  push dx
+    52 000002F0 EB09                <2>  jmp %%endstr
+    53 000002F2 6174616E3228783D00  <2>  %%str: db %1,0
     54                              <2>  %%endstr:
-    55 000002FA BB[F102]            <2>  mov bx,%%str
-    56 000002FD E866FE              <2>  call write_string
-    57 00000300 5A                  <2>  pop dx
-    58 00000301 59                  <2>  pop cx
-    59 00000302 5B                  <2>  pop bx
-    60 00000303 58                  <2>  pop ax
-   103 00000304 E8C0FE              <1>   call write_signed_number_word
-   104                              <1>   print ",y="
-    48 00000307 50                  <2>  push ax
-    49 00000308 53                  <2>  push bx
-    50 00000309 51                  <2>  push cx
-    51 0000030A 52                  <2>  push dx
-    52 0000030B EB04                <2>  jmp %%endstr
-    53 0000030D 2C793D00            <2>  %%str: db %1,0
+    55 000002FB BB[F202]            <2>  mov bx,%%str
+    56 000002FE E865FE              <2>  call write_string
+    57 00000301 5A                  <2>  pop dx
+    58 00000302 59                  <2>  pop cx
+    59 00000303 5B                  <2>  pop bx
+    60 00000304 58                  <2>  pop ax
+   104 00000305 E8BFFE              <1>   call write_signed_number_word
+   105                              <1>   print ",y="
+    48 00000308 50                  <2>  push ax
+    49 00000309 53                  <2>  push bx
+    50 0000030A 51                  <2>  push cx
+    51 0000030B 52                  <2>  push dx
+    52 0000030C EB04                <2>  jmp %%endstr
+    53 0000030E 2C793D00            <2>  %%str: db %1,0
     54                              <2>  %%endstr:
-    55 00000311 BB[0D03]            <2>  mov bx,%%str
-    56 00000314 E84FFE              <2>  call write_string
-    57 00000317 5A                  <2>  pop dx
-    58 00000318 59                  <2>  pop cx
-    59 00000319 5B                  <2>  pop bx
-    60 0000031A 58                  <2>  pop ax
-   105 0000031B 58                  <1>   pop ax
-   106 0000031C 53                  <1>   push bx
-   107 0000031D E8A7FE              <1>   call write_signed_number_word
-   108                              <1>   print ")="
-    48 00000320 50                  <2>  push ax
-    49 00000321 53                  <2>  push bx
-    50 00000322 51                  <2>  push cx
-    51 00000323 52                  <2>  push dx
-    52 00000324 EB03                <2>  jmp %%endstr
-    53 00000326 293D00              <2>  %%str: db %1,0
+    55 00000312 BB[0E03]            <2>  mov bx,%%str
+    56 00000315 E84EFE              <2>  call write_string
+    57 00000318 5A                  <2>  pop dx
+    58 00000319 59                  <2>  pop cx
+    59 0000031A 5B                  <2>  pop bx
+    60 0000031B 58                  <2>  pop ax
+   106 0000031C 58                  <1>   pop ax
+   107 0000031D 53                  <1>   push bx
+   108 0000031E E8A6FE              <1>   call write_signed_number_word
+   109                              <1>   print ")="
+    48 00000321 50                  <2>  push ax
+    49 00000322 53                  <2>  push bx
+    50 00000323 51                  <2>  push cx
+    51 00000324 52                  <2>  push dx
+    52 00000325 EB03                <2>  jmp %%endstr
+    53 00000327 293D00              <2>  %%str: db %1,0
     54                              <2>  %%endstr:
-    55 00000329 BB[2603]            <2>  mov bx,%%str
-    56 0000032C E837FE              <2>  call write_string
-    57 0000032F 5A                  <2>  pop dx
-    58 00000330 59                  <2>  pop cx
-    59 00000331 5B                  <2>  pop bx
-    60 00000332 58                  <2>  pop ax
-   109 00000333 5B                  <1>   pop bx
-   110 00000334 58                  <1>   pop ax
-   111 00000335 E82AFF              <1>   call atan2
-   112 00000338 E88CFE              <1>   call write_signed_number_word
-   113 0000033B B020                <1>   mov al,' '
-   114 0000033D E8EBFD              <1>   call write_char
-   115 00000340 E802FF              <1>   call new_line
-   116 00000343 C3                  <1>   ret
-   117                              <1> 
+    55 0000032A BB[2703]            <2>  mov bx,%%str
+    56 0000032D E836FE              <2>  call write_string
+    57 00000330 5A                  <2>  pop dx
+    58 00000331 59                  <2>  pop cx
+    59 00000332 5B                  <2>  pop bx
+    60 00000333 58                  <2>  pop ax
+   110 00000334 5B                  <1>   pop bx
+   111 00000335 58                  <1>   pop ax
+   112 00000336 E829FF              <1>   call atan2
+   113 00000339 E88BFE              <1>   call write_signed_number_word
+   114 0000033C B020                <1>   mov al,' '
+   115 0000033E E8EAFD              <1>   call write_char
+   116 00000341 E801FF              <1>   call new_line
+   117 00000344 C3                  <1>   ret
    118                              <1> 
+   119                              <1> 
      3                                  
      4                                  ship:
      5                                   .pos:
-     6 00000344 0090                     .pos.x: dw 73728/2
-     7 00000346 D06B                     .pos.y: dw 51200/2 + 2000
+     6 00000345 0090                     .pos.x: dw 73728/2
+     7 00000347 D06B                     .pos.y: dw 51200/2 + 2000
      8                                   .vel: 
-     9 00000348 F6FF                     .vel.x: dw -10
-    10 0000034A 0000                     .vel.y: dw 0
-    11 0000034C 0000                     .vel.flags: dw 0
+     9 00000349 F6FF                     .vel.x: dw -10
+    10 0000034B 0000                     .vel.y: dw 0
+    11 0000034D 0000                     .vel.flags: dw 0
     12                                   .acc:
-    13 0000034E 0000                     .acc.x: dw 0
-    14 00000350 0000                     .acc.y: dw 0
+    13 0000034F 0000                     .acc.x: dw 0
+    14 00000351 0000                     .acc.y: dw 0
     15                                   .forces:
-    16 00000352 0000                     .forces.x: dw 0
-    17 00000354 0000                     .forces.y: dw 0
-    18 00000356 0000                     .angle: dw 0
-    19 00000358 0000                     .prev_di: dw 0
+    16 00000353 0000                     .forces.x: dw 0
+    17 00000355 0000                     .forces.y: dw 0
+    18 00000357 0000                     .angle: dw 0
+    19 00000359 0000                     .prev_di: dw 0
     20                                  
-    21 0000035A 02                      color: db Color.G
+    21 0000035B 02                      color: db Color.G
     22                                  FRICTION equ 94
     23                                  
     24                                  setup:
     25                                    set_cursor 1,1
     43                              <1> 
-    44 0000035B BF0000              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
+    44 0000035C BF0000              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
     26                                  
     27                                    _atan2 100, 0
-    94 0000035E B86400              <1>  mov ax,%1
-    95 00000361 BB0000              <1>  mov bx,%2
-    96 00000364 E882FF              <1>  call __atan2
+    95 0000035F B86400              <1>  mov ax,%1
+    96 00000362 BB0000              <1>  mov bx,%2
+    97 00000365 E882FF              <1>  call __atan2
     28                                    _atan2 96, 25
-    94 00000367 B86000              <1>  mov ax,%1
-    95 0000036A BB1900              <1>  mov bx,%2
-    96 0000036D E879FF              <1>  call __atan2
+    95 00000368 B86000              <1>  mov ax,%1
+    96 0000036B BB1900              <1>  mov bx,%2
+    97 0000036E E879FF              <1>  call __atan2
     29                                    _atan2 86, 50
-    94 00000370 B85600              <1>  mov ax,%1
-    95 00000373 BB3200              <1>  mov bx,%2
-    96 00000376 E870FF              <1>  call __atan2
+    95 00000371 B85600              <1>  mov ax,%1
+    96 00000374 BB3200              <1>  mov bx,%2
+    97 00000377 E870FF              <1>  call __atan2
     30                                    _atan2 70, 70
-    94 00000379 B84600              <1>  mov ax,%1
-    95 0000037C BB4600              <1>  mov bx,%2
-    96 0000037F E867FF              <1>  call __atan2
+    95 0000037A B84600              <1>  mov ax,%1
+    96 0000037D BB4600              <1>  mov bx,%2
+    97 00000380 E867FF              <1>  call __atan2
     31                                    _atan2 49, 86
-    94 00000382 B83100              <1>  mov ax,%1
-    95 00000385 BB5600              <1>  mov bx,%2
-    96 00000388 E85EFF              <1>  call __atan2
+    95 00000383 B83100              <1>  mov ax,%1
+    96 00000386 BB5600              <1>  mov bx,%2
+    97 00000389 E85EFF              <1>  call __atan2
     32                                    _atan2 25, 96
-    94 0000038B B81900              <1>  mov ax,%1
-    95 0000038E BB6000              <1>  mov bx,%2
-    96 00000391 E855FF              <1>  call __atan2
+    95 0000038C B81900              <1>  mov ax,%1
+    96 0000038F BB6000              <1>  mov bx,%2
+    97 00000392 E855FF              <1>  call __atan2
     33                                    _atan2 0, 100
-    94 00000394 B80000              <1>  mov ax,%1
-    95 00000397 BB6400              <1>  mov bx,%2
-    96 0000039A E84CFF              <1>  call __atan2
+    95 00000395 B80000              <1>  mov ax,%1
+    96 00000398 BB6400              <1>  mov bx,%2
+    97 0000039B E84CFF              <1>  call __atan2
     34                                    _atan2 -25, 96  
-    94 0000039D B8E7FF              <1>  mov ax,%1
-    95 000003A0 BB6000              <1>  mov bx,%2
-    96 000003A3 E843FF              <1>  call __atan2
+    95 0000039E B8E7FF              <1>  mov ax,%1
+    96 000003A1 BB6000              <1>  mov bx,%2
+    97 000003A4 E843FF              <1>  call __atan2
     35                                    _atan2 -50, 86  
-    94 000003A6 B8CEFF              <1>  mov ax,%1
-    95 000003A9 BB5600              <1>  mov bx,%2
-    96 000003AC E83AFF              <1>  call __atan2
+    95 000003A7 B8CEFF              <1>  mov ax,%1
+    96 000003AA BB5600              <1>  mov bx,%2
+    97 000003AD E83AFF              <1>  call __atan2
     36                                    _atan2 -70, 70 
-    94 000003AF B8BAFF              <1>  mov ax,%1
-    95 000003B2 BB4600              <1>  mov bx,%2
-    96 000003B5 E831FF              <1>  call __atan2
+    95 000003B0 B8BAFF              <1>  mov ax,%1
+    96 000003B3 BB4600              <1>  mov bx,%2
+    97 000003B6 E831FF              <1>  call __atan2
     37                                    _atan2 -86, 50 
-    94 000003B8 B8AAFF              <1>  mov ax,%1
-    95 000003BB BB3200              <1>  mov bx,%2
-    96 000003BE E828FF              <1>  call __atan2
+    95 000003B9 B8AAFF              <1>  mov ax,%1
+    96 000003BC BB3200              <1>  mov bx,%2
+    97 000003BF E828FF              <1>  call __atan2
     38                                    _atan2 -96, 25 
-    94 000003C1 B8A0FF              <1>  mov ax,%1
-    95 000003C4 BB1900              <1>  mov bx,%2
-    96 000003C7 E81FFF              <1>  call __atan2
+    95 000003C2 B8A0FF              <1>  mov ax,%1
+    96 000003C5 BB1900              <1>  mov bx,%2
+    97 000003C8 E81FFF              <1>  call __atan2
     39                                    _atan2 -100, 0 
-    94 000003CA B89CFF              <1>  mov ax,%1
-    95 000003CD BB0000              <1>  mov bx,%2
-    96 000003D0 E816FF              <1>  call __atan2
+    95 000003CB B89CFF              <1>  mov ax,%1
+    96 000003CE BB0000              <1>  mov bx,%2
+    97 000003D1 E816FF              <1>  call __atan2
     40                                    _atan2 -96, -25 
-    94 000003D3 B8A0FF              <1>  mov ax,%1
-    95 000003D6 BBE7FF              <1>  mov bx,%2
-    96 000003D9 E80DFF              <1>  call __atan2
+    95 000003D4 B8A0FF              <1>  mov ax,%1
+    96 000003D7 BBE7FF              <1>  mov bx,%2
+    97 000003DA E80DFF              <1>  call __atan2
     41                                    _atan2 -86, -49 
-    94 000003DC B8AAFF              <1>  mov ax,%1
-    95 000003DF BBCFFF              <1>  mov bx,%2
-    96 000003E2 E804FF              <1>  call __atan2
+    95 000003DD B8AAFF              <1>  mov ax,%1
+    96 000003E0 BBCFFF              <1>  mov bx,%2
+    97 000003E3 E804FF              <1>  call __atan2
     42                                    _atan2 -70, -70 
-    94 000003E5 B8BAFF              <1>  mov ax,%1
-    95 000003E8 BBBAFF              <1>  mov bx,%2
-    96 000003EB E8FBFE              <1>  call __atan2
+    95 000003E6 B8BAFF              <1>  mov ax,%1
+    96 000003E9 BBBAFF              <1>  mov bx,%2
+    97 000003EC E8FBFE              <1>  call __atan2
     43                                    _atan2 -49, -86 
-    94 000003EE B8CFFF              <1>  mov ax,%1
-    95 000003F1 BBAAFF              <1>  mov bx,%2
-    96 000003F4 E8F2FE              <1>  call __atan2
+    95 000003EF B8CFFF              <1>  mov ax,%1
+    96 000003F2 BBAAFF              <1>  mov bx,%2
+    97 000003F5 E8F2FE              <1>  call __atan2
     44                                    _atan2 -25, -96 
-    94 000003F7 B8E7FF              <1>  mov ax,%1
-    95 000003FA BBA0FF              <1>  mov bx,%2
-    96 000003FD E8E9FE              <1>  call __atan2
+    95 000003F8 B8E7FF              <1>  mov ax,%1
+    96 000003FB BBA0FF              <1>  mov bx,%2
+    97 000003FE E8E9FE              <1>  call __atan2
     45                                    _atan2 0, -100 
-    94 00000400 B80000              <1>  mov ax,%1
-    95 00000403 BB9CFF              <1>  mov bx,%2
-    96 00000406 E8E0FE              <1>  call __atan2
+    95 00000401 B80000              <1>  mov ax,%1
+    96 00000404 BB9CFF              <1>  mov bx,%2
+    97 00000407 E8E0FE              <1>  call __atan2
     46                                    _atan2 25, -96 
-    94 00000409 B81900              <1>  mov ax,%1
-    95 0000040C BBA0FF              <1>  mov bx,%2
-    96 0000040F E8D7FE              <1>  call __atan2
+    95 0000040A B81900              <1>  mov ax,%1
+    96 0000040D BBA0FF              <1>  mov bx,%2
+    97 00000410 E8D7FE              <1>  call __atan2
     47                                    _atan2 49, -86 
-    94 00000412 B83100              <1>  mov ax,%1
-    95 00000415 BBAAFF              <1>  mov bx,%2
-    96 00000418 E8CEFE              <1>  call __atan2
+    95 00000413 B83100              <1>  mov ax,%1
+    96 00000416 BBAAFF              <1>  mov bx,%2
+    97 00000419 E8CEFE              <1>  call __atan2
     48                                    _atan2 70, -70 
-    94 0000041B B84600              <1>  mov ax,%1
-    95 0000041E BBBAFF              <1>  mov bx,%2
-    96 00000421 E8C5FE              <1>  call __atan2
+    95 0000041C B84600              <1>  mov ax,%1
+    96 0000041F BBBAFF              <1>  mov bx,%2
+    97 00000422 E8C5FE              <1>  call __atan2
     49                                    _atan2 86, -50 
-    94 00000424 B85600              <1>  mov ax,%1
-    95 00000427 BBCEFF              <1>  mov bx,%2
-    96 0000042A E8BCFE              <1>  call __atan2
+    95 00000425 B85600              <1>  mov ax,%1
+    96 00000428 BBCEFF              <1>  mov bx,%2
+    97 0000042B E8BCFE              <1>  call __atan2
     50                                    _atan2 96, -25 
-    94 0000042D B86000              <1>  mov ax,%1
-    95 00000430 BBE7FF              <1>  mov bx,%2
-    96 00000433 E8B3FE              <1>  call __atan2
-    51                                  
+    95 0000042E B86000              <1>  mov ax,%1
+    96 00000431 BBE7FF              <1>  mov bx,%2
+    97 00000434 E8B3FE              <1>  call __atan2
+    51                                    _atan2 100, 0
+    95 00000437 B86400              <1>  mov ax,%1
+    96 0000043A BB0000              <1>  mov bx,%2
+    97 0000043D E8AAFE              <1>  call __atan2
     52                                  
     53                                  
     54                                  
@@ -1205,10 +1209,10 @@
    125                                  
    126                                  
    127                                  
-   128 00000436 F4                        hlt
+   128 00000440 F4                        hlt
    129                                    
-   130 00000437 31ED                      xor bp,bp
-   131 00000439 EB76                      jmp draw
+   130 00000441 31ED                      xor bp,bp
+   131 00000443 EB76                      jmp draw
    132                                  
    133                                  ; ───────────────────────────────────────────────────────────────────────────
    134                                  
@@ -1219,210 +1223,210 @@
    139                                  update_ship:
    140                                    
    141                                    ; x+=vx
-   142 0000043B A1[4403]                  mov ax,[ship.pos.x]       ; 0..73728  (65536)
-   143 0000043E 0306[4803]                add ax,[ship.vel.x]
-   144 00000442 A3[4403]                  mov [ship.pos.x],ax
+   142 00000445 A1[4503]                  mov ax,[ship.pos.x]       ; 0..73728  (65536)
+   143 00000448 0306[4903]                add ax,[ship.vel.x]
+   144 0000044C A3[4503]                  mov [ship.pos.x],ax
    145                                  
    146                                    ; y+=vy
-   147 00000445 A1[4603]                  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
-   148 00000448 0306[4A03]                add ax,[ship.vel.y]
-   149 0000044C A3[4603]                  mov [ship.pos.y],ax
+   147 0000044F A1[4703]                  mov ax,[ship.pos.y]       ; 0..51200  (=1024*50)
+   148 00000452 0306[4B03]                add ax,[ship.vel.y]
+   149 00000456 A3[4703]                  mov [ship.pos.y],ax
    150                                  
    151                                    ; vx*=98%
-   152 0000044F A1[4803]                  mov ax, [ship.vel.x]
-   153 00000452 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
-   154 00000453 B95E00                    mov cx, FRICTION
-   155 00000456 F7E9                      imul cx             ; Signed multiplication
-   156 00000458 B96400                    mov cx, 100
-   157 0000045B F7F9                      idiv cx             ; Signed division
-   158 0000045D A3[4803]                  mov [ship.vel.x], ax
+   152 00000459 A1[4903]                  mov ax, [ship.vel.x]
+   153 0000045C 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
+   154 0000045D B95E00                    mov cx, FRICTION
+   155 00000460 F7E9                      imul cx             ; Signed multiplication
+   156 00000462 B96400                    mov cx, 100
+   157 00000465 F7F9                      idiv cx             ; Signed division
+   158 00000467 A3[4903]                  mov [ship.vel.x], ax
    159                                  
    160                                    ; vy*=98%
-   161 00000460 A1[4A03]                  mov ax, [ship.vel.y]
-   162 00000463 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
-   163 00000464 B95E00                    mov cx, FRICTION
-   164 00000467 F7E9                      imul cx             ; Signed multiplication
-   165 00000469 B96400                    mov cx, 100
-   166 0000046C F7F9                      idiv cx             ; Signed division
-   167 0000046E A3[4A03]                  mov [ship.vel.y], ax
+   161 0000046A A1[4B03]                  mov ax, [ship.vel.y]
+   162 0000046D 99                        cwd                 ; Convert word to double word (sign-extend AX into DX)
+   163 0000046E B95E00                    mov cx, FRICTION
+   164 00000471 F7E9                      imul cx             ; Signed multiplication
+   165 00000473 B96400                    mov cx, 100
+   166 00000476 F7F9                      idiv cx             ; Signed division
+   167 00000478 A3[4B03]                  mov [ship.vel.y], ax
    168                                  
-   169 00000471 C3                        ret
+   169 0000047B C3                        ret
    170                                  
    171                                  ; ───────────────────────────────────────────────────────────────────────────
    172                                  
    173                                  draw_ship:
    174                                  
-   175 00000472 A1[4403]                  mov ax,[ship.pos.x]
-   176 00000475 8B1E[4603]                mov bx,[ship.pos.y]
-   177 00000479 E82D01                    call world2screen
-   178 0000047C E8B4FD                    call calc_di_from_bx
+   175 0000047C A1[4503]                  mov ax,[ship.pos.x]
+   176 0000047F 8B1E[4703]                mov bx,[ship.pos.y]
+   177 00000483 E82D01                    call world2screen
+   178 00000486 E8AAFD                    call calc_di_from_bx
    179                                  
-   180 0000047F 393E[5803]                cmp [ship.prev_di],di
-   181 00000483 742B                      je .return
+   180 00000489 393E[5903]                cmp [ship.prev_di],di
+   181 0000048D 742B                      je .return
    182                                  
    183                                    ; call world2screen ; ax and bx are already set by pop bx, pop ax
    184                                    ; call calc_di_from_bx
    185                                  
-   186 00000485 8B3E[5803]                mov di,[ship.prev_di]
+   186 0000048F 8B3E[5903]                mov di,[ship.prev_di]
    187                                    
-   188 00000489 BB0808                    mov bx,0x0808  ; rows,cols
+   188 00000493 BB0808                    mov bx,0x0808  ; rows,cols
    189                                    ; call fill_rect_black
    190                                  
-   191 0000048C A1[4403]                  mov ax,[ship.pos.x]
-   192 0000048F 8B1E[4603]                mov bx,[ship.pos.y]
-   193 00000493 E81301                    call world2screen
-   194 00000496 E89AFD                    call calc_di_from_bx
-   195 00000499 893E[5803]                mov [ship.prev_di],di
+   191 00000496 A1[4503]                  mov ax,[ship.pos.x]
+   192 00000499 8B1E[4703]                mov bx,[ship.pos.y]
+   193 0000049D E81301                    call world2screen
+   194 000004A0 E890FD                    call calc_di_from_bx
+   195 000004A3 893E[5903]                mov [ship.prev_di],di
    196                                  
    197                                  
-   198 0000049D BE[B608]                  mov si,img_up
-   199 000004A0 A1[4403]                  mov ax,[ship.pos.x]
-   200 000004A3 8B1E[4603]                mov bx,[ship.pos.y]
-   201 000004A7 E8FF00                    call world2screen ; ax and bx are already set by pop bx, pop ax
-   202 000004AA E886FD                    call calc_di_from_bx
-   203 000004AD E849FD                    call draw_spr
+   198 000004A7 BE[C008]                  mov si,img_up
+   199 000004AA A1[4503]                  mov ax,[ship.pos.x]
+   200 000004AD 8B1E[4703]                mov bx,[ship.pos.y]
+   201 000004B1 E8FF00                    call world2screen ; ax and bx are already set by pop bx, pop ax
+   202 000004B4 E87CFD                    call calc_di_from_bx
+   203 000004B7 E83FFD                    call draw_spr
    204                                  
    205                                  .return
-   206 000004B0 C3                        ret
+   206 000004BA C3                        ret
    207                                  
    208                                  ; ───────────────────────────────────────────────────────────────────────────
    209                                  
    210                                  draw:
-   211 000004B1 0E                        push cs
-   212 000004B2 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
+   211 000004BB 0E                        push cs
+   212 000004BC 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
    213                                  
-   214 000004B3 E885FF                    call update_ship
-   215 000004B6 E8B9FF                    call draw_ship
+   214 000004BD E885FF                    call update_ship
+   215 000004C0 E8B9FF                    call draw_ship
    216                                  
-   217 000004B9 E8E500                    call _wait
+   217 000004C3 E8E500                    call _wait
    218                                  
-   219 000004BC 45                        inc bp
+   219 000004C6 45                        inc bp
    220                                  
    221                                    set_cursor 12,45
     43                              <1> 
-    44 000004BD BF7019              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
+    44 000004C7 BF7019              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
    222                                    print "frame: "
-    48 000004C0 50                  <1>  push ax
-    49 000004C1 53                  <1>  push bx
-    50 000004C2 51                  <1>  push cx
-    51 000004C3 52                  <1>  push dx
-    52 000004C4 EB08                <1>  jmp %%endstr
-    53 000004C6 6672616D653A2000    <1>  %%str: db %1,0
+    48 000004CA 50                  <1>  push ax
+    49 000004CB 53                  <1>  push bx
+    50 000004CC 51                  <1>  push cx
+    51 000004CD 52                  <1>  push dx
+    52 000004CE EB08                <1>  jmp %%endstr
+    53 000004D0 6672616D653A2000    <1>  %%str: db %1,0
     54                              <1>  %%endstr:
-    55 000004CE BB[C604]            <1>  mov bx,%%str
-    56 000004D1 E892FC              <1>  call write_string
-    57 000004D4 5A                  <1>  pop dx
-    58 000004D5 59                  <1>  pop cx
-    59 000004D6 5B                  <1>  pop bx
-    60 000004D7 58                  <1>  pop ax
-   223 000004D8 89E8                      mov ax,bp
-   224 000004DA E8C5FC                    call write_number_word     ; draw frame counter
+    55 000004D8 BB[D004]            <1>  mov bx,%%str
+    56 000004DB E888FC              <1>  call write_string
+    57 000004DE 5A                  <1>  pop dx
+    58 000004DF 59                  <1>  pop cx
+    59 000004E0 5B                  <1>  pop bx
+    60 000004E1 58                  <1>  pop ax
+   223 000004E2 89E8                      mov ax,bp
+   224 000004E4 E8BBFC                    call write_number_word     ; draw frame counter
    225                                    print "  "
-    48 000004DD 50                  <1>  push ax
-    49 000004DE 53                  <1>  push bx
-    50 000004DF 51                  <1>  push cx
-    51 000004E0 52                  <1>  push dx
-    52 000004E1 EB03                <1>  jmp %%endstr
-    53 000004E3 202000              <1>  %%str: db %1,0
+    48 000004E7 50                  <1>  push ax
+    49 000004E8 53                  <1>  push bx
+    50 000004E9 51                  <1>  push cx
+    51 000004EA 52                  <1>  push dx
+    52 000004EB EB03                <1>  jmp %%endstr
+    53 000004ED 202000              <1>  %%str: db %1,0
     54                              <1>  %%endstr:
-    55 000004E6 BB[E304]            <1>  mov bx,%%str
-    56 000004E9 E87AFC              <1>  call write_string
-    57 000004EC 5A                  <1>  pop dx
-    58 000004ED 59                  <1>  pop cx
-    59 000004EE 5B                  <1>  pop bx
-    60 000004EF 58                  <1>  pop ax
+    55 000004F0 BB[ED04]            <1>  mov bx,%%str
+    56 000004F3 E870FC              <1>  call write_string
+    57 000004F6 5A                  <1>  pop dx
+    58 000004F7 59                  <1>  pop cx
+    59 000004F8 5B                  <1>  pop bx
+    60 000004F9 58                  <1>  pop ax
    226                                  
    227                                    set_cursor 13,45
     43                              <1> 
-    44 000004F0 BFB01B              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
+    44 000004FA BFB01B              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
    228                                    print "vx: "
-    48 000004F3 50                  <1>  push ax
-    49 000004F4 53                  <1>  push bx
-    50 000004F5 51                  <1>  push cx
-    51 000004F6 52                  <1>  push dx
-    52 000004F7 EB05                <1>  jmp %%endstr
-    53 000004F9 76783A2000          <1>  %%str: db %1,0
+    48 000004FD 50                  <1>  push ax
+    49 000004FE 53                  <1>  push bx
+    50 000004FF 51                  <1>  push cx
+    51 00000500 52                  <1>  push dx
+    52 00000501 EB05                <1>  jmp %%endstr
+    53 00000503 76783A2000          <1>  %%str: db %1,0
     54                              <1>  %%endstr:
-    55 000004FE BB[F904]            <1>  mov bx,%%str
-    56 00000501 E862FC              <1>  call write_string
-    57 00000504 5A                  <1>  pop dx
-    58 00000505 59                  <1>  pop cx
-    59 00000506 5B                  <1>  pop bx
-    60 00000507 58                  <1>  pop ax
-   229 00000508 A1[4803]                  mov ax,[ship.vel.x]  
-   230 0000050B E8B9FC                    call write_signed_number_word
+    55 00000508 BB[0305]            <1>  mov bx,%%str
+    56 0000050B E858FC              <1>  call write_string
+    57 0000050E 5A                  <1>  pop dx
+    58 0000050F 59                  <1>  pop cx
+    59 00000510 5B                  <1>  pop bx
+    60 00000511 58                  <1>  pop ax
+   229 00000512 A1[4903]                  mov ax,[ship.vel.x]  
+   230 00000515 E8AFFC                    call write_signed_number_word
    231                                    print "  "
-    48 0000050E 50                  <1>  push ax
-    49 0000050F 53                  <1>  push bx
-    50 00000510 51                  <1>  push cx
-    51 00000511 52                  <1>  push dx
-    52 00000512 EB03                <1>  jmp %%endstr
-    53 00000514 202000              <1>  %%str: db %1,0
+    48 00000518 50                  <1>  push ax
+    49 00000519 53                  <1>  push bx
+    50 0000051A 51                  <1>  push cx
+    51 0000051B 52                  <1>  push dx
+    52 0000051C EB03                <1>  jmp %%endstr
+    53 0000051E 202000              <1>  %%str: db %1,0
     54                              <1>  %%endstr:
-    55 00000517 BB[1405]            <1>  mov bx,%%str
-    56 0000051A E849FC              <1>  call write_string
-    57 0000051D 5A                  <1>  pop dx
-    58 0000051E 59                  <1>  pop cx
-    59 0000051F 5B                  <1>  pop bx
-    60 00000520 58                  <1>  pop ax
+    55 00000521 BB[1E05]            <1>  mov bx,%%str
+    56 00000524 E83FFC              <1>  call write_string
+    57 00000527 5A                  <1>  pop dx
+    58 00000528 59                  <1>  pop cx
+    59 00000529 5B                  <1>  pop bx
+    60 0000052A 58                  <1>  pop ax
    232                                  
    233                                    set_cursor 14,45
     43                              <1> 
-    44 00000521 BFF01D              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
+    44 0000052B BFF01D              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
    234                                    print "vy: "
-    48 00000524 50                  <1>  push ax
-    49 00000525 53                  <1>  push bx
-    50 00000526 51                  <1>  push cx
-    51 00000527 52                  <1>  push dx
-    52 00000528 EB05                <1>  jmp %%endstr
-    53 0000052A 76793A2000          <1>  %%str: db %1,0
+    48 0000052E 50                  <1>  push ax
+    49 0000052F 53                  <1>  push bx
+    50 00000530 51                  <1>  push cx
+    51 00000531 52                  <1>  push dx
+    52 00000532 EB05                <1>  jmp %%endstr
+    53 00000534 76793A2000          <1>  %%str: db %1,0
     54                              <1>  %%endstr:
-    55 0000052F BB[2A05]            <1>  mov bx,%%str
-    56 00000532 E831FC              <1>  call write_string
-    57 00000535 5A                  <1>  pop dx
-    58 00000536 59                  <1>  pop cx
-    59 00000537 5B                  <1>  pop bx
-    60 00000538 58                  <1>  pop ax
-   235 00000539 A1[4A03]                  mov ax,[ship.vel.y]
-   236 0000053C E888FC                    call write_signed_number_word     ; draw vy
+    55 00000539 BB[3405]            <1>  mov bx,%%str
+    56 0000053C E827FC              <1>  call write_string
+    57 0000053F 5A                  <1>  pop dx
+    58 00000540 59                  <1>  pop cx
+    59 00000541 5B                  <1>  pop bx
+    60 00000542 58                  <1>  pop ax
+   235 00000543 A1[4B03]                  mov ax,[ship.vel.y]
+   236 00000546 E87EFC                    call write_signed_number_word     ; draw vy
    237                                    print "  "
-    48 0000053F 50                  <1>  push ax
-    49 00000540 53                  <1>  push bx
-    50 00000541 51                  <1>  push cx
-    51 00000542 52                  <1>  push dx
-    52 00000543 EB03                <1>  jmp %%endstr
-    53 00000545 202000              <1>  %%str: db %1,0
+    48 00000549 50                  <1>  push ax
+    49 0000054A 53                  <1>  push bx
+    50 0000054B 51                  <1>  push cx
+    51 0000054C 52                  <1>  push dx
+    52 0000054D EB03                <1>  jmp %%endstr
+    53 0000054F 202000              <1>  %%str: db %1,0
     54                              <1>  %%endstr:
-    55 00000548 BB[4505]            <1>  mov bx,%%str
-    56 0000054B E818FC              <1>  call write_string
-    57 0000054E 5A                  <1>  pop dx
-    58 0000054F 59                  <1>  pop cx
-    59 00000550 5B                  <1>  pop bx
-    60 00000551 58                  <1>  pop ax
+    55 00000552 BB[4F05]            <1>  mov bx,%%str
+    56 00000555 E80EFC              <1>  call write_string
+    57 00000558 5A                  <1>  pop dx
+    58 00000559 59                  <1>  pop cx
+    59 0000055A 5B                  <1>  pop bx
+    60 0000055B 58                  <1>  pop ax
    238                                  
-   239 00000552 E884FC                    call check_keys
-   240 00000555 7503                      jnz on_key
+   239 0000055C E87AFC                    call check_keys
+   240 0000055F 7503                      jnz on_key
    241                                    ;else
-   242 00000557 E957FF                    jmp draw          ; this code is only getting called when no key is pressed
+   242 00000561 E957FF                    jmp draw          ; this code is only getting called when no key is pressed
    243                                  
    244                                  ; ───────────────────────────────────────────────────────────────────────────
    245                                  
    246                                  on_key:
    247                                    set_cursor 2,10
     43                              <1> 
-    44 0000055A BF6402              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
-   248 0000055D A1[0400]                  mov ax,[key]
-   249 00000560 E827FC                    call write_binary_word
-   250 00000563 83F877                    cmp ax,'w'
-   251 00000566 7412                      je on_key_w
-   252 00000568 83F861                    cmp ax,'a'
-   253 0000056B 7415                      je on_key_a
-   254 0000056D 83F873                    cmp ax,'s'
-   255 00000570 7418                      je on_key_s
-   256 00000572 83F864                    cmp ax,'d'
-   257 00000575 741B                      je on_key_d
+    44 00000564 BF6402              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
+   248 00000567 A1[0400]                  mov ax,[key]
+   249 0000056A E81DFC                    call write_binary_word
+   250 0000056D 83F877                    cmp ax,'w'
+   251 00000570 7412                      je on_key_w
+   252 00000572 83F861                    cmp ax,'a'
+   253 00000575 7415                      je on_key_a
+   254 00000577 83F873                    cmp ax,'s'
+   255 0000057A 7418                      je on_key_s
+   256 0000057C 83F864                    cmp ax,'d'
+   257 0000057F 741B                      je on_key_d
    258                                  .done
-   259 00000577 E937FF                    jmp draw  ; no ret here because onkey is called by jnz
+   259 00000581 E937FF                    jmp draw  ; no ret here because onkey is called by jnz
    260                                  
    261                                  
    262                                  STEP equ 500
@@ -1430,44 +1434,44 @@
    264                                  ; ───────────────────────────────────────────────────────────────────────────
    265                                  
    266                                  on_key_w:
-   267 0000057A 812E[4A03]F401            sub word [ship.vel.y], STEP
-   268 00000580 EBF5                      jmp on_key.done
+   267 00000584 812E[4B03]F401            sub word [ship.vel.y], STEP
+   268 0000058A EBF5                      jmp on_key.done
    269                                  
    270                                  ; ───────────────────────────────────────────────────────────────────────────
    271                                  
    272                                  on_key_a:
-   273 00000582 812E[4803]F401            sub word [ship.vel.x], STEP
-   274 00000588 EBED                      jmp on_key.done
+   273 0000058C 812E[4903]F401            sub word [ship.vel.x], STEP
+   274 00000592 EBED                      jmp on_key.done
    275                                  
    276                                  ; ───────────────────────────────────────────────────────────────────────────
    277                                  
    278                                  on_key_s:
-   279 0000058A 8106[4A03]F401            add word [ship.vel.y], STEP
-   280 00000590 EBE5                      jmp on_key.done
+   279 00000594 8106[4B03]F401            add word [ship.vel.y], STEP
+   280 0000059A EBE5                      jmp on_key.done
    281                                  
    282                                  ; ───────────────────────────────────────────────────────────────────────────
    283                                  
    284                                  on_key_d:
-   285 00000592 8106[4803]F401            add word [ship.vel.x], STEP
-   286 00000598 EBDD                      jmp on_key.done
+   285 0000059C 8106[4903]F401            add word [ship.vel.x], STEP
+   286 000005A2 EBDD                      jmp on_key.done
    287                                  
    288                                  ; ───────────────────────────────────────────────────────────────────────────
    289                                  
    290                                  print_msg:
    291                                    set_cursor 1,10
     43                              <1> 
-    44 0000059A BF2400              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
-   292 0000059D E8C6FB                    call write_string
-   293 000005A0 C3                        ret
+    44 000005A4 BF2400              <1>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
+   292 000005A7 E8BCFB                    call write_string
+   293 000005AA C3                        ret
    294                                  
    295                                  ; ───────────────────────────────────────────────────────────────────────────
    296                                  
    297                                  _wait:
    298                                    DELAY EQU 250
-   299 000005A1 B9FA00                    mov cx,DELAY
-   300 000005A4 D40A                      .lp aam
-   301 000005A6 E2FC                      loop .lp
-   302 000005A8 C3                        ret
+   299 000005AB B9FA00                    mov cx,DELAY
+   300 000005AE D40A                      .lp aam
+   301 000005B0 E2FC                      loop .lp
+   302 000005B2 C3                        ret
    303                                  
    304                                  ; ───────────────────────────────────────────────────────────────────────────
    305                                  
@@ -1478,55 +1482,55 @@
    310                                    ; SCREEN (ROW,COL):
    311                                    ;   0..49 (row)
    312                                    ;   0..71 (col)
-   313 000005A9 B10A                      mov cl,10
-   314 000005AB D3EB                      shr bx,cl   ; //bl=row 0..49
-   315 000005AD D3E8                      shr ax,cl   ; 
-   316 000005AF 88C7                      mov bh,al   ; //bh=col 0..71
-   317 000005B1 86DF                      xchg bh,bl
-   318 000005B3 C3                        ret
+   313 000005B3 B10A                      mov cl,10
+   314 000005B5 D3EB                      shr bx,cl   ; //bl=row 0..49
+   315 000005B7 D3E8                      shr ax,cl   ; 
+   316 000005B9 88C7                      mov bh,al   ; //bh=col 0..71
+   317 000005BB 86DF                      xchg bh,bl
+   318 000005BD C3                        ret
    319                                  
    320                                  ; ───────────────────────────────────────────────────────────────────────────
    321                                  
    322                                  ; FIXME
-   323 000005B4 <bin 302h>              img_NONE: incbin "data/ship-24.spr"
+   323 000005BE <bin 302h>              img_NONE: incbin "data/ship-24.spr"
    324                                  
    325                                  
    326                                  img_up:
-   327 000008B6 <bin 302h>              img1: incbin "data/ship-1.spr" ;up
-   328 00000BB8 <bin 302h>              img2: incbin "data/ship-2.spr"
-   329 00000EBA <bin 302h>              img3: incbin "data/ship-3.spr"
+   327 000008C0 <bin 302h>              img1: incbin "data/ship-1.spr" ;up
+   328 00000BC2 <bin 302h>              img2: incbin "data/ship-2.spr"
+   329 00000EC4 <bin 302h>              img3: incbin "data/ship-3.spr"
    330                                  img_up_right:
-   331 000011BC <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
-   332 000014BE <bin 302h>              img5: incbin "data/ship-5.spr"
-   333 000017C0 <bin 302h>              img6: incbin "data/ship-6.spr"
+   331 000011C6 <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
+   332 000014C8 <bin 302h>              img5: incbin "data/ship-5.spr"
+   333 000017CA <bin 302h>              img6: incbin "data/ship-6.spr"
    334                                  img_right:
-   335 00001AC2 <bin 302h>              img7: incbin "data/ship-7.spr" ;right
-   336 00001DC4 <bin 302h>              img8: incbin "data/ship-8.spr"
-   337 000020C6 <bin 302h>              img9: incbin "data/ship-9.spr"
+   335 00001ACC <bin 302h>              img7: incbin "data/ship-7.spr" ;right
+   336 00001DCE <bin 302h>              img8: incbin "data/ship-8.spr"
+   337 000020D0 <bin 302h>              img9: incbin "data/ship-9.spr"
    338                                  img_down_right:
-   339 000023C8 <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
-   340 000026CA <bin 302h>              img11: incbin "data/ship-11.spr"
-   341 000029CC <bin 302h>              img12: incbin "data/ship-12.spr"
+   339 000023D2 <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
+   340 000026D4 <bin 302h>              img11: incbin "data/ship-11.spr"
+   341 000029D6 <bin 302h>              img12: incbin "data/ship-12.spr"
    342                                  img_down:
-   343 00002CCE <bin 302h>              img13: incbin "data/ship-13.spr" ;down
-   344 00002FD0 <bin 302h>              img14: incbin "data/ship-14.spr"
-   345 000032D2 <bin 302h>              img15: incbin "data/ship-15.spr"
+   343 00002CD8 <bin 302h>              img13: incbin "data/ship-13.spr" ;down
+   344 00002FDA <bin 302h>              img14: incbin "data/ship-14.spr"
+   345 000032DC <bin 302h>              img15: incbin "data/ship-15.spr"
    346                                  img_down_left:
-   347 000035D4 <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
-   348 000038D6 <bin 302h>              img17: incbin "data/ship-17.spr"
-   349 00003BD8 <bin 302h>              img18: incbin "data/ship-18.spr"
+   347 000035DE <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
+   348 000038E0 <bin 302h>              img17: incbin "data/ship-17.spr"
+   349 00003BE2 <bin 302h>              img18: incbin "data/ship-18.spr"
    350                                  img_left:
-   351 00003EDA <bin 302h>              img19: incbin "data/ship-19.spr" ;left
-   352 000041DC <bin 302h>              img20: incbin "data/ship-20.spr"
-   353 000044DE <bin 302h>              img21: incbin "data/ship-21.spr"
+   351 00003EE4 <bin 302h>              img19: incbin "data/ship-19.spr" ;left
+   352 000041E6 <bin 302h>              img20: incbin "data/ship-20.spr"
+   353 000044E8 <bin 302h>              img21: incbin "data/ship-21.spr"
    354                                  img_up_left:
-   355 000047E0 <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
-   356 00004AE2 <bin 302h>              img23: incbin "data/ship-23.spr"
-   357 00004DE4 <bin 302h>              img24: incbin "data/ship-24.spr"
+   355 000047EA <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
+   356 00004AEC <bin 302h>              img23: incbin "data/ship-23.spr"
+   357 00004DEE <bin 302h>              img24: incbin "data/ship-24.spr"
    358                                  
    359                                  
    360                                  
-   361 000050E6 00<rep 27F1Ah>          times (180*1024)-($-$$) db 0
+   361 000050F0 00<rep 27F10h>          times (180*1024)-($-$$) db 0
    362                                  
    363                                  
    364                                  

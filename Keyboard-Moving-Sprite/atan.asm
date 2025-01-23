@@ -1,28 +1,31 @@
 atan2: ; input bx=y, ax=x
   cmp ax,0
   jnz .x_not_0
+
 .x_eq_0:
   cmp bx,0
   jl .y_lte_0
+
 .y_gt_0:
   mov ax,90
   ret
+
 .y_lte_0:
   mov ax,-90
   ret
+
 .x_not_0:
   push ax
   push ax   ; keep a copy of x
-  cwd       ; dx=0
+  mov ax,bx
   mov cx,111
+  cwd       ; dx=0
   imul cx
   pop cx;   ; restore x
-  cwd
   idiv cx   ; ax/=x
   cwd
   call atan
   pop cx;   ; restore x
-
   cmp cx,0
   jl .x_lt_0
   ret
@@ -43,13 +46,10 @@ atan2: ; input bx=y, ax=x
 atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   mov cx,ax           ; z
   cwd
-
   cmp cx,111
-  jg .if_z_gt_scale   ; if (z>111)
-
+  jg .z_gt_scale   ; if (z>111)
   cmp cx,-111         ; if (z<-111) 
-  jl .if_z_lt_minus_scale
-
+  jl .z_lt_minus_scale
   cwd
   imul ax             ; ax *= ax  (z*z)
   mov bx,333     
@@ -69,7 +69,7 @@ atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   cwd
   ret
 
-.if_z_gt_scale:
+.z_gt_scale:
   mov ax,12321        ; 12321 = 111*111 (squared scale)
   idiv cx             ; ax/=z
   call atan           ; recursion
@@ -78,7 +78,7 @@ atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   sub ax,bx
   ret
 
-.if_z_lt_minus_scale:
+.z_lt_minus_scale:
   mov ax,12321        ; 12321 = 111*111 (squared scale)
   idiv cx             ; ax/=z
   call atan           ; recursion
@@ -86,9 +86,6 @@ atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   mov ax,-90
   sub ax,bx
   ret
-
-
-
 
 %macro _atan2 2
   mov ax,%1
