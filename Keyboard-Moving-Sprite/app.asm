@@ -19,132 +19,122 @@ ship:
  .prev_di: dw 0
 
 color: db Color.G
-
-
-;kan ik een generieke cursor_next maken die de waarde 
-;van DI opvraagd en deze verhoogt
-;en als de cursor tussen twee regels staat 
-;deze verhoogd met 288
-
-; en als de waarde van DI boven de max uitkomt dat
-; er dan gescrollt wordt en DI wordt verplaatst naar
-; het begin van de regel
-
-; en alles heel lightweight?
-
-; msg: db "abcdef",0
+FRICTION equ 94
 
 setup:
-  ; set_cursor 1,1
-  ; print "atan(426)="
-  ; mov ax,426
-  ; call atan
-  ; call write_number_word
-  
   set_cursor 1,1
-  print "A"
-  int3
-  set_cursor 2,1
-  print "B"
-  int3
-  set_cursor 3,1
-  print "C"
-  int3
-  set_cursor 4,1
-  print "D"
-  int3
+
+  _atan2 100, 0
+  _atan2 96, 25
+  _atan2 86, 50
+  _atan2 70, 70
+  _atan2 49, 86
+  _atan2 25, 96
+  _atan2 0, 100
+  _atan2 -25, 96  
+  _atan2 -50, 86  
+  _atan2 -70, 70 
+  _atan2 -86, 50 
+  _atan2 -96, 25 
+  _atan2 -100, 0 
+  _atan2 -96, -25 
+  _atan2 -86, -49 
+  _atan2 -70, -70 
+  _atan2 -49, -86 
+  _atan2 -25, -96 
+  _atan2 0, -100 
+  _atan2 25, -96 
+  _atan2 49, -86 
+  _atan2 70, -70 
+  _atan2 86, -50 
+  _atan2 96, -25 
+
+
+
+
+
+  ; mov ax,1234
+  ; call write_signed_number_word
+
+  ; xor di,di
+  ; mov cx,1000
+  ; mov ax,FONT
+  ; mov ds,ax
+  ; ; mov ax,-1
+  ; rep movsw
+
+
+
+;   cli
+;   cld
+; push cs
+; pop ds
+; xor bx,bx
+; xor dx,dx
+; xor cx,cx
+; xor ax,ax
+; xor bp,bp
+
+;   hlt
+;   xor dx,dx
+;   add di,3*8
+
+;   mov cx,10
+;   div cx
+;   ; push ax
+;   push ax ;xxxxx
+
+  ; mov ax,88
+  ; call write_number_word
+  ; print "  "
+  ; xor di,di
+  ; mov ax,'X'
+  ; push ax
+  ; mov ax,GREEN
+  ; mov es,ax
+  ; mov ax,FONT
+  ; mov ds,ax
+  ; pop ax
+  ; mov ah,8
+  ; mul ah        ; al*=ah
+  ; mov si,ax
+  ; movsw
+  ; movsw
+  ; add di,0x11c
+  ; movsw
+  ; movsw
+  ; sub di,0x120
+
+  ; mov ax,'8'
+  ; push ax
+  ; mov ax,GREEN
+  ; mov es,ax
+  ; mov ax,FONT
+  ; mov ds,ax
+  ; pop ax
+  ; mov ah,8
+  ; mul ah        ; al*=ah
+  ; mov si,ax
+  ; movsw
+  ; movsw
+  ; add di,0x11c
+  ; movsw
+  ; movsw
+  ; sub di,0x120
+
+
+
 
   hlt
   
-  ; print "Test123"
-
-  ; set_cursor 2,1
-  ; mov al,'a'
-  ; call write_char
-  ; jmp .tmp
-  ; .s db 
-  ; .tmp
-  ; mov bx, msg
-  ; call write_string
-
-  
-  ; hlt
-  ; mov ax,426
-  ; ; call atan
-  ; call write_number_word
-  ; hlt
-
-  ; mov di,4*72 + 4*10
-  ; call row_snap
-  ; mov ax,12345
-  ; call write_number_word  
-
-  ; mov word [cursor],0x0208
-
-  ; ; mov byte [cursor.col],8
-  ; ; mov byte [cursor.row],2
-
-  ; inc byte [cursor.col]
-  ; push word [cursor]
-  ; pop word [cursor]
-
-  ; call calc_di_from_cursor
-  ; set_cursor 1,1 ; 1,72
-  ; mov cx,500
-  ; .lp:
-  ;   mov ax,cx
-  ;   call write_number_word
-  ;   mov al,' '
-  ;   call write_char
-  ;   loop .lp
-
-  ; hlt
-
-  ; mov word [cursor.index],36
-  ; call calc_di_from_cursor_index
-
-  
-  ; hlt
-
-  ; ; mov bh,al
-  ; ; mov bl,dl
-
-
-  ; ; call calc_di_from_bx
-
-  
-  ; ; xor di,di
-  ; ; mov ax,cx
-  ; ; call write_number_word
-  ; mov al,'x'
-  ; call write_char
-
-  ; inc word [cursor.index]
-
-  ; ; print "   "
-
-  ; loop .lp
-
-
-  
-
-  ; mov cx,426
-  ; mov ax,12321        ; 12321 = 111*111 (squared scale)
-  ; xor dx,dx           ; dx=0 (prevent overflow) 
-  ; idiv cx             ; ax/=z
-  ; call write_number_word
-
-  ; hlt
-
-
-  ; xor bp,bp
-  ; jmp draw
+  xor bp,bp
+  jmp draw
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-; vec_mult:   ; cx scalar, ax=x, bx=y
-  
-FRICTION equ 94
+
+
+
 
 update_ship:
   
@@ -365,6 +355,7 @@ img_up_left:
 img22: incbin "data/ship-22.spr" ;up-left
 img23: incbin "data/ship-23.spr"
 img24: incbin "data/ship-24.spr"
+
 
 
 times (180*1024)-($-$$) db 0

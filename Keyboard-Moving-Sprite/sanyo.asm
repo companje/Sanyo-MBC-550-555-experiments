@@ -45,11 +45,19 @@ key:
 %endmacro
 
 %macro print 1
+  push ax
+  push bx
+  push cx
+  push dx
   jmp %%endstr 
   %%str: db %1,0
   %%endstr: 
   mov bx,%%str
   call write_string
+  pop dx
+  pop cx
+  pop bx
+  pop ax
 %endmacro
 
 %macro register_interrupt 1
@@ -66,8 +74,19 @@ key:
 ; int4: hlt
 
 int0:; int0: Division by zero
-  mov al,0
-  jmp int_msg
+  cld
+  mov ax,BLUE
+  mov es,ax
+  xor di,di
+  mov cx,7200
+  mov ax,-1
+  rep stosw
+  hlt
+
+  ; set_cursor 5,5
+  ; print "Division by zero"
+  ; hlt
+
 int1:; int1: Single step debugging
   mov al,1
   jmp int_msg
@@ -75,43 +94,52 @@ int2:; int2: Non maskable interrupt
   mov al,2
   jmp int_msg
 int3:; int3: For one-byte interrupt
-  push ax
-  push bx
-  push cx
-  push dx
-  push si
-  push di
-  push bp
-  push ds
-  push es
+  hlt
+  ; push ax
+  ; push bx
+  ; push cx
+  ; push dx
+  ; push si
+  ; push di
+  ; push bp
+  ; push ds
+  ; push es
 
-  ; mov di,10*4
-  print "int3:"
+  ; ; mov di,10*4
+  ; ; set_cursor 5,5
+  ; xor di,di
+  ; print "int3:"
+  ; ; mov ax,cx
+  ; ; call write_number_word
 
-  ; call write_number_word
-  pop es
-  pop ds
-  pop bp
-  pop di
-  pop si
-  pop dx
-  pop cx
-  pop bx
-  pop ax
-  iret
+  ; pop es
+  ; pop ds
+  ; pop bp
+  ; pop di
+  ; pop si
+  ; pop dx
+  ; pop cx
+  ; pop bx
+  ; pop ax
+  ; iret
 
 int4:; int4: Signed overflow
   mov al,4
   jmp int_msg
 int_msg:
-  xor di,di
+  mov di,500
+  ; xor di,di
   ; mov ax,di
   ; mov cx,8*72  
   ; rep stosw
   ; xor di,di
+  ; push ax
+  ; print "int: "
+  ; pop ax
   add al,'0'
   call write_char
-  print " int"
+  ; print "      "
+  
   hlt
 
 boot:
@@ -378,10 +406,13 @@ clear_channel:
 ; ; ───────────────────────────────────────────────────────────────────────────
 
 write_char:   ; ds=FONT, es=GREEN, al=charcode
+  push dx
   push ds
   push es
   push ax
-  push ax
+  push bx
+  xor dx,dx
+  push ax  ; voor character pop
   mov ax,GREEN
   mov es,ax
   mov ax,FONT
@@ -389,7 +420,8 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   pop ax
   mov ah,8
   mul ah        ; al*=ah
-  mov si,ax
+  mov si,ax  
+
   movsw
   movsw
   add di,0x11c
@@ -397,21 +429,26 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   movsw
   sub di,0x120
 
+
   ; cmp di,14400   ; dit later oplossen met cursor positie
   ; jb .return
   ; xor di,di      ; move to left top. change later to scroll
 
   ; row snap
+  mov bx,288   ; /////////// dit gaf problemen waarsch omdat bx niet gepushed werd
   xor dx,dx
   mov ax,di
-  div bx
+  div bx       ; ///dit ook als BX 0 is
   cmp dx,0
   jne .return
   add di,bx
+
 .return
+  pop bx
   pop ax
   pop es
   pop ds
+  pop dx
   ret
 
 write_string:
@@ -460,6 +497,7 @@ write_binary_word:    ; input AX
   pop ax
   ret
 
+
 ; ───────────────────────────────────────────────────────────────────────────
 
 write_number_word:
@@ -487,7 +525,12 @@ write_number_word:
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-write_signed_number_word:    
+write_signed_number_word:  
+    ; push ax
+    ; push bx
+    ; push cx
+    ; push dx  
+    
     or ax,ax
     jns .write_return        ; if >0 write and return
     push ax
@@ -497,6 +540,12 @@ write_signed_number_word:
     neg ax                   ; destroys ax when negative
 .write_return:
     call write_number_word
+    
+    ; push dx
+    ; push cx
+    ; push bx
+    ; push ax
+
     ret
 
 ; ───────────────────────────────────────────────────────────────────────────
@@ -686,6 +735,26 @@ calc_di_from_bx:  ; input bl,bh [0,0,71,49]
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────
+
+new_line:
+  push ax
+  push bx
+  push dx
+  mov bx,288
+  xor dx,dx
+  mov ax,di
+  div bx
+  xor dx,dx
+  mov bx,288
+  inc ax
+  mul bx
+  add ax,288
+  mov di,ax
+  pop dx
+  pop bx
+  pop ax
+  ret
+
 
 ; calc_di_from_cursor:  ; input cursor, output di
 ;   mov ax,[cursor] 
