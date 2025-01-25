@@ -3,7 +3,7 @@ cpu 8086
 
 jmp boot
 
-NUM_SECTORS equ 40          ; number of sectors to read
+NUM_SECTORS equ 80          ; number of sectors to read
 BAR_WIDTH equ 30
 COLS  equ 72
 ROWS  equ 50
@@ -526,11 +526,7 @@ write_number_word:
 ; ───────────────────────────────────────────────────────────────────────────
 
 write_signed_number_word:  
-    ; push ax
-    ; push bx
-    ; push cx
-    ; push dx  
-    
+    push ax
     or ax,ax
     jns .write_return        ; if >0 write and return
     push ax
@@ -540,12 +536,7 @@ write_signed_number_word:
     neg ax                   ; destroys ax when negative
 .write_return:
     call write_number_word
-    
-    ; push dx
-    ; push cx
-    ; push bx
-    ; push ax
-
+    pop ax
     ret
 
 ; ───────────────────────────────────────────────────────────────────────────

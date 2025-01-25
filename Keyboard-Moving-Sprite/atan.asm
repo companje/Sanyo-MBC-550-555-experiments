@@ -1,18 +1,14 @@
 atan2: ; input bx=y, ax=x
   cmp ax,0
   jnz .x_not_0
-
-.x_eq_0:
   cmp bx,0
   jl .y_lte_0
-
-.y_gt_0:
   mov ax,90
-  ret
+  jmp .ret
 
 .y_lte_0:
   mov ax,-90
-  ret
+  jmp .ret
 
 .x_not_0:
   push ax
@@ -28,26 +24,33 @@ atan2: ; input bx=y, ax=x
   pop cx;   ; restore x
   cmp cx,0
   jl .x_lt_0
-  ret
+  jmp .ret
 
 .x_lt_0:
   cmp bx,0
   jge .y_gte_0
   sub ax,180
-  ret
+  jmp .ret
 
 .y_gte_0:
   add ax,180
+  jmp .ret
+
+.ret:
+  cmp ax,0
+  jl .add360
+  ret
+.add360:
+  add ax,360
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────
-
 
 atan: ; cx=z, return value in ax, bx destroyed, cx destroyed, dx destroyed
   mov cx,ax           ; z
   cwd
   cmp cx,111
-  jg .z_gt_scale   ; if (z>111)
+  jg .z_gt_scale      ; if (z>111)
   cmp cx,-111         ; if (z<-111) 
   jl .z_lt_minus_scale
   cwd

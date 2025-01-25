@@ -1,4 +1,34 @@
+set_cursor 1,1
 
+  _atan2 100, 0
+  _atan2 96, 25
+  _atan2 86, 50
+  _atan2 70, 70
+  _atan2 49, 86
+  _atan2 25, 96
+  _atan2 0, 100
+  _atan2 -25, 96  
+  _atan2 -50, 86  
+  _atan2 -70, 70 
+  _atan2 -86, 50 
+  _atan2 -96, 25 
+  _atan2 -100, 0 
+  _atan2 -96, -25 
+  _atan2 -86, -49 
+  _atan2 -70, -70 
+  _atan2 -49, -86 
+  _atan2 -25, -96 
+  _atan2 0, -100 
+  _atan2 25, -96 
+  _atan2 49, -86 
+  _atan2 70, -70 
+  _atan2 86, -50 
+  _atan2 96, -25 
+  _atan2 100, 0
+  
+
+
+  
   ; push ax
   ; push bx
   ; push cx
