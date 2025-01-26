@@ -1,3 +1,29 @@
+
+sin: ; ax in degrees
+  push cx
+  mov cx,100
+  cbw
+  imul cx
+  add ax,45
+  mov cx,9
+  cbw
+  idiv cx
+  pop cx
+
+cos: ; ax in degrees
+  push cx;
+  mov cx,ax
+  mov ax,90
+  sub ax,cx
+  mov cx,100
+  cbw
+  imul cx
+  add ax,45
+  mov cx,9
+  cbw
+  idiv cx
+  pop cx
+
 atan2: ; input bx=y, ax=x
   cmp ax,0
   jnz .x_not_0
@@ -18,6 +44,31 @@ atan2: ; input bx=y, ax=x
   cwd       ; dx=0
   imul cx
   pop cx;   ; restore x
+
+
+
+  ; mov word [debug.ax], ax
+  ; mov word [debug.bx], bx
+  ; mov word [debug.cx], cx
+  ; mov word [debug.dx], dx
+
+;   set_cursor 10,1
+;   print "AX="
+;   call write_number_word
+;   print "   "
+
+; ; 13441
+
+;   call new_line  
+;   print "CX="
+;   mov ax,cx
+;   call write_number_word
+;   print "   "
+
+  ; cmp cx,0
+  ; je .error_x_0
+  cwd
+
   idiv cx   ; ax/=x
   cwd
   call atan
@@ -43,6 +94,10 @@ atan2: ; input bx=y, ax=x
 .add360:
   add ax,360
   ret
+.error_x_0
+  set_cursor 1,1
+  print "Division Error in atan2: x=0"
+  hlt
 
 ; ───────────────────────────────────────────────────────────────────────────
 

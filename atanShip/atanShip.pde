@@ -1,6 +1,6 @@
 import java.util.ArrayDeque;
 ArrayDeque<Integer> stack = new ArrayDeque<Integer>();
-int ax, bx, cx;
+int ax, bx, cx, dx;
 PImage img[] = new PImage[24];
 int angle;
 
@@ -22,6 +22,15 @@ void setup() {
 
   mem[POS+0] = 73728/2;
   mem[POS+1] = 51200/2;
+  
+  
+  mem[FORCE+0] = 100;
+  mem[FORCE+1] = 100;
+  limit(FORCE, 25);
+  
+  println(mem[FORCE+0]);
+  println(mem[FORCE+1]);
+  exit();
 }
 
 void draw() {
@@ -30,14 +39,12 @@ void draw() {
   copy(FORCE, FORCES);
   limit(FORCE, 25);
   sub(FORCES, FORCE);
-  mult(FORCES, 90);
-  div(FORCES, 100);
+  scale(FORCES, 90);
   add(ACC, FORCE);
   add(VEL, ACC);
   mult(ACC, 0);
   add(POS, VEL);
-  mult(VEL, 98);
-  div(VEL, 100);
+  scale(VEL, 98);
   println(mem[X], mem[Y]);
 
   ax = mem[VEL+0]; //vx
@@ -64,7 +71,11 @@ void keyPressed() {
 }
 
 void addForceFromAngle(int angle, int mag) {
-  fromAngle(TMP, angle, mag);
-  mem[FORCES+0] += mem[TMP+0]; //add force to accumulator
-  mem[FORCES+1] += mem[TMP+1];
+  ax = angle;
+  bx = mag;
+  fromAngle();
+  mem[FORCES+0] += ax;
+  mem[FORCES+1] += bx;
+  //mem[FORCES+0] += mem[TMP+0]; //add force to accumulator
+  //mem[FORCES+1] += mem[TMP+1];
 }

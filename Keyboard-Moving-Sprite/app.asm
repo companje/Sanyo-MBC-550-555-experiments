@@ -3,74 +3,147 @@
 
 ship:
  .pos:
- .pos.x: dw 73728/2                ; 0..73728  (65536)
- .pos.y: dw 51200/2 + 2000         ; 0..51200  (=1024*50)
+ .pos.x: dw 73728/2              ; 0..73728  (65536)
+ .pos.y: dw 51200/2 - 10000      ; 0..51200  (=1024*50)
  .vel: 
- .vel.x: dw 96
+ .vel.x: dw 0
  .vel.y: dw 0
  .vel.flags: dw 0
+ .vel.magSq: dw 0
  .acc:
  .acc.x: dw 0
  .acc.y: dw 0
- .forces:
+ .forces:             ; accumulated forces over time
  .forces.x: dw 0
  .forces.y: dw 0
+ .force:              ; force for this frame derived from accumulated forces
+ .force.x: dw 0
+ .force.y: dw 0
  .angle: dw 0
  .sprite_index: dw 0
  .img_addr: dw img_first
  .prev_di: dw 0
 
+debug:
+  .ax: dw 0
+  .bx: dw 0
+  .cx: dw 0
+  .dx: dw 0
+
 star:
  .x: dw 73728/2                ; 0..73728  (65536)
  .y: dw 51200/2                ; 0..51200  (=1024*50)
 
-
+frame_count: dw 0
 color: db Color.G
 FRICTION equ 94
-STEP equ 500
+STEP equ 50
+FRAME_DELAY EQU 250
+
+debug_test:
+  mov word [ship.forces.x], 5000
+  mov word [ship.forces.y], 2000
+  mov cx,100
+.lp
+  push cx
+  mov bx,ship.forces
+  mov cx,90
+  call v_scale            ; forces *= .9
+  pop cx
+  call draw_debug_info
+  loop .lp
+  hlt
 
 setup:
+  ; call debug_test
   xor bp,bp
   jmp draw
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-update_ship:
-  ; force = forces.copy()
-  ; force.limit(5)
-  ; acc.add(force)
-  ; forces.sub(force)
-  ; forces.mult(90)
+draw:
+  push cs
+  pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
 
-  mov bx,ship.vel    ; pointer to ship velocity
-  mov cx,94
-  call v_mult
+  call update_ship
+  call draw_ship
+  call draw_debug_info
+
+  call _wait
+  inc word [frame_count]
+
+  call check_keys
+  jnz on_key
+
+  jmp draw          ; this code is only getting called when no key is pressed
+
+; ───────────────────────────────────────────────────────────────────────────
+
+update_ship:
+  mov bx,ship.force
+  mov bp,ship.forces
+  call v_copy             ; force = forces.copy()
+
+  mov bx,ship.force
+  mov cx,25
+  call v_limit            ; force.limit(25)
+
+  mov bx,ship.forces
+  mov bp,ship.force
+  call v_sub              ; forces -= force
+
+  mov bx,ship.forces
+  mov cx,99
+  call v_scale            ; forces *= .9
+
+  mov bx,ship.acc
+  mov bp,ship.force
+  call v_add              ; acceleration += forces
+
+  mov bx,ship.vel
+  mov bp,ship.acc
+  call v_add              ; velocity += acceleration
+
+  mov bx,ship.acc
+  mov cx,0
+  call v_mult             ; acceleration = 0
 
   mov bx,ship.pos
   mov bp,ship.vel
-  call v_add
-  
-  mov bx,ship.vel
-  call v_heading   ; returns angle in ax
-  mov [ship.angle],ax
+  call v_add              ; position += velocity
 
-  ; from angle to ship image frame address
+  mov bx,ship.vel
+  mov cx,98
+  call v_scale            ; velocity *= .98
+
+  ; mov bx,ship.vel
+  ; mov cx,50
+  ; call v_limit            ; max velocity
+
+  mov bx,ship.vel
+  call v_mag_sq
+  mov [ship.vel.magSq],ax
+
+  mov bx,ship.vel
+  call v_heading   
+  mov [ship.angle],ax     ; angle = heading(velocity)
+
   xor dx,dx
   mov bx,15
-  idiv bx
-  mov [ship.sprite_index],ax  ; sprite_index = angle/15 = 0..23
+  idiv bx                 ; sprite_index = angle/15 (range 0..23)
+  mov [ship.sprite_index],ax   
   mov bx,770
-  mul bx
-  add ax,img_first
+  mul bx                  ; img_addr = (668+2 bytes per image * sprite_index)
+  add ax,img_first        ; img_addr += img_first (offset)
   mov [ship.img_addr],ax
 
   ret
 
+
 ; ───────────────────────────────────────────────────────────────────────────
 
 draw_stars:
-  
-
+  ret
 
 ; ───────────────────────────────────────────────────────────────────────────
 
@@ -83,17 +156,18 @@ draw_ship:
   call calc_di_from_bx
 
   cmp [ship.prev_di],di  
-  je .return             ; no screen update needed
+  ; je .return             ; no screen update needed >>>  DISABLED because ship on fixed position
 
   mov di,[ship.prev_di]
-  
-  ; mov bx,0x0808  ; rows,cols
-  ; call fill_rect_black
 
   mov ax,[ship.pos.x]
   mov bx,[ship.pos.y]
   call world2screen
   call calc_di_from_bx
+  cmp di,0
+  jg .ok
+  mov di,0
+.ok
   mov [ship.prev_di],di
 
   mov si,[ship.img_addr]
@@ -108,61 +182,77 @@ draw_ship:
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-draw:
-  push cs
-  pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
-
-  call update_ship
-  call draw_ship
-  call draw_debug_info
-
-  call check_keys
-  jnz on_key
-  ;else
-
-  call _wait
-  inc bp
-
-  jmp draw          ; this code is only getting called when no key is pressed
-
-; ───────────────────────────────────────────────────────────────────────────
-
 draw_debug_info:
-  set_cursor 12,45
-  print "frame: "
-  mov ax,bp
-  call write_number_word     ; draw frame counter
-  print "  "
+  
+  set_cursor 1,1
 
-  set_cursor 13,45
+  print "key: "
+  mov ax,[key]
+  println_ax_bin
+
+  print "frame: "
+  mov ax,[frame_count]
+  println_ax
+
   print "vx: "
   mov ax,[ship.vel.x]  
-  call write_signed_number_word
-  print "  "
+  println_ax
 
-  set_cursor 14,45
   print "vy: "
   mov ax,[ship.vel.y]
-  call write_signed_number_word     ; draw vy
-  print "  "
+  println_ax
 
-  set_cursor 15,45
+  print "vel.magSq: "
+  mov ax,[ship.vel.magSq]
+  println_ax_unsigned
+
   print "angle: "
-  mov ax,[ship.angle]  ; # handig om angle van 0 tot 360 te laten lopen ipv -180...180  
-  call write_signed_number_word     ; draw frame counter
-  print "    "
+  mov ax,[ship.angle] 
+  println_ax
 
-  set_cursor 16,45
   print "index: "
-  mov ax,[ship.sprite_index]  ; # handig om angle van 0 tot 360 te laten lopen ipv -180...180  
-  call write_signed_number_word     ; draw frame counter
-  print "    "
+  mov ax,[ship.sprite_index]
+  println_ax
 
-  set_cursor 17,45
   print "img addr: "
   mov ax,[ship.img_addr]
-  call write_signed_number_word     ; draw frame counter
-  print "    "
+  println_ax_hex
+
+  print "force.x: "
+  mov ax,[ship.force.x]
+  println_ax
+
+  print "force.y: "
+  mov ax,[ship.force.y]
+  println_ax
+
+  print "forces.x: "
+  mov ax,[ship.forces.x]
+  println_ax
+
+  print "forces.y: "
+  mov ax,[ship.forces.y]
+  println_ax
+
+  print "DI: "
+  mov ax,di
+  println_ax_hex
+
+  ; print "AX: "
+  ; mov ax,[debug.ax]
+  ; println_ax_hex
+
+  ; print "BX: "
+  ; mov ax,[debug.bx]
+  ; println_ax_hex
+
+  ; print "CX: "
+  ; mov ax,[debug.cx]
+  ; println_ax_hex
+
+  ; print "DX: "
+  ; mov ax,[debug.dx]
+  ; println_ax_hex
 
   ret
 
@@ -170,9 +260,6 @@ draw_debug_info:
 
 
 on_key:
-  set_cursor 2,10
-  mov ax,[key]
-  call write_binary_word
   cmp ax,'w'
   je on_key_w
   cmp ax,'a'
@@ -187,39 +274,65 @@ on_key:
 ; ───────────────────────────────────────────────────────────────────────────
 
 on_key_w:
-  sub word [ship.vel.y], STEP
+  ; add word [ship.forces.y], -STEP
+
+  mov ax,[ship.angle]
+  mov bx,1    ; magnitude
+  call v_from_angle
+  add word [ship.forces.x], ax
+  add word [ship.forces.y], bx
+
   jmp on_key.done
 
 ; ───────────────────────────────────────────────────────────────────────────
 
 on_key_a:
-  sub word [ship.vel.x], STEP
-  jmp on_key.done
+  ; add word [ship.forces.x], -STEP
 
-; ───────────────────────────────────────────────────────────────────────────
+  mov ax,[ship.angle]
+  add ax,-45   ; angle
+  mov bx,1    ; magnitude
+  call v_from_angle
+  add word [ship.forces.x], ax
+  add word [ship.forces.y], bx
 
-on_key_s:
-  add word [ship.vel.y], STEP
   jmp on_key.done
 
 ; ───────────────────────────────────────────────────────────────────────────
 
 on_key_d:
-  add word [ship.vel.x], STEP
+  ; add word [ship.forces.x], STEP
+
+  mov ax,[ship.angle]
+  add ax,45   ; angle
+  mov bx,1    ; magnitude
+  call v_from_angle
+  add word [ship.forces.x], ax
+  add word [ship.forces.y], bx
+
   jmp on_key.done
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-print_msg:
-  set_cursor 1,10
-  call write_string
-  ret
+on_key_s:
+  ; add word [ship.forces.y], STEP
 
-; ───────────────────────────────────────────────────────────────────────────
+  ;;;;;;;;;;;;; remmen:
+
+  mov bx,ship.forces
+  mov cx,0
+  call v_mult
+
+  mov bx,ship.vel
+  mov cx,50
+  call v_scale
+
+  jmp on_key.done
+  ; ───────────────────────────────────────────────────────────────────────────
+
 
 _wait:
-  DELAY EQU 250
-  mov cx,DELAY
+  mov cx,FRAME_DELAY
   .lp aam
   loop .lp
   ret
@@ -241,9 +354,6 @@ world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col)
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────
-
-; FIXME
-img_NONE: incbin "data/ship-24.spr"
 
 img_first:
 img_right:
@@ -280,6 +390,8 @@ img5: incbin "data/ship-5.spr"
 img6: incbin "data/ship-6.spr"
 
 
+; %assign num $-$$
+; %warning total num
 
 times (180*1024)-($-$$) db 0
 

@@ -60,6 +60,66 @@ key:
   pop ax
 %endmacro
 
+%macro println 1
+  print %1
+  call new_line
+%endmacro
+
+%macro print_ax 0
+  call write_signed_number_word
+%endmacro
+
+%macro print_ax_unsigned 0
+  call write_number_word
+%endmacro
+
+%macro print_ax_hex 0
+  call write_ax_hex
+%endmacro
+
+%macro print_ax_bin 0
+  call write_binary_word
+%endmacro
+
+; ------------
+; println
+
+%macro println_ax 0
+  print_ax
+  call write_5spaces_newline
+%endmacro
+
+%macro println_ax_unsigned 0
+  print_ax_unsigned
+  call write_5spaces_newline
+%endmacro
+
+%macro println_ax_hex 0
+  print_ax_hex
+  call write_5spaces_newline
+%endmacro
+
+%macro println_ax_bin 0
+  print_ax_bin
+  call write_5spaces_newline
+%endmacro
+
+write_5spaces_newline:
+  push ax
+  mov ax,"  "
+  call write_2chars
+  call write_2chars
+  call write_char
+  call new_line
+  pop ax
+  ret
+
+write_2chars:
+  call write_char
+  xchg ah,al
+  call write_char
+  ret
+
 %macro register_interrupt 1
   mov ax,%1
   stosw
@@ -81,11 +141,21 @@ int0:; int0: Division by zero
   mov cx,7200
   mov ax,-1
   rep stosw
+  set_cursor 1,1
+  print "Division by zero"
+  set_cursor 3,1
+  pop ax
+  print "IP="
+  println_ax_hex
+  call new_line
+  print "CS="
+  pop ax
+  println_ax_hex
+  call new_line
+  print "FLAGS="
+  pop ax
+  call write_binary_word
   hlt
-
-  ; set_cursor 5,5
-  ; print "Division by zero"
-  ; hlt
 
 int1:; int1: Single step debugging
   mov al,1
@@ -94,7 +164,8 @@ int2:; int2: Non maskable interrupt
   mov al,2
   jmp int_msg
 int3:; int3: For one-byte interrupt
-  hlt
+  mov al,3
+  jmp int_msg
   ; push ax
   ; push bx
   ; push cx
@@ -525,6 +596,9 @@ write_number_word:
 
 ; ───────────────────────────────────────────────────────────────────────────
 
+
+; ───────────────────────────────────────────────────────────────────────────
+
 write_signed_number_word:  
     push ax
     or ax,ax
@@ -727,7 +801,7 @@ calc_di_from_bx:  ; input bl,bh [0,0,71,49]
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-new_line:
+new_line:         ; find the value of DI at start of the next line
   push ax
   push bx
   push dx
@@ -735,17 +809,44 @@ new_line:
   xor dx,dx
   mov ax,di
   div bx
-  xor dx,dx
-  mov bx,288
+  xor dx,dx       ; cwd?
+  mov bx,288      ; bx was still 288?
   inc ax
   mul bx
-  add ax,288
+  add ax,288      ; use bx?
   mov di,ax
   pop dx
   pop bx
   pop ax
   ret
 
+; ───────────────────────────────────────────────────────────────────────────
+
+write_ax_hex:
+  push ax
+  push dx
+  xor dx,dx
+  push dx ;high byte is zero
+.clp xor dx,dx
+  cs div word [.base]
+  xchg ax,dx
+  cmp al,10
+  jb .l1     ; 0-9
+  add al,7   ; A-F
+.l1 add ax,0xe30
+  push ax
+  xchg ax,dx
+  or ax,ax
+  jnz .clp
+.dlp pop ax
+  or ah,ah
+  jz .done
+  call write_char
+  jmp short .dlp
+.done pop dx
+  pop ax
+  ret
+.base dw 16
 
 ; calc_di_from_cursor:  ; input cursor, output di
 ;   mov ax,[cursor] 
