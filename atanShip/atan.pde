@@ -4,12 +4,10 @@ int atan() { //input ax
   if (cx>111) {
     ax = 12321;
     ax /= cx;
-    //println(ax, cx);
     ax = atan();
     bx = ax;   //recursion
     ax = 90;
     ax -= bx;
-    //println("ax", ax);
   } else if (cx<-111) {
     ax = 12321;
     ax /= cx;
@@ -38,14 +36,8 @@ int atan() { //input ax
 
 void atan2() {
   if (ax == 0) {  //x==0
-    if (bx > 0) {  //y>0
-      ax=90;
-      //return;
-    }
-    if (bx <= 0) { //y<=0  eigenlijk y<0
-      ax=-90;
-      //return;
-    }
+    if (bx > 0) ax=90;  //y>0
+    if (bx <= 0) ax=-90;  //y<=0  eigenlijk y<0
   } else {
     stack.push(ax); //x
     stack.push(ax); //x
@@ -56,13 +48,10 @@ void atan2() {
     ax /= cx;
     ax = atan();
     cx = stack.pop(); //x
-
     if (cx<0) {
       if (bx>=0) ax+=180;
       else if (bx<0) ax-=180;
     }
   }
-
-  //ret
   if (ax<0) ax+=360;
 }

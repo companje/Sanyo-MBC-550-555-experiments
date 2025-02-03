@@ -28,34 +28,10 @@ void scale(int p, int x) {
   mem[p+1] = (mem[p+1]*x) / 100;
 }
 
-//void limit(int p, int x) {
-//  //while (magSq(p) > x*x) {
-//  //  scale(p,95);
-//  //  //mult(p, 95);
-//  //  //div(p, 100);
-//  //}
-//}
-
-//5*2 = 10
-
-//25 * 25
-
-//5 * 25 * 5
-
 void limit(int p, int x) {
-    int magSq = magSq(p);
-    println(magSq);
-    int xSq = x * x;
-    println(xSq);
-    if (magSq > xSq) {
-        // Bereken de schaalfactor als een breuk
-        int num = xSq;
-        int denom = magSq;
-
-        // Schaal de vector zonder wortel
-        mem[p] = (mem[p] * num) / denom;
-        mem[p + 1] = (mem[p + 1] * num) / denom;
-    }
+  while (magSq(p) > x*x) { // alternatief zonder loop werkt nog niet
+    scale(p, 95);
+  }
 }
 
 int magSq(int p) {
@@ -79,7 +55,7 @@ void sin() { //ax in deg
   ax /= 9;
 }
 
-void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y  
+void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
   cx=360;
   ax+=cx;
 
@@ -91,7 +67,7 @@ void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
 
   stack.push(ax); //quadrant
   ax = dx;
-  
+
   stack.push(dx); //save angle within quadrant
   sin();
   ax*=bx;
@@ -104,7 +80,7 @@ void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
   dx = ax;  //dx = cos()
 
   cx = stack.pop(); //quadrant
-  
+
   if (cx==0) {
     ax = dx;
   } else if (cx==1) {
@@ -117,5 +93,41 @@ void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
     ax = bx;
     bx = -dx;
   }
-
 }
+
+//rnd:
+//  push bx
+//  push cx
+//  push dx
+//  mov cx, 16
+//.lp
+//  mov ax,[.seed]
+//  xor dx, dx           ; DX wordt gebruikt om het nieuwe bit te berekenen
+//  mov bx, ax           ; Kopieer de huidige waarde van AX naar BX
+//  ; shr bx, 0            ; Feedback van het laagste bit (bit 0)
+//  xor dl, bl           ; Voeg de laagste bit aan DX toe
+
+//  shr bx, 1            ; Feedback bit 1
+//  xor dl, bl
+
+//  push cx
+//  mov cl,4
+//  shr bx, cl           ; Feedback bit 4
+//  xor dl, bl
+
+//  mov cl,15 
+//  shr bx, cl           ; Feedback bit 15
+//  xor dl, bl
+
+//  shl ax, 1            ; Verschuif de registerwaarde in AX
+//  or ax, dx            ; Voeg de berekende bit toe
+
+//  pop cx
+//  loop .lp        ; Herhaal totdat CX 0 is
+
+//  mov [.seed],ax
+//  pop dx
+//  pop cx
+//  pop bx
+//  ret
+//  .seed dw 0B400h
