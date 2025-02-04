@@ -43,7 +43,6 @@ key:
 ; textWidth: db 2
 
 color_channel: dw GREEN
-text_width: db 1
 
 %macro set_cursor 2
   ; mov di,%1 * BYTES_PER_ROW + %2 * 4  ; zero based
@@ -361,82 +360,7 @@ clear_channel:
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-
-scale2x1:
-  push ds
-  mov ax,GREEN
-  mov es,ax
-  mov ds,ax
-  mov cx,4
-.lp:
-  lodsb
-  call stretch_bits
-  xchg ah,al
-  mov byte [es:di+4],ah
-  stosb
-  loop .lp
-  pop ds
-  ret
-
-
-stretch_bits: ;input al=byte (00011000), bit duplication result in ax: 0000001111000000
-  push cx
-  push bx
-  mov bl, al
-  xor ax, ax
-  mov cx, 8
-.lp:
-  shl ax, 1
-  shl ax, 1
-  shl bl, 1
-  jnc .no1
-  or ax, 3
-.no1:
-  loop .lp
-  pop bx
-  pop cx
-  ret
-
-; ----------------------
-
-write_char:
-  call write_char_wide
-  call row_snap
-  ret
-
-row_snap:   ; row snap / wrap
-  push bx
-  push dx
-  push ax
-  mov bx,4*COLS
-  xor dx,dx
-  mov ax,di
-  div bx       ; ///dit ook als BX 0 is
-  cmp dx,0
-  jne .return
-  add di,bx
-.return
-  pop ax
-  pop dx
-  pop bx
-  ret
-
-write_char_wide:
-  call write_char_normal
-  push si
-  push di
-  sub di,4
-  mov si,di
-  call scale2x1
-  add di,COLS*4-4
-  mov si,di
-  call scale2x1
-  pop di
-  pop si
-  add di,4 ; because extra wide
-  ret
-
-write_char_normal:   ; ds=FONT, es=GREEN, al=charcode
+write_char:   ; ds=FONT, es=GREEN, al=charcode
   push si
   push dx
   push ds
@@ -457,10 +381,19 @@ write_char_normal:   ; ds=FONT, es=GREEN, al=charcode
 
   movsw
   movsw
-  add di,4*COLS-4
+  add di,0x11c
   movsw
   movsw
-  sub di,4*COLS
+  sub di,0x120
+
+  ; row snap (dit zorgt dat aan het eind van de regel een nieuwe regel start aan het begin)
+  mov bx,4*COLS   ; /////////// dit gaf problemen waarsch omdat bx niet gepushed werd
+  xor dx,dx
+  mov ax,di
+  div bx       ; ///dit ook als BX 0 is
+  cmp dx,0
+  jne .return
+  add di,bx
 
 .return
   pop bx
