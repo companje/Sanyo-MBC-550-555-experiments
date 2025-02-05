@@ -3,7 +3,7 @@ cpu 8086
 
 jmp boot
 
-NUM_SECTORS equ 10          ; number of sectors to read
+NUM_SECTORS equ 40          ; number of sectors to read
 BAR_WIDTH equ 30
 COLS  equ 72
 ROWS  equ 50
@@ -38,6 +38,12 @@ cursor:
 key:
   .code db 0
   .ctrl db 0
+
+textColor: db Color.Y
+; textWidth: db 2
+
+color_channel: dw GREEN
+text_width: db 1
 
 %macro set_cursor 2
   ; mov di,%1 * BYTES_PER_ROW + %2 * 4  ; zero based
@@ -180,50 +186,14 @@ int2:; int2: Non maskable interrupt
 int3:; int3: For one-byte interrupt
   mov al,3
   jmp int_msg
-  ; push ax
-  ; push bx
-  ; push cx
-  ; push dx
-  ; push si
-  ; push di
-  ; push bp
-  ; push ds
-  ; push es
-
-  ; ; mov di,10*4
-  ; ; set_cursor 5,5
-  ; xor di,di
-  ; print "int3:"
-  ; ; mov ax,cx
-  ; ; call write_number_word
-
-  ; pop es
-  ; pop ds
-  ; pop bp
-  ; pop di
-  ; pop si
-  ; pop dx
-  ; pop cx
-  ; pop bx
-  ; pop ax
-  ; iret
 
 int4:; int4: Signed overflow
   mov al,4
   jmp int_msg
 int_msg:
   mov di,500
-  ; xor di,di
-  ; mov ax,di
-  ; mov cx,8*72  
-  ; rep stosw
-  ; xor di,di
-  ; push ax
-  ; print "int: "
-  ; pop ax
   add al,'0'
   call write_char
-  ; print "      "
   
   hlt
 
@@ -376,26 +346,10 @@ progress_bar:
   mov byte [ds:bp],-1
   ret
 
-; clear_red:
-;   mov ax,RED
-;   call clear_channel
-;   ret
-
 clear_green:
   mov ax,GREEN
   call clear_channel
   ret
-
-; clear_blue:
-;   mov ax,BLUE
-;   call clear_channel
-;   ret
-
-; clear_screen:
-;   call clear_red
-;   call clear_green
-;   call clear_blue
-;   ret
 
 clear_channel:
   mov es,ax
@@ -407,91 +361,111 @@ clear_channel:
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-; write_char:   ; ds=FONT, es=GREEN, al=charcode
-;   ; zou ik hier ds moeten pushen? omdat je er vanuit wilt gaan dat DS en CS altijd gelijk zijn
-;   ; je zou de huidige kleur op een adres willen bewaren. nu doet ie alleen maar groen.
-;   ; deze functie zou ook korter/lichter kunnen/moeten. wellicht twee functies maken. een slimme en een domme snelle..
 
-;   push ds
-;   push es
-;   push ax
-;   push bx
-;   push cx
-
-;   push ax
-;   mov ax,GREEN
-;   mov es,ax
-;   mov ax,FONT
-;   mov ds,ax
-;   pop ax
-
-;   ; mov ax,65*8
-;   ; mov al,'x'
-;   mov ah,8
-;   mul ah        ; ax=al*ah
-
-;   mov si,ax
-;   movsw
-;   movsw
-;   add di,0x11c
-;   movsw
-;   movsw
-;   mov bx,288
-;   sub di,bx
-  
-;   ; pop ax
-;   ; pop es
-;   ; pop ds
-;   ; ret
+scale2x1:
+  push ds
+  mov ax,[color_channel]
+  mov es,ax
+  mov ds,ax
+  mov cx,4
+.lp:
+  lodsb
+  call stretch_bits
+  xchg ah,al
+  mov byte [es:di+4],ah
+  stosb
+  loop .lp
+  pop ds
+  ret
 
 
-;   ; row snap
-;   xor dx,dx
-;   mov ax,di
-;   div bx
-;   cmp dx,0
-;   jne .return
-;   add di,bx
+stretch_bits: ;input al=byte (00011000), bit duplication result in ax: 0000001111000000
+  push cx
+  push bx
+  mov bl, al
+  xor ax, ax
+  mov cx, 8
+.lp:
+  shl ax, 1
+  shl ax, 1
+  shl bl, 1
+  jnc .no1
+  or ax, 3
+.no1:
+  loop .lp
+  pop bx
+  pop cx
+  ret
 
+play:             ; bx=note, dx=duration
+   push ax
+   push bx
+   push cx
+   push dx
+   mov cx,bx
+   mov ax,0x35
+.a xor al,8       ; toggle 'break' bit
+   out 0x3a,al    ; USART
+.b dec ah
+   jnz .c
+   dec dx
+   jz .d
+.c loop .b
+   mov cx,bx      ; reset note
+   jmp .a
+.d xor al,8       ; toggle 'control' bit
+   cmp al,0x35    ; 'break' now on?
+   jnz .e         ; jump if not
+   out 0x3A,al    ; reset USART
+.e pop dx
+   pop cx
+   pop bx
+   pop ax
+   ret
 
-;   ; wrap to top
-;   cmp di,14400   ; dit later oplossen met cursor positie
-;   jb .return
-;   ; xor di,di      ; move to left top. change later to scroll
+; ----------------------
 
-;   ; TODO: call scroll_down
-;   ; std
-;   ; push di
-;   ; push cx
-;   ; mov cx,4*72*24
-;   ; mov ax,0
-;   ; rep stosw
-;   ; pop cx
-;   ; pop di
-;   ; cld
+write_char:
+  call write_char_wide
+  call row_snap
+  ret
 
-;   ; DONE: clear last line
-;   sub di,bx
-;   sub di,bx
-;   push di
-;   push cx
-;   mov cx,COLS*ROWS*2
-;   xor ax,ax
-;   rep stosw         ; clear screen
-;   pop cx
-;   pop di
+row_snap:   ; row snap / wrap
+  push bx
+  push dx
+  push ax
+  mov bx,4*COLS
+  xor dx,dx
+  mov ax,di
+  div bx       ; ///dit ook als BX 0 is
+  cmp dx,0
+  jne .return
+  add di,bx
+.return
+  pop ax
+  pop dx
+  pop bx
+  ret
 
-; .return
-;   push bx
-;   push cx
-;   pop ax
-;   pop es
-;   pop ds
-;   ret
+write_char_wide:
+  call write_char_normal
+  push ax
+  push si
+  push di
+  sub di,4
+  mov si,di
+  call scale2x1
+  add di,COLS*4-4
+  mov si,di
+  call scale2x1
+  pop di
+  pop si
+  add di,4 ; because extra wide
+  pop ax
+  ret
 
-; ; ───────────────────────────────────────────────────────────────────────────
-
-write_char:   ; ds=FONT, es=GREEN, al=charcode
+write_char_normal:   ; ds=FONT, es=GREEN, al=charcode
+  push si
   push dx
   push ds
   push es
@@ -499,8 +473,9 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   push bx
   xor dx,dx
   push ax  ; voor character pop
-  mov ax,GREEN
-  mov es,ax
+  ; mov ax,GREEN
+  ; mov es,ax
+  mov word es,[color_channel]
   mov ax,FONT
   mov ds,ax
   pop ax
@@ -510,24 +485,10 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
 
   movsw
   movsw
-  add di,0x11c
+  add di,4*COLS-4
   movsw
   movsw
-  sub di,0x120
-
-
-  ; cmp di,14400   ; dit later oplossen met cursor positie
-  ; jb .return
-  ; xor di,di      ; move to left top. change later to scroll
-
-  ; row snap
-  mov bx,288   ; /////////// dit gaf problemen waarsch omdat bx niet gepushed werd
-  xor dx,dx
-  mov ax,di
-  div bx       ; ///dit ook als BX 0 is
-  cmp dx,0
-  jne .return
-  add di,bx
+  sub di,4*COLS
 
 .return
   pop bx
@@ -535,6 +496,7 @@ write_char:   ; ds=FONT, es=GREEN, al=charcode
   pop es
   pop ds
   pop dx
+  pop si
   ret
 
 write_string:
@@ -651,61 +613,6 @@ check_keys:
   mov ax,[cs:key]   ; ctrl status in ah, keycode in al, ZF low means a key was pressed
 .return ret
 
-
-
-;fillscreen:  ; al=lower 3 bits = Color RGBWCMYK - 4th bit = method???? - support for mask?? - or dither pattern??
-;   ret
-
-;fillarea (minx,miny,maxx,maxy) color, pattern
-
-;rect (x,y,width,height) stroke color, strokeweight, fill
-; much faster and simpler on the grid than off the grid
-; zou je de randen buiten het grid vooraf of naderhand kunnen doen. en het deel op het grid met de snelle methode
-
-
-; wide font by stretching the font horizontally using bitshift
-
-
-
-; ───────────────────────────────────────────────────────────────────────────
-
-; clear_area: ; ax=channel, bx=area, di=start pos
-;   push bx
-;   push di
-;   mov es,ax
-;   xor cx,cx
-;   mov cl,bh        ; rows (bl)
-; .rows_loop:
-;   push cx
-;   xor cx,cx
-;   mov cl,bl        ; cols (bh)
-; .cols_loop:
-;   mov ax,0
-;   stosw
-;   stosw
-;   loop .cols_loop
-;   add di,COLS*4    ; one row down
-;   mov ah,0
-;   mov al,bl
-;   times 2 shl ax,1
-;   sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
-;   pop cx
-;   loop .rows_loop
-;   pop di
-;   pop bx
-;   ret
-
-; ───────────────────────────────────────────────────────────────────────────
-
-; fill_rect_black: 
-;   mov ax,RED
-;   call clear_area
-;   mov ax,GREEN
-;   call clear_area
-;   mov ax,BLUE
-;   call clear_area
-;   ret
-
 ; ───────────────────────────────────────────────────────────────────────────
 
 draw_spr:
@@ -716,6 +623,8 @@ draw_spr:
   call draw_pic
   pop bx
   ret
+
+; ───────────────────────────────────────────────────────────────────────────
 
 draw_pic:
   push ax
@@ -756,10 +665,10 @@ draw_channel:
 ; ───────────────────────────────────────────────────────────────────────────
 
 calc_di_from_bx:  ; input bl,bh [0,0,71,49]
-  mov ax,144      ; 2*72 cols
-  mul bh          ; bh*=144 resultaat in AX
+  mov ax,2*COLS      ; 2*72 cols (of 2*80=160)
+  mul bh          ; bh*=144 of 160, resultaat in AX
   shl ax,1        ; verdubbel AX
-  mov di,ax       ; di=ax (=bh*288)
+  mov di,ax       ; di=ax (=bh*288 of 320
   shl bl,1        ; bl*=2
   shl bl,1        ; bl*=2
   mov bh,0
@@ -778,15 +687,15 @@ new_line:         ; find the value of DI at start of the next line
   push ax
   push bx
   push dx
-  mov bx,288
+  mov bx,4*COLS
   xor dx,dx
   mov ax,di
   div bx
   xor dx,dx       ; cwd?
-  mov bx,288      ; can reuse x from above?
+  mov bx,4*COLS      ; can reuse x from above?
   inc ax
   mul bx
-  add ax,288      ; use bx?
+  add ax,4*COLS      ; use bx?
   mov di,ax
   pop dx
   pop bx
@@ -820,74 +729,6 @@ write_ax_hex:
   pop ax
   ret
 .base dw 16
-
-; calc_di_from_cursor:  ; input cursor, output di
-;   mov ax,[cursor] 
-;   sub ax,0x0101   ; cursor is 1 based
-;   xchg ax,bx      ; bx=ax
-;   mov ax,144      ; 2*72 cols
-;   mul bh          ; bh*=144 resultaat in AX
-;   shl ax,1        ; verdubbel AX
-;   shl ax,1        ; verdubbel AX
-;   mov di,ax       ; di=ax (=bh*288)
-;   shl bl,1        ; bl*=2
-;   shl bl,1        ; bl*=2
-;   mov bh,0
-;   add di,bx       ; di+=bl
-;   ret
-
-
-
-
-; als je cursor gebruikt is dit missch niet nodig.
-; row_snap:  ; this code detects if DI is in between rows. When DI goes to the next half row it converts it to a whole row.
-;   push ax
-;   push bx
-;   push dx
-;   mov bx,288
-;   mov ax,di
-;   cwd ; xor dx,dx
-;   div bx
-;   jnp .done  ; if ax%288==0 
-;   add di,bx
-;   .done
-;   ; add di,dx
-;   pop dx
-;   pop bx
-;   pop ax
-;   ret
-
-
-; ; ───────────────────────────────────────────────────────────────────────────
-
-; calc_di_from_cursor_index:  ; index is cursor index from 0 tot 72*25
-;   push ax
-;   push bx
-;   push dx
-;   xor dx,dx
-;   mov ax,[cursor.index]
-;   mov bx,72
-;   div bx       ; ax=rows
-;   push dx      ; dx=cols
-;   xor dx,dx    ; clear dx for multiplication
-;   mov bx,576
-;   mul bx       ; ax contains DI position for row
-;   mov di,ax
-;   pop ax       ; ax now contains cols
-;   shl ax,1     ; *=2
-;   shl ax,1     ; *=2
-;   add di,ax
-;   pop dx
-;   pop bx
-;   pop ax
-;   ret
-
-; ───────────────────────────────────────────────────────────────────────────
-
-
-; set_cursor:
-; cursor_next_char
-
 
 
 ; times (512)-($-$$) db 0             ; doesn't fit in the bootsector anymore

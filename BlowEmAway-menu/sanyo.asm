@@ -39,11 +39,10 @@ key:
   .code db 0
   .ctrl db 0
 
-; textColor: dw Color.R<<8 + Color.Y
-; textWidth: db 2
+textColor: db Color.Y
+textWide: db 0
 
 color_channel: dw GREEN
-text_width: db 1
 
 %macro set_cursor 2
   ; mov di,%1 * BYTES_PER_ROW + %2 * 4  ; zero based
@@ -352,19 +351,22 @@ clear_green:
   ret
 
 clear_channel:
+  push cx
   mov es,ax
   mov cx,COLS*ROWS*2
   xor di,di
   xor ax,ax
   rep stosw         ; clear screen
+  pop cx
   ret
 
 ; ───────────────────────────────────────────────────────────────────────────
 
 
 scale2x1:
+  push cx
   push ds
-  mov ax,GREEN
+  mov ax,[color_channel]
   mov es,ax
   mov ds,ax
   mov cx,4
@@ -376,6 +378,7 @@ scale2x1:
   stosb
   loop .lp
   pop ds
+  pop cx
   ret
 
 
@@ -397,11 +400,75 @@ stretch_bits: ;input al=byte (00011000), bit duplication result in ax: 000000111
   pop cx
   ret
 
+play:             ; bx=note, dx=duration
+   push ax
+   push bx
+   push cx
+   push dx
+   mov cx,bx
+   mov ax,0x35
+.a xor al,8       ; toggle 'break' bit
+   out 0x3a,al    ; USART
+.b dec ah
+   jnz .c
+   dec dx
+   jz .d
+.c loop .b
+   mov cx,bx      ; reset note
+   jmp .a
+.d xor al,8       ; toggle 'control' bit
+   cmp al,0x35    ; 'break' now on?
+   jnz .e         ; jump if not
+   out 0x3A,al    ; reset USART
+.e pop dx
+   pop cx
+   pop bx
+   pop ax
+   ret
+
 ; ----------------------
 
 write_char:
-  call write_char_wide
+
+  test byte [textColor], Color.R
+  jz .done_red
+  mov  word [color_channel],RED
+  push di
+  call write_char_normal_or_wide
+  pop di
+.done_red
+  
+  test byte [textColor], Color.G
+  jz .done_green
+  mov word [color_channel],GREEN
+  push di
+  call write_char_normal_or_wide
+  pop di
+.done_green
+
+  test byte [textColor], Color.B
+  jz .done_blue
+  mov word [color_channel],BLUE
+  push di
+  call write_char_normal_or_wide
+  pop di
+
+.done_blue
+  add di,8     ; fixme: should be 4 with normal font
+
+
   call row_snap
+  ret
+
+  
+write_char_normal_or_wide:
+  cmp byte [textWide],0
+  je .noWide
+  call write_char_wide
+  jmp .done
+.noWide:
+  call write_char_normal
+.done:
   ret
 
 row_snap:   ; row snap / wrap
@@ -423,6 +490,7 @@ row_snap:   ; row snap / wrap
 
 write_char_wide:
   call write_char_normal
+  push ax
   push si
   push di
   sub di,4
@@ -434,6 +502,7 @@ write_char_wide:
   pop di
   pop si
   add di,4 ; because extra wide
+  pop ax
   ret
 
 write_char_normal:   ; ds=FONT, es=GREEN, al=charcode
@@ -445,8 +514,6 @@ write_char_normal:   ; ds=FONT, es=GREEN, al=charcode
   push bx
   xor dx,dx
   push ax  ; voor character pop
-  ; mov ax,GREEN
-  ; mov es,ax
   mov word es,[color_channel]
   mov ax,FONT
   mov ds,ax
@@ -455,6 +522,9 @@ write_char_normal:   ; ds=FONT, es=GREEN, al=charcode
   mul ah        ; al*=ah
   mov si,ax  
 
+; [textColor]
+; 3 channels
+; si mag 0 zijn (voor chr(0) als channel niet in textColor zit. Maar wel voor R,G en B elk 4xmovsw doen
   movsw
   movsw
   add di,4*COLS-4
@@ -633,6 +703,43 @@ draw_channel:
   loop .rows_loop
   pop di
   ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
+fill_rect: ;bl=rows, bh=cols, es=channel, ax:dx=4 byte pattern
+  push di
+  ; mov es,ax
+  xor cx,cx
+  mov cl,bh        ; rows (bl)
+.rows_loop:
+  push cx
+  xor cx,cx
+  mov cl,bl        ; cols (bh)
+.cols_loop:
+  push si
+  movsw
+  movsw
+  pop si
+
+  loop .cols_loop
+  add di,COLS*4    ; one row down
+  mov ah,0
+  mov al,bl
+  times 2 shl ax,1
+  sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
+  pop cx
+  loop .rows_loop
+  pop di
+  ret
+.p0: db 0,0,0,0
+.p1: db 136,0,34,0 
+.p2: db 170,0,170,0
+.p3: db 170,17,170,68
+.p4: db 170,85,170,85
+.p5: db 85,238,85,187
+.p6: db 119,255,221,255
+.p7: db 255,255,255,255
+
 
 ; ───────────────────────────────────────────────────────────────────────────
 

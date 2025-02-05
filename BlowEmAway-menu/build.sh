@@ -1,4 +1,4 @@
-prefix="0291. sound-"
+prefix="0294. blowmenu"
 base=app
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
 

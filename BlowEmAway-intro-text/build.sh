@@ -1,4 +1,4 @@
-prefix="0292. blowlogo-"
+prefix="0293. introtext-"
 base=app
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
 
