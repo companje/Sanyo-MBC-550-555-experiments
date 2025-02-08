@@ -39,8 +39,8 @@ static class Vec {
     //int maxSq = max*max;
     
     //if (lenSq > maxSq) {
-    //  //x = x * maxSq / lenSq;
-    //  //y = y * maxSq / lenSq;
+    //  x = x * maxSq / lenSq;
+    //  y = y * maxSq / lenSq;
     //}
     
     //int magSq = magSq();

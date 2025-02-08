@@ -1,4 +1,21 @@
 
+void cos_15steps() { //ax=positive angle in degrees
+  int v[] = {100,96,86,70,50,25,0,-25,-50,-70,-86,-96,-100,-96,-86,-70,-49,-25,0,25,49,70,86,96,100};
+  ax += 360; //make positive
+  ax %= 360;
+  ax /= 15;
+  ax = v[ax];
+}
+
+void sin_15steps() { //ax=positive angle in degrees
+  int v[] = {0,25,50,70,86,96,100,96,86,70,50,25,0,-25,-50,-70,-86,-96,-100,-96,-86,-70,-50,-25,0};
+  ax += 360;
+  ax %= 360;
+  ax /= 15;
+  ax = v[ax];
+}
+
+
 int atan() { //input ax
   cx = ax;
   if (cx>111) {

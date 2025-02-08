@@ -1,3 +1,4 @@
+
 void copy(int p, int q) {
   mem[p+0] = mem[q+0];
   mem[p+1] = mem[q+1];
@@ -38,62 +39,67 @@ int magSq(int p) {
   return mem[p]*mem[p]+mem[p+1]*mem[p+1];
 }
 
-void cos() { //ax in deg
-  stack.push(cx);
-  cx = ax;
-  ax = 90;
-  ax -= cx;
-  ax *= 100;
-  ax += 45;
-  ax /= 9;
-  cx = stack.pop();
+//geen magnitude
+void v_from_angle() { //input ax=angle, output ax=x, bx=y
+  stack.push(ax);
+  sin_15steps();
+  bx = ax;    //bx=y result
+  ax = stack.pop();
+  cos_15steps(); //ax=x result
 }
 
-void sin() { //ax in deg
-  ax *= 100;
-  ax += 45;
-  ax /= 9;
+void v_mult() { //ax=scaler, bx=pointer
+  mem[bx+0] *= ax;
+  mem[bx+1] *= ax;
 }
 
-void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
-  cx=360;
-  ax+=cx;
-
-  ax%=cx; //div cx, xchg ax,dx
-  dx=0;
-  cx=90;
-  dx=ax%90; //div cx
-  ax/=90; //quadrant 0,1,2,3
-
-  stack.push(ax); //quadrant
-  ax = dx;
-
-  stack.push(dx); //save angle within quadrant
-  sin();
-  ax*=bx;
-  cx = bx;  //cx = mag
-  bx = ax;  //bx = sin()
-
-  ax = stack.pop(); //restore angle within quadrant
-  cos();
-  ax*=cx;
-  dx = ax;  //dx = cos()
-
-  cx = stack.pop(); //quadrant
-
-  if (cx==0) {
-    ax = dx;
-  } else if (cx==1) {
-    ax = -bx;
-    bx = dx;
-  } else if (cx==2) {
-    ax = -dx;
-    bx = -bx;
-  } else {
-    ax = bx;
-    bx = -dx;
-  }
+void v_set() { //ax=x, bx=y, bp=pointer
+ mem[bp+0] = ax;
+ mem[bp+1] = bx;
 }
+
+  
+//overwegen dit met een pointer (bx) te laten werken zoals de rest
+//en dan de magnitude in cx
+//void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
+//  cx=360;
+//  ax+=cx;
+
+//  ax%=cx; //div cx, xchg ax,dx
+//  dx=0;
+//  cx=90;
+//  dx=ax%90; //div cx
+//  ax/=90; //quadrant 0,1,2,3
+
+//  stack.push(ax); //quadrant
+//  ax = dx;
+
+//  stack.push(dx); //save angle within quadrant
+//  sin_15steps();
+//  ax*=bx;
+//  cx = bx;  //cx = mag
+//  bx = ax;  //bx = sin()
+
+//  ax = stack.pop(); //restore angle within quadrant
+//  cos_15steps();
+//  ax*=cx;
+//  dx = ax;  //dx = cos()
+
+//  cx = stack.pop(); //quadrant
+
+//  if (cx==0) {
+//    ax = dx;
+//  } else if (cx==1) {
+//    ax = -bx;
+//    bx = dx;
+//  } else if (cx==2) {
+//    ax = -dx;
+//    bx = -bx;
+//  } else {
+//    ax = bx;
+//    bx = -dx;
+//  }
+//}
 
 //rnd:
 //  push bx
@@ -115,7 +121,7 @@ void fromAngle() { //ax=angle, bx=mag, returns ax=x, bx=y
 //  shr bx, cl           ; Feedback bit 4
 //  xor dl, bl
 
-//  mov cl,15 
+//  mov cl,15
 //  shr bx, cl           ; Feedback bit 15
 //  xor dl, bl
 

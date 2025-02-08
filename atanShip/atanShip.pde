@@ -1,6 +1,6 @@
 import java.util.ArrayDeque;
 ArrayDeque<Integer> stack = new ArrayDeque<Integer>();
-int ax, bx, cx, dx, si, di; //chars are 16 bit unsigned in Java
+int ax, bx, cx, dx, si, di, bp; //chars are 16 bit unsigned in Java
 PImage img_ship[] = new PImage[24];
 PImage img_star[] = new PImage[3];
 
@@ -37,6 +37,15 @@ void setup() {
   mem[FORCE+1] = 100;
 
   init_stars();
+
+//void v_from_angle() { //input ax=angle, input bx=mag, output ax=x, bx=y
+
+  for (int i=0; i<=360; i+=15) {
+    ax=i;
+    v_from_angle();
+    println(i, ax, bx); // ax=x, bx=y
+  }
+  //exit();
 }
 
 void init_stars() {
@@ -50,7 +59,7 @@ void init_stars() {
 void draw() {
   background(0);
 
-  copy(FORCE, FORCES);
+  copy(FORCE, FORCES); //dst, src
   limit(FORCE, 25);
   sub(FORCES, FORCE);
   scale(FORCES, 90);
@@ -60,13 +69,15 @@ void draw() {
   add(POS, VEL);
   scale(VEL, 98);
 
-  ax = mem[VEL+0]; //vx
-  bx = mem[VEL+1]; //vy
-  atan2();
-  mem[ANGLE] = ax;
-  mem[SPRITE_INDEX] = mem[ANGLE]/15;
+  if (magSq(VEL)>0) {
+    ax = mem[VEL+0]; //vx
+    bx = mem[VEL+1]; //vy
+    atan2();
+    mem[ANGLE] = ax;
+    mem[SPRITE_INDEX] = mem[ANGLE]/15;
+  }
 
-  println(mem[SPRITE_INDEX]);
+  //println(mem[SPRITE_INDEX]);
 
   draw_stars();
   draw_ship();
@@ -86,22 +97,24 @@ void keyPressed() {
 
 void addForceFromAngle(int angle, int mag) {
   ax = angle;
-  bx = mag;
-  fromAngle();
-  mem[FORCES+0] += ax;
-  mem[FORCES+1] += bx;
+  v_from_angle(); //ax=x, bx=y
+  mem[FORCE+0] = ax;
+  mem[FORCE+1] = bx;
+  ax = mag;
+  bx = FORCE;
+  v_mult();
+  add(FORCES, FORCE); //dst,src
 }
 
 void draw_stars() {
   cx = NUM_STARS*2;
   do {
     bx = cx;
-    ax = mem[STARS+bx+0] - mem[POS+0]; //x
-    bx = mem[STARS+bx+1] - mem[POS+1]; //y
+    ax = (mem[STARS+bx+0] - mem[POS+0]) % 65536; //x
+    bx = (mem[STARS+bx+1] - mem[POS+1]) % 65536; //y
     world2screen();
     calc_di_from_bx();
     draw_img(img_star[2]);
-
 
     cx--; //extra
   } while (cx-->0);
