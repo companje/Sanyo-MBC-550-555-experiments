@@ -27,21 +27,21 @@ draw_debug_info:
   mov ax,[ship.vel.y]
   println_ax
 
-  print "vel.magSq: "
-  mov ax,[ship.vel.magSq]
-  println_ax_unsigned
+  ; print "vel.magSq: "
+  ; mov ax,[ship.vel.magSq]
+  ; println_ax_unsigned
 
   print "angle: "
   mov ax,[ship.angle] 
   println_ax
 
-  print "index: "
-  mov ax,[ship.sprite_index]
-  println_ax
+  ; print "index: "
+  ; mov ax,[ship.sprite_index]
+  ; println_ax
 
-  print "img addr: "
-  mov ax,[ship.img_addr]
-  println_ax_hex
+  ; print "img addr: "
+  ; mov ax,[ship.img_addr]
+  ; println_ax_hex
 
   print "force.x: "
   mov ax,[ship.force.x]
@@ -59,8 +59,8 @@ draw_debug_info:
   mov ax,[ship.forces.y]
   println_ax
 
-  print "DI: "
-  mov ax,di
-  println_ax_hex
+  ; print "DI: "
+  ; mov ax,di
+  ; println_ax_hex
 
   ret

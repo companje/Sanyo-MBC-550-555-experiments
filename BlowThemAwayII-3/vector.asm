@@ -16,6 +16,20 @@ v_print: ; print ([bx+0],[bx+2] + "    ")
 
 ; ───────────────────────────────────────────────────────────────────────────
 
+v_println_unsigned:
+  push ax
+  mov ax,[bx+0]
+  print_ax_unsigned
+  print_char ","
+  mov ax,[bx+2]
+  print_ax_unsigned
+  print_2chars "  "
+  print_2chars "  "
+  pop ax
+  ret
+
+; ───────────────────────────────────────────────────────────────────────────
+
 v_println:
   call v_print
   println " "
@@ -51,7 +65,7 @@ v_clear: ; [bx]=0
 
 ; ───────────────────────────────────────────────────────────────────────────
 
-v_if_zero: ; [bx]==0
+v_if_zero: ; [bx]==0    ; dit is geen goede test. want x=5,y=-5 levert ook 0 op.
   mov ax,[bx]
   add ax,[bx+2]
   or ax,ax
@@ -161,26 +175,16 @@ v_limit: ; [bx] input vector, ax=max_length. destroys dx, updates [bx]      ; er
   push bx
   push bp
   mul ax  ; ax*=ax
-  print "ax*ax="
-  println_ax
-  ; jz .done ; ax*ax==0 -> done
 
-  xchg bp,ax
+  xchg bp,ax  ; bp now contains max*max
+
 .lp:
   call v_mag_sq     ; ax = magSq([bx])
 
-  ; or ax,ax   ; magSq([bx])==0 -> done  
-  ; jz .done
-
-  print "magSq="
-  println_ax
 
   cmp ax,bp
   jle .done
   mov cx,95
-
-  ; print_ax
-  ; print " "
 
   call v_scale      ; bx=vector, cx=scaler (x100), updates bx
   jmp .lp
@@ -192,50 +196,55 @@ v_limit: ; [bx] input vector, ax=max_length. destroys dx, updates [bx]      ; er
 ; ───────────────────────────────────────────────────────────────────────────
 
 v_mag_sq:   ; ax=magSq([bx])
-  push dx
-  push cx
-  mov ax,[bx]
-  cwd
-  imul ax   ; moet dit niet gewoon mul zijn ipv imul?
-  mov cx,ax   ; use cx for tmp copy of x*x
-  mov ax,[bx+2]
-  cwd
-  imul ax   ; moet dit niet gewoon mul zijn ipv imul?
-  add ax,cx
-
-  pop cx
-  pop dx
+  call v_mag_sq_scaled
   ret
 
 
 v_mag_sq_scaled:   ; ax=magSq([bx])
-push bx
-push word [bx]
-pop word [.tmp]
-push word [bx+2]
-pop word [.tmp+2]
+  ; scaled down with 10
+
+  push bx
   push dx
   push cx
 
-mov cx,10
-div [.tmp],cx
-
-
-  mov ax,[tmp]
+  mov ax,[bx]
+  cwd
+  mov cx,10   ; let op cx ipv cl
+  idiv cx
   cwd
   imul ax   ; moet dit niet gewoon mul zijn ipv imul?
-  mov cx,ax   ; use cx for tmp copy of x*x
-  mov ax,[tmp+2]
+  mov [.xx],ax   ; use cx for tmp copy of x*x
+
+  ; print "vec="
+  ; call v_print
+  ; print "x*x="
+  ; print_ax ; //y*y
+
+  mov ax,[bx+2]
+  cwd
+  mov cx,10   ; let op cx ipv cl
+  idiv cx
   cwd
   imul ax   ; moet dit niet gewoon mul zijn ipv imul?
-  add ax,cx
+  mov [.yy],ax   ; use cx for tmp copy of x*x
+
+  ; print " y*y="
+  ; println_ax ; //y*y
+
+  mov ax,[.xx]
+  add ax,[.yy]
+  cwd
+
+  mov cx,10   ; let op cx ipv cl
+  mul cx
 
   pop cx
   pop dx
 
-pop bx
+  pop bx
   ret
-.tmp: dw 0,0
+.xx: dw 0
+.yy: dw 0
 
 
 ; v_mag_sq32:   ; ax:dx = magSq([bx])

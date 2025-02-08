@@ -27,9 +27,9 @@ void mult(int p, int x) {
 //  return new PVector(0, 0);
 //}
 
-//void normalize(int p) { 
+//void normalize(int p) {
 //  int mag = intSqrt(magSq(p));
-  
+
 //  mem[p+0] = (mem[p+0] * 100) / mag;
 //  mem[p+1] = (mem[p+1] * 100) / mag;
 //}
@@ -45,21 +45,25 @@ void scale(int p, int x) {
 }
 
 void limit(int p, int x) {
-  //PVector pp = new PVector(mem[p], mem[p+1]);
-  //pp.limit(x);
-  //mem[p+0] = int(pp.x);
-  //mem[p+1] = int(pp.y);
-  
-  println("ax*ax=",x*x);
-  
-  //1460*1460+1460*1460
-  
-  println("magSq(p)=","x*x+y*y (x="+mem[p+0]+" y="+mem[p+1]+") " + magSq(p));
-
   while (magSq(p) > x*x) { // alternatief zonder loop werkt nog niet
+    //print("scaling p="+mem[p+0]+","+mem[p+1]+" (magSq=" + magSq(p)+") by 95%. ");
     scale(p, 95);
+    //print("result p="+mem[p+0]+","+mem[p+1]+". magSq is now " + magSq(p));
+    //println(" <= "+(x*x)+" "+(magSq(p)<=x*x));
   }
 }
+
+void clear(int p) {
+  mem[p+0] = 0;
+  mem[p+1] = 0;
+}
+
+//int heading(int p) {
+//  ax = mem[VEL+0]; //vx
+//  bx = mem[VEL+1]; //vy
+//  atan2();
+//  return ax;
+//}
 
 //void limit(int p, int max) {
 //  if (magSq(p) > max*max) {
@@ -68,19 +72,21 @@ void limit(int p, int x) {
 //  }
 //}
 
-//int magSq(int p) { //scaled
-//  int x = mem[p+0]/100;
-//  int y = mem[p+1]/100;
-//  int mag = x*x+y*y;
-//  return 100*mag;
-//}
+int magSqScaled(int p) { //scaled
+  int scaler = 10;
+  int x = mem[p+0]/scaler;
+  int y = mem[p+1]/scaler;
+  int mag = x*x+y*y;
+  return 10*mag;
+}
 
 //1460*1460+1460*1460
 
 int magSq(int p) {
-  int a = mem[p]*mem[p]+mem[p+1]*mem[p+1];
-  if (a>0xffff) println("overfow magSq("+mem[p]+","+mem[p+1]+")");
-  return a;
+  return magSqScaled(p);
+  //int a = mem[p]*mem[p]+mem[p+1]*mem[p+1];
+  //if (a>0xffff) println("overfow magSq("+mem[p]+","+mem[p+1]+")");
+  //return a;
 }
 
 int mag(int p) {
@@ -97,10 +103,10 @@ void v_set() { //ax=x, bx=y, bp=pointer
   mem[bp+1] = bx;
 }
 
-void v_print(int p) {
+void v_println(int p) {
   println(mem[p+0] + "," + mem[p+1]);
 }
 
-void v_print(String name, int p) {
+void v_println(String name, int p) {
   println(name + ": " + mem[p+0] + "," + mem[p+1]);
 }

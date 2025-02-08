@@ -4,38 +4,80 @@ update_ship:
   mov bp,ship.pos
   call v_copy             ; previous position of ship
 
-  mov bx,ship.force
+  ; mov bx,ship.force
+  ; mov bp,ship.forces
+  ; call v_copy             ; force = forces.copy()
+
+  ; mov bx,ship.force
+  ; mov cx,2
+  ; call v_limit            ; force.limit(25)
+
+  ; mov bx,ship.forces
+  ; mov bp,ship.force
+  ; call v_sub              ; forces -= force
+
+  ; mov bx,ship.forces
+  ; mov cx,98
+  ; call v_scale            ; forces *= 0.90
+
+  ; mov bx,ship.acc
+  ; mov bp,ship.force
+  ; call v_add              ; acceleration += forces
+
+  ; mov bx,ship.force
+  ; mov cx,0
+  ; call v_mult             ; ///force is altijd maar tijdelijk
+
+
+  ; mov bx,ship.vel
+  ; mov bp,ship.acc
+  ; call v_add              ; velocity += acceleration
+
+  ; mov bx,ship.acc
+  ; mov cx,0
+  ; call v_mult             ; acceleration = 0
+
+  ; mov bx,ship.pos
+  ; mov bp,ship.vel
+  ; call v_add              ; position += velocity
+
+  ; mov bx,ship.vel
+  ; mov cx,98
+  ; call v_scale            ; velocity *= .98
+
+
+
+
+   mov bx,ship.force
   mov bp,ship.forces
   call v_copy             ; force = forces.copy()
 
   mov bx,ship.force
-  mov cx,2
+  mov ax,25
   call v_limit            ; force.limit(25)
 
   mov bx,ship.forces
   mov bp,ship.force
   call v_sub              ; forces -= force
 
+  call v_println ; bx
+  xchg bx,bp
+  call v_println ; bp
+
   mov bx,ship.forces
-  mov cx,98
+  mov cx,90
   call v_scale            ; forces *= 0.90
 
   mov bx,ship.acc
   mov bp,ship.force
   call v_add              ; acceleration += forces
 
-  mov bx,ship.force
-  mov cx,0
-  call v_mult             ; ///force is altijd maar tijdelijk
-
-
   mov bx,ship.vel
   mov bp,ship.acc
   call v_add              ; velocity += acceleration
 
   mov bx,ship.acc
-  mov cx,0
-  call v_mult             ; acceleration = 0
+  call v_clear
 
   mov bx,ship.pos
   mov bp,ship.vel
@@ -45,13 +87,14 @@ update_ship:
   mov cx,98
   call v_scale            ; velocity *= .98
 
-  mov bx,ship.vel
-  mov cx,100
-  call v_limit            ; max velocity
+  ; mov bx,ship.vel
+  ; mov cx,100
+  ; call v_limit            ; max velocity
 
-  mov bx,ship.vel
-  call v_mag_sq
-  mov [ship.vel.magSq],ax  ;USED for debug
+  ; mov bx,ship.vel
+  ; call v_mag_sq
+  ; mov [ship.vel.magSq],ax  ;USED for debug
+
 
 .begin_angle:
   mov bx,ship.vel
@@ -87,7 +130,7 @@ draw_ship:
   call world2screen
   call calc_di_from_bx
 
-  cmp [ship.prev_di],di  
+  ; cmp [ship.prev_di],di  
   ; je .return             ; no screen update needed >>>  DISABLED because ship on fixed position
 
   mov di,[ship.prev_di]

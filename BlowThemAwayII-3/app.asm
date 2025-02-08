@@ -47,57 +47,51 @@ stars: times (2*NUM_STARS) dw 0  ; 50 stars at 0,0
 debug_test:
   set_cursor 1,1
 
-  mov ax,0
+  mov ax,-15
   call addForceFromAngle
-
-  mov ax,15
-  call addForceFromAngle
-
-  mov ax,15
-  call addForceFromAngle
-
-
 
   mov bx,ship.force
   mov bp,ship.forces
   call v_copy             ; force = forces.copy()
 
   mov bx,ship.force
-  mov ax,2
-  call v_limit            ; force.limit(25)
+  ; mov ax,25
+  ; call v_limit            ; force.limit(25)
+  call v_mag_sq
 
-  ; mov bx,ship.forces
-  ; mov bp,ship.force
-  ; call v_sub              ; forces -= force
+  mov bx,ship.forces
+  mov bp,ship.force
+  call v_sub              ; forces -= force
 
-  ; mov bx,ship.forces
-  ; mov cx,98
-  ; call v_scale            ; forces *= 0.90
+  call v_println ; bx
+  xchg bx,bp
+  call v_println ; bp
 
-  ; mov bx,ship.acc
-  ; mov bp,ship.force
-  ; call v_add              ; acceleration += forces
+  mov bx,ship.forces
+  mov cx,90
+  call v_scale            ; forces *= 0.90
 
-  ; mov bx,ship.force
-  ; mov cx,0
-  ; call v_mult             ; ///force is altijd maar tijdelijk
+  mov bx,ship.acc
+  mov bp,ship.force
+  call v_add              ; acceleration += forces
+
+  mov bx,ship.vel
+  mov bp,ship.acc
+  call v_add              ; velocity += acceleration
+
+  mov bx,ship.acc
+  call v_clear
+
+  mov bx,ship.pos
+  mov bp,ship.vel
+  call v_add              ; position += velocity
+
+  mov bx,ship.vel
+  mov cx,98
+  call v_scale            ; velocity *= .98
 
 
-  ; mov bx,ship.vel
-  ; mov bp,ship.acc
-  ; call v_add              ; velocity += acceleration
-
-  ; mov bx,ship.acc
-  ; mov cx,0
-  ; call v_mult             ; acceleration = 0
-
-  ; mov bx,ship.pos
-  ; mov bp,ship.vel
-  ; call v_add              ; position += velocity
-
-  ; mov bx,ship.vel
-  ; mov cx,98
-  ; call v_scale            ; velocity *= .98
+; ----------------------------------
 
   ; mov bx,ship.vel
   ; mov cx,100
@@ -107,31 +101,28 @@ debug_test:
   ; call v_mag_sq
   ; mov [ship.vel.magSq],ax  ;USED for debug
 
-
-
-
-
+;------ mov bx,ship.force
+;------   mov cx,0
+;------   call v_mult             ; ///force is altijd maar tijdelijk
   
-  print "FORCES: "
-  mov bx,ship.forces 
-  call v_println
+  ; print "FORCES: "
+  ; mov bx,ship.forces 
+  ; call v_println
 
-  print "FORCE: "
-  mov bx,ship.force
-  call v_println
+  ; print "FORCE: "
+  ; mov bx,ship.force
+  ; call v_println
 
-
-
-
+  ; print "POS: "
+  ; mov bx,ship.pos 
+  ; call v_println_unsigned
 
   println "done"
   hlt
 
 setup:
-  call debug_test
-  hlt
-
-
+  ; call debug_test
+  ; hlt
 
   call init_stars
   xor bp,bp
