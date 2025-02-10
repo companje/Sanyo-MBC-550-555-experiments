@@ -2312,164 +2312,165 @@
    134                                  addForceFromAngle:  ; input ax = current angle + rel angle
    135 00000AA9 B90500                    mov cx,5    ; magnitude
    136                                  
-   137                                    ; mov ax,0 ; TMP
-   138                                  
-   139 00000AAC BB[4E09]                  mov bx,ship.force
-   140 00000AAF E84DFC                    call v_from_angle_mag
-   141                                  
-   142 00000AB2 BB[4A09]                  mov bx,ship.forces
-   143 00000AB5 BD[4E09]                  mov bp,ship.force
-   144 00000AB8 E8B9FC                    call v_add  ; [bx]+=[bp]
-   145                                  
-   146 00000ABB BB[4E09]                  mov bx,ship.force
-   147 00000ABE E84CFC                    call v_clear         ; FORCE wordt hier gebruikt als tmp variabele
-   148                                     
-   149                                  
-   150 00000AC1 C3                        ret
-   151                                  
-   152                                  ; ───────────────────────────────────────────────────────────────────────────
-   153                                  
-   154                                  draw:
-   155 00000AC2 0E                        push cs
-   156 00000AC3 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
-   157                                  
-   158 00000AC4 E8A2FD                    call update_ship
-   159                                  
-   160 00000AC7 E86FFD                    call draw_stars
-   161 00000ACA E81FFE                    call draw_ship_static
-   162 00000ACD E8A4F8                    call draw_debug_info
-   163                                  
-   164                                    ; call _wait
-   165 00000AD0 FF06[6209]                inc word [frame_count]
-   166                                  
-   167 00000AD4 E8D9F7                    call check_keys
-   168 00000AD7 7502                      jnz on_key
-   169                                  
-   170 00000AD9 EBE7                      jmp draw          ; this code is only getting called when no key is pressed
-   171                                  
+   137                                  
+   138                                    ; mov ax,0 ; TMP
+   139                                  
+   140 00000AAC BB[4E09]                  mov bx,ship.force
+   141 00000AAF E84DFC                    call v_from_angle_mag
+   142                                  
+   143 00000AB2 BB[4A09]                  mov bx,ship.forces
+   144 00000AB5 BD[4E09]                  mov bp,ship.force
+   145 00000AB8 E8B9FC                    call v_add  ; [bx]+=[bp]
+   146                                  
+   147 00000ABB BB[4E09]                  mov bx,ship.force
+   148 00000ABE E84CFC                    call v_clear         ; FORCE wordt hier gebruikt als tmp variabele
+   149                                     
+   150                                  
+   151 00000AC1 C3                        ret
+   152                                  
+   153                                  ; ───────────────────────────────────────────────────────────────────────────
+   154                                  
+   155                                  draw:
+   156 00000AC2 0E                        push cs
+   157 00000AC3 1F                        pop ds   ; make sure DS is set to CS for data lookups like [ship.pos.x]
+   158                                  
+   159 00000AC4 E8A2FD                    call update_ship
+   160                                  
+   161 00000AC7 E86FFD                    call draw_stars
+   162 00000ACA E81FFE                    call draw_ship_static
+   163 00000ACD E8A4F8                    call draw_debug_info
+   164                                  
+   165                                    ; call _wait
+   166 00000AD0 FF06[6209]                inc word [frame_count]
+   167                                  
+   168 00000AD4 E8D9F7                    call check_keys
+   169 00000AD7 7502                      jnz on_key
+   170                                  
+   171 00000AD9 EBE7                      jmp draw          ; this code is only getting called when no key is pressed
    172                                  
-   173                                  ; ───────────────────────────────────────────────────────────────────────────
-   174                                  
+   173                                  
+   174                                  ; ───────────────────────────────────────────────────────────────────────────
    175                                  
-   176                                  on_key:
-   177 00000ADB 83F877                    cmp ax,'w'
-   178 00000ADE 7411                      je on_key_w
-   179 00000AE0 83F861                    cmp ax,'a'
-   180 00000AE3 7414                      je on_key_a
-   181 00000AE5 83F873                    cmp ax,'s'
-   182 00000AE8 7425                      je on_key_s
-   183 00000AEA 83F864                    cmp ax,'d'
-   184 00000AED 7415                      je on_key_d
-   185                                  .done
-   186 00000AEF EBD1                      jmp draw  ; no ret here because onkey is called by jnz
-   187                                  
+   176                                  
+   177                                  on_key:
+   178 00000ADB 83F877                    cmp ax,'w'
+   179 00000ADE 7411                      je on_key_w
+   180 00000AE0 83F861                    cmp ax,'a'
+   181 00000AE3 7414                      je on_key_a
+   182 00000AE5 83F873                    cmp ax,'s'
+   183 00000AE8 7425                      je on_key_s
+   184 00000AEA 83F864                    cmp ax,'d'
+   185 00000AED 7415                      je on_key_d
+   186                                  .done
+   187 00000AEF EBD1                      jmp draw  ; no ret here because onkey is called by jnz
    188                                  
-   189                                  ; ───────────────────────────────────────────────────────────────────────────
-   190                                  
-   191                                  on_key_w:
-   192 00000AF1 A1[5209]                  mov ax,[ship.angle]
-   193 00000AF4 E8B2FF                    call addForceFromAngle
-   194 00000AF7 EBF6                      jmp on_key.done
-   195                                  
-   196                                  ; ───────────────────────────────────────────────────────────────────────────
-   197                                  
-   198                                  on_key_a:
-   199 00000AF9 A1[5209]                  mov ax,[ship.angle]
-   200 00000AFC 83E85A                    sub ax,90
-   201 00000AFF E8A7FF                    call addForceFromAngle
-   202 00000B02 EBEB                      jmp on_key.done
-   203                                  
-   204                                  ; ───────────────────────────────────────────────────────────────────────────
-   205                                  
-   206                                  on_key_d:
-   207 00000B04 A1[5209]                  mov ax,[ship.angle]
-   208 00000B07 83C05A                    add ax,90
-   209 00000B0A E89CFF                    call addForceFromAngle
-   210 00000B0D EBE0                      jmp on_key.done
-   211                                  
-   212                                  ; ───────────────────────────────────────────────────────────────────────────
-   213                                  
-   214                                  on_key_s:   ;;;;;;;;;;;;; remmen:  
-   215 00000B0F BB[4A09]                  mov bx,ship.forces
-   216 00000B12 E8F8FB                    call v_clear
-   217                                  
-   218 00000B15 BB[3E09]                  mov bx,ship.vel
-   219 00000B18 B93200                    mov cx,50
-   220 00000B1B E823FC                    call v_scale
-   221                                  
-   222 00000B1E EBCF                      jmp on_key.done
-   223                                    ; ───────────────────────────────────────────────────────────────────────────
-   224                                  
+   189                                  
+   190                                  ; ───────────────────────────────────────────────────────────────────────────
+   191                                  
+   192                                  on_key_w:
+   193 00000AF1 A1[5209]                  mov ax,[ship.angle]
+   194 00000AF4 E8B2FF                    call addForceFromAngle
+   195 00000AF7 EBF6                      jmp on_key.done
+   196                                  
+   197                                  ; ───────────────────────────────────────────────────────────────────────────
+   198                                  
+   199                                  on_key_a:
+   200 00000AF9 A1[5209]                  mov ax,[ship.angle]
+   201 00000AFC 83E85A                    sub ax,90
+   202 00000AFF E8A7FF                    call addForceFromAngle
+   203 00000B02 EBEB                      jmp on_key.done
+   204                                  
+   205                                  ; ───────────────────────────────────────────────────────────────────────────
+   206                                  
+   207                                  on_key_d:
+   208 00000B04 A1[5209]                  mov ax,[ship.angle]
+   209 00000B07 83C05A                    add ax,90
+   210 00000B0A E89CFF                    call addForceFromAngle
+   211 00000B0D EBE0                      jmp on_key.done
+   212                                  
+   213                                  ; ───────────────────────────────────────────────────────────────────────────
+   214                                  
+   215                                  on_key_s:   ;;;;;;;;;;;;; remmen:  
+   216 00000B0F BB[4A09]                  mov bx,ship.forces
+   217 00000B12 E8F8FB                    call v_clear
+   218                                  
+   219 00000B15 BB[3E09]                  mov bx,ship.vel
+   220 00000B18 B93200                    mov cx,50
+   221 00000B1B E823FC                    call v_scale
+   222                                  
+   223 00000B1E EBCF                      jmp on_key.done
+   224                                    ; ───────────────────────────────────────────────────────────────────────────
    225                                  
-   226                                  _wait:
-   227 00000B20 B90100                    mov cx,FRAME_DELAY
-   228 00000B23 D40A                      .lp aam
-   229 00000B25 E2FC                      loop .lp
-   230 00000B27 C3                        ret
-   231                                  
-   232                                  ; ───────────────────────────────────────────────────────────────────────────
-   233                                  
-   234                                  world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col) ; output (bx)
-   235                                    ; WORLD:
-   236                                    ;   0..73728  (65536) -> col
-   237                                    ;   0..51200  (=1024*50) -> row
-   238                                    ; SCREEN (ROW,COL):
-   239                                    ;   0..49 (row)
-   240                                    ;   0..71 (col)
-   241 00000B28 51                        push cx
-   242 00000B29 B10A                      mov cl,10
-   243 00000B2B D3EB                      shr bx,cl   ; //bl=row 0..49
-   244 00000B2D D3E8                      shr ax,cl   ; 
-   245 00000B2F FEC9                      dec cl
-   246 00000B31 FEC9                      dec cl      ; cl=8
-   247 00000B33 D3E3                      shl bx,cl   
-   248                                    ; mov bh,al   ; //bh=col 0..71
-   249                                    ; xchg bh,bl
-   250 00000B35 09C3                      or bx,ax
-   251 00000B37 59                        pop cx
-   252 00000B38 C3                        ret
-   253                                  
-   254                                  ; ───────────────────────────────────────────────────────────────────────────
-   255                                  
-   256                                  img_first:
-   257                                  img_right:
-   258 00000B39 <bin 302h>              img7: incbin "data/ship-7.spr" ;right
-   259 00000E3B <bin 302h>              img8: incbin "data/ship-8.spr"
-   260 0000113D <bin 302h>              img9: incbin "data/ship-9.spr"
-   261                                  img_down_right:
-   262 0000143F <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
-   263 00001741 <bin 302h>              img11: incbin "data/ship-11.spr"
-   264 00001A43 <bin 302h>              img12: incbin "data/ship-12.spr"
-   265                                  img_down:
-   266 00001D45 <bin 302h>              img13: incbin "data/ship-13.spr" ;down
-   267 00002047 <bin 302h>              img14: incbin "data/ship-14.spr"
-   268 00002349 <bin 302h>              img15: incbin "data/ship-15.spr"
-   269                                  img_down_left:
-   270 0000264B <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
-   271 0000294D <bin 302h>              img17: incbin "data/ship-17.spr"
-   272 00002C4F <bin 302h>              img18: incbin "data/ship-18.spr"
-   273                                  img_left:
-   274 00002F51 <bin 302h>              img19: incbin "data/ship-19.spr" ;left
-   275 00003253 <bin 302h>              img20: incbin "data/ship-20.spr"
-   276 00003555 <bin 302h>              img21: incbin "data/ship-21.spr"
-   277                                  img_up_left:
-   278 00003857 <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
-   279 00003B59 <bin 302h>              img23: incbin "data/ship-23.spr"
-   280 00003E5B <bin 302h>              img24: incbin "data/ship-24.spr"
-   281                                  img_up:
-   282 0000415D <bin 302h>              img1: incbin "data/ship-1.spr" ;up
-   283 0000445F <bin 302h>              img2: incbin "data/ship-2.spr"
-   284 00004761 <bin 302h>              img3: incbin "data/ship-3.spr"
-   285                                  img_up_right:
-   286 00004A63 <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
-   287 00004D65 <bin 302h>              img5: incbin "data/ship-5.spr"
-   288 00005067 <bin 302h>              img6: incbin "data/ship-6.spr"
-   289                                  
+   226                                  
+   227                                  _wait:
+   228 00000B20 B90100                    mov cx,FRAME_DELAY
+   229 00000B23 D40A                      .lp aam
+   230 00000B25 E2FC                      loop .lp
+   231 00000B27 C3                        ret
+   232                                  
+   233                                  ; ───────────────────────────────────────────────────────────────────────────
+   234                                  
+   235                                  world2screen:  ; input (ax,bx) = (world.x, world.y)   ; screen (row,col) ; output (bx)
+   236                                    ; WORLD:
+   237                                    ;   0..73728  (65536) -> col
+   238                                    ;   0..51200  (=1024*50) -> row
+   239                                    ; SCREEN (ROW,COL):
+   240                                    ;   0..49 (row)
+   241                                    ;   0..71 (col)
+   242 00000B28 51                        push cx
+   243 00000B29 B10A                      mov cl,10
+   244 00000B2B D3EB                      shr bx,cl   ; //bl=row 0..49
+   245 00000B2D D3E8                      shr ax,cl   ; 
+   246 00000B2F FEC9                      dec cl
+   247 00000B31 FEC9                      dec cl      ; cl=8
+   248 00000B33 D3E3                      shl bx,cl   
+   249                                    ; mov bh,al   ; //bh=col 0..71
+   250                                    ; xchg bh,bl
+   251 00000B35 09C3                      or bx,ax
+   252 00000B37 59                        pop cx
+   253 00000B38 C3                        ret
+   254                                  
+   255                                  ; ───────────────────────────────────────────────────────────────────────────
+   256                                  
+   257                                  img_first:
+   258                                  img_right:
+   259 00000B39 <bin 302h>              img7: incbin "data/ship-7.spr" ;right
+   260 00000E3B <bin 302h>              img8: incbin "data/ship-8.spr"
+   261 0000113D <bin 302h>              img9: incbin "data/ship-9.spr"
+   262                                  img_down_right:
+   263 0000143F <bin 302h>              img10: incbin "data/ship-10.spr" ;down-right
+   264 00001741 <bin 302h>              img11: incbin "data/ship-11.spr"
+   265 00001A43 <bin 302h>              img12: incbin "data/ship-12.spr"
+   266                                  img_down:
+   267 00001D45 <bin 302h>              img13: incbin "data/ship-13.spr" ;down
+   268 00002047 <bin 302h>              img14: incbin "data/ship-14.spr"
+   269 00002349 <bin 302h>              img15: incbin "data/ship-15.spr"
+   270                                  img_down_left:
+   271 0000264B <bin 302h>              img16: incbin "data/ship-16.spr" ;down-left
+   272 0000294D <bin 302h>              img17: incbin "data/ship-17.spr"
+   273 00002C4F <bin 302h>              img18: incbin "data/ship-18.spr"
+   274                                  img_left:
+   275 00002F51 <bin 302h>              img19: incbin "data/ship-19.spr" ;left
+   276 00003253 <bin 302h>              img20: incbin "data/ship-20.spr"
+   277 00003555 <bin 302h>              img21: incbin "data/ship-21.spr"
+   278                                  img_up_left:
+   279 00003857 <bin 302h>              img22: incbin "data/ship-22.spr" ;up-left
+   280 00003B59 <bin 302h>              img23: incbin "data/ship-23.spr"
+   281 00003E5B <bin 302h>              img24: incbin "data/ship-24.spr"
+   282                                  img_up:
+   283 0000415D <bin 302h>              img1: incbin "data/ship-1.spr" ;up
+   284 0000445F <bin 302h>              img2: incbin "data/ship-2.spr"
+   285 00004761 <bin 302h>              img3: incbin "data/ship-3.spr"
+   286                                  img_up_right:
+   287 00004A63 <bin 302h>              img4: incbin "data/ship-4.spr" ;up-right
+   288 00004D65 <bin 302h>              img5: incbin "data/ship-5.spr"
+   289 00005067 <bin 302h>              img6: incbin "data/ship-6.spr"
    290                                  
-   291                                  ; %assign num $-$$
-   292                                  ; %warning total num
-   293                                  
-   294 00005369 00<rep 27C97h>          times (180*1024)-($-$$) db 0
-   295                                  
+   291                                  
+   292                                  ; %assign num $-$$
+   293                                  ; %warning total num
+   294                                  
+   295 00005369 00<rep 27C97h>          times (180*1024)-($-$$) db 0
    296                                  
    297                                  
+   298                                  

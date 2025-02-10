@@ -6,11 +6,9 @@ int bh() {
   return bx>>8;
 }
 
-int dw(int v) {
-  mem[j] = v<<8;
-  mem[j+1] = v&255;
+int dw() {
   j+=2;
-  return j;
+  return j-2;
 }
 
 void set_cursor(int row, int col) {

@@ -12,15 +12,15 @@ int CENTER=COLS*LINES/2+COLS*4/2;
 
 int mem[] = new int[10000]; //16 bits
 int j=0; //increased by 2 for each dw()
-int POS = dw(0);
-int VEL = dw(0);
-int VEL_SCALED = dw(0);
-int ACC = dw(0);
-int FORCE = dw(0);
-int FORCES = dw(0);
-int TMP = dw(0);
-int ANGLE = dw(0);
-int SPRITE_INDEX = dw(0);
+int POS = dw();
+int VEL = dw();
+int VEL_SCALED = dw();
+int ACC = dw();
+int FORCE = dw();
+int FORCES = dw();
+int TMP = dw();
+int ANGLE = dw();
+int SPRITE_INDEX = dw();
 int STARS=j+=2; //offset
 
 int NUM_STARS=50;

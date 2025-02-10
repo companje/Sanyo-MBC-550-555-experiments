@@ -134,6 +134,7 @@ setup:
 addForceFromAngle:  ; input ax = current angle + rel angle
   mov cx,5    ; magnitude
 
+
   ; mov ax,0 ; TMP
 
   mov bx,ship.force

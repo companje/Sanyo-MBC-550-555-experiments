@@ -1,4 +1,4 @@
-m//package fr.neatmonster.ibmpc;
+//package fr.neatmonster.ibmpc;
 
 import java.io.DataInputStream;
 import java.io.IOException;
