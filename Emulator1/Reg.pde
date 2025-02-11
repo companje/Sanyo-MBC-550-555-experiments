@@ -1,49 +1,72 @@
-class MissingOverride extends Error {
-  MissingOverride(Object o) {
-    super(o.getClass().getSimpleName());
-  }
-}
-
 class Reg {
   String name;
+  int mask; //set by subclass
+  int bits;
+  int sign;
 
   Reg(String name) {
     this.name = name;
   }
+
   void set(int v) {
-    throw new MissingOverride(this);
+    throw new Error("Missing Override for set in subclass");
   }
-  void add(int v) {
-    throw new MissingOverride(this);
-  }
-  void sub(int v) {
-    throw new MissingOverride(this);
-  }
+
   int get() {
-    throw new MissingOverride(this);
+    throw new Error("Missing Override for get in subclass");
   }
-  void xor(Reg r) {
-    throw new MissingOverride(this);
+
+  void add(int v) {
+    set(get()+v);
   }
-  void or(Reg r) {
-    throw new MissingOverride(this);
-  }
+
   void dec() {
-    throw new MissingOverride(this);
+    set(get()-1);
   }
+
   void inc() {
-    throw new MissingOverride(this);
+    set(get()+1);
   }
-  void shr(Reg r) {
-    throw new MissingOverride(this);
+
+  void shr(Reg b) {
+    set(get() >> b.get());
   }
-  void shl(Reg r) {
-    throw new MissingOverride(this);
+
+  void shl(Reg b) {
+    set(get() << b.get());
   }
+
   void shr() {
-    throw new MissingOverride(this);
+    set(get() >> 1);
   }
+
   void shl() {
-    throw new MissingOverride(this);
+    set(get() << 1);
+  }
+
+  void or(Reg b) {
+    set(get()|b.get());
+  }
+
+  void xor(Reg b) {
+    set(get()^b.get());
+  }
+
+  void cmp(int b) { 
+    //volgens mij gaat hier nog van alles mis
+    //DI=100, CMP DI,-50 zou alle flags op 0 moeten zetten toch?
+    
+    int a = get() & mask; // Simuleer 8-bit waarde
+    b = b & mask; // Zorg dat b ook 8-bit is
+    int result = (a - b) & mask; // Simuleer 8-bit resultaat
+
+    ZF = (result == 0);
+    SF = ((result & sign) != 0); // Kijk naar het hoogste bit van het resultaat
+    CF = Integer.compareUnsigned(a, b) < 0;
+
+    boolean aNeg = ((a & sign) != 0);
+    boolean bNeg = ((b & sign) != 0);
+    boolean resNeg = ((result & sign) != 0);
+    OF = (aNeg != bNeg) && (aNeg != resNeg);
   }
 }

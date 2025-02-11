@@ -14,6 +14,9 @@ class Reg8 extends Reg {
 
   Reg8(String name) {
     super(name);
+    mask = 0xff;
+    bits = 8;
+    sign = 0x80;
     hi = name.charAt(1)=='h';
     Reg regs[] = {ax, bx, cx, dx};
     reg = regs[name.charAt(0)-'a'];
@@ -34,11 +37,5 @@ class Reg8 extends Reg {
   String toString() {
     return this.name + "=" + (hi ? reg.get()>>8 : reg.get() & 255); //cast to unsigned
   }
-    
-  void dec() {
-    println("DEC8",this,get()-1);
-    set(get()-1);
-  }
-
 
 }

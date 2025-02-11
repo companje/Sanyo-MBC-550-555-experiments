@@ -1,4 +1,4 @@
-
+boolean ZF,SF,CF,OF;
 
 void mov(Reg r, int v) {
   r.set(v);
@@ -25,46 +25,36 @@ void xor(Reg a, Reg b) {
 }
 
 void cmp(Reg r, int v) {
-  //TODO: update the flags here
+  r.cmp(v);
 }
 
 boolean jl() {
-  //TODO: check the flag
-  return true; 
+  return SF!=OF; //(SF xor OF)=1 
 }
 
-void push(Reg r) { //dit kan met mem[ss:sp-=2]= ipv ArrayDeque
+void push(Reg r) {
   sp.set(sp.get()-2);
-  //println("sp",(int)sp.value,r.name,(int)r.value);
   mov(mem(sp), r);
-  //stack.push((int)r.value);
 }
 
-void pop(Reg r) { //dit kan met memory ipv ArrayDeque
+void pop(Reg r) {
   mov(r, mem(sp));
   sp.set(sp.get()+2);
-  //println("pop",r.name,(int)r.value);
-  //int v = stack.pop();
-  //r.value = (char)v;
 }
 
-void mul(Reg r) {
+void mul(Reg16 r) {
   //houdt nog geen rekening met een bestaande waarde in DX
   //geen onderscheid nog tussen mul en imul
-  //kan nog geen 8 bits multiply op AL
-
-  int v = ax.get(); // * r.value;
-  v*=r.get();
+  int v = ax.get() * r.get();
   ax.set(v);
   if (v>0xffff) {
-    println("MUL16 overflow");
+    //println("MUL16 overflow");
     dx.set(v>>16);
   }
 }
 
 void mul(Reg8 r) {
-  int v = al.get();
-  v*=r.get();
+  int v = al.get() * r.get();
   al.set(v);
   if (v>0xff) {
     //println("MUL8 overflow");
@@ -132,6 +122,6 @@ void or(Reg r1, Reg r2) {
 
 boolean loop(Reg r) {
   if (r!=cx) throw new Error("LOOP needs CX");
-  cs.set(cs.get()-1);
+  cx.set(cx.get()-1);
   return (cx.get())>0;
 }

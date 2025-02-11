@@ -16,6 +16,9 @@ class Reg16 extends Reg {
 
   Reg16(String name) {
     super(name);
+    mask = 0xffff;
+    bits = 16;
+    sign = 0x8000;
   }
 
   String toString() {
@@ -23,48 +26,12 @@ class Reg16 extends Reg {
   }
 
   int get() {
-    //println("GET16",this);
     return value & 0xffff; //nodig als ik geen ints gebruik?
   }
   
   void set(int v) {
-    //println("SET16",this);
     value = v & 0xffff;
   }
 
-  void add(int v) {
-    value += v;
-  }
 
-  void dec() {
-    set(get()-1);
-  }
-
-  void inc() {
-    value++;
-  }
-  
-  void shr(Reg b) {
-    value >>= b.get();
-  }
-
-  void shl(Reg b) {
-    value <<= b.get();
-  }
-
-  void shr() {
-    value >>= 1;
-  }
-
-  void shl() {
-    value <<= 1;
-  }
-
-  void or(Reg b) {
-    value |= b.get();
-  }
-  
-  void xor(Reg b) {
-    value ^= b.get(); 
-  }
 }
