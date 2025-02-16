@@ -4,8 +4,8 @@ float friction = .95;
 ArrayList<Bullet> bullets = new ArrayList();
 ArrayList<Star> stars = new ArrayList();
 //ArrayList<Enemy> enemies = new ArrayList();
-float world_w=5000;
-float world_h=5000;
+float world_w=2000;
+float world_h=2000;
 PImage ship, img_enemy, bullet;
 PImage star[] = new PImage[3];
 PImage img_explosion;
@@ -21,12 +21,9 @@ void setup() {
   size(800, 800);
   imageMode(CENTER);
 
-  for (int i=0; i<10; i++) {
+  for (int i=0; i<200; i++) {
     stars.add(new Star(random(0, world_w), random(0, world_h)));
   }
-
-  //player.set(); //world_w/2,world_h/2);
-
 
   ship = loadImage("ship.png");
   img_enemy = loadImage("enemy.png");
@@ -46,15 +43,6 @@ void update() {
   for (Particle p : bullets) p.update();
   player.update();
 
-  //player.x = map(mouseX, 0, width, 0, world_w);
-  //player.y = map(mouseY, 0, height, 0, world_h);
-
-  //if (player.y<0) player.y+=world_h;
-
-
-  //thrust = constrain(thrust+.05, 0, .6);
-
-
   while (bullets.size()>50) bullets.remove(0);
 }
 
@@ -63,11 +51,9 @@ void draw() {
   background(0);
   frameRate(60);
   pushMatrix();
-  //translate(width/2, height/2);
-
-
-  scale(.2);
-  //translate(width/2, height/2);
+  translate(width/2, height/2);
+  scale(.5);
+  translate(-width/2, -height/2);
 
   noStroke();
 

@@ -26,25 +26,17 @@ public class Star extends Particle {
   }
 
   void draw() {
-    //if (dist(player)<500) {
-    //  println(x, y);
-    //}
-    
     float xx = -player.x+x+width/2;
     float yy = -player.y+y+height/2;
 
-    boolean marked = false; //x<-width/2 && x>width/2;
+    boolean inView = yy>0 && yy<height && xx>0 && xx<width; 
+
+    if (!inView) return;
 
     app.pushMatrix();
-    //app.translate(-player.x, -player.y);
-    //app.translate(width/2, height/2);
     app.translate(xx, yy);
-    app.tint(marked ? color(255, 255, 0) : c);
-    app.scale(3);
-    tint(c);
     app.image(star[(int)map(s, 2, 6, 0, 3)], 0, 0);
-    
-    app.text(int(xx)+","+int(yy),0,0);
+    //app.text(int(xx)+","+int(yy),0,0);
     app.popMatrix();
   }
 }

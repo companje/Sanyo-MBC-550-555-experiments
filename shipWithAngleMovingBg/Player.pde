@@ -33,7 +33,6 @@ public class Player extends Particle {
 
   void draw() {
     app.pushMatrix();
-    app.rectMode(CENTER);
     app.fill(255);
     app.translate(width/2, height/2);
     app.scale(imgScale);
