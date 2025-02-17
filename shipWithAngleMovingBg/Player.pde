@@ -23,21 +23,15 @@ public class Player extends Particle {
     if (y<0) y+=world_h;
     if (x>world_w) x-=world_w;
     if (y>world_h) y-=world_h;
-
-    //atTop = player.y<height/2;
-    //atBottom = player.y+height/2 > world_h;
-    
-    //atLeft = player.x<width/2;
-    //atRight = player.x+width/2 > world_w;
   }
 
   void draw() {
     app.pushMatrix();
     app.fill(255);
     app.translate(width/2, height/2);
-    app.scale(imgScale);
+    app.scale(.5);
     app.rotate(angle+HALF_PI);
-    app.image(ship, 0, 0);
+    app.image(ship, 0, -20);
     app.popMatrix();
   }
 }

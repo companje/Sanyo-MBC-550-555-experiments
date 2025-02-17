@@ -14,6 +14,7 @@ public class Bullet extends Particle {
   void draw() {
     float h = velocity.heading()+HALF_PI;
     app.pushMatrix();
+    app.translate(width/2, height/2);
     app.translate(x - player.x, y - player.y);
     app.fill(255);
     app.rotate(h);

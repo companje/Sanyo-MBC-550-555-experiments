@@ -51,9 +51,9 @@ void draw() {
   background(0);
   frameRate(60);
   pushMatrix();
-  translate(width/2, height/2);
-  scale(.5);
-  translate(-width/2, -height/2);
+  //translate(width/2, height/2);
+  //scale(.5);
+  //translate(-width/2, -height/2);
 
   noStroke();
 
@@ -85,7 +85,7 @@ void keyPressed() {
   if (key == 's') {
     thrust = constrain(thrust-.05, 0, .3);
   }
-  if (key == 'x') {
+  if (key == ' ') {
     if (millis()-timeLastBullet>32) {
       PVector gun = player.copy().add(PVector.fromAngle(player.angle).mult(100*imgScale));
       PVector gun_vel = PVector.fromAngle(player.angle).mult(20).limit(20);
@@ -94,18 +94,4 @@ void keyPressed() {
     }
     timeLastBullet = millis();
   }
-
-  if (key=='p') {
-    noLoop();
-  }
-  if (key=='P') {
-    loop();
-  }
 }
-
-//void warp_world(Particle p) {
-//  while (p.x>world_w/2) p.x -= world_w;
-//  while (p.x<-world_w/2) p.x += world_w;
-//  while (p.y>world_h/2) p.y -= world_h;
-//  while (p.y<-world_w/2) p.y += world_h;
-//}
