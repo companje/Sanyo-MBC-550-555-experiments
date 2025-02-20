@@ -1,7 +1,8 @@
 
 static class Mem {
   protected static int mem[] = new int[1024*1024];
-
+  static int mem_counter; //incrementing address for memory
+  
   Reg reg;
   int addr = 0;
   int offset = 0;
@@ -68,6 +69,10 @@ static class Mem {
 }
 
 static class Mem8 extends Mem {
+  Mem8() {
+    super(mem_counter);
+    mem_counter++; 
+  }
   Mem8(Reg8 r) {
     super(r);
   }
@@ -86,6 +91,10 @@ static class Mem8 extends Mem {
 }
 
 static class Mem16 extends Mem {
+  Mem16() {
+    super(mem_counter);
+    mem_counter+=2; 
+  }
   Mem16(Reg16 r) {
     super(r);
   }

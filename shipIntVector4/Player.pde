@@ -36,10 +36,10 @@ public class Player {
     if (thrust.get()<1) thrust.set(1);
     if (thrust.get()>500) thrust.set(500);
 
-    if (pos.x<0) pos.x+=world_w.get();
-    if (pos.y<0) pos.y+=world_h.get();
-    if (pos.x>world_w.get()) pos.x-=world_w.get();
-    if (pos.y>world_h.get()) pos.y-=world_h.get();
+    if (pos.x.get()<0) pos.x.add(world_w.get());
+    if (pos.y.get()<0) pos.y.add(world_h.get());
+    if (pos.x.get()>world_w.get()) pos.x.sub(world_w.get());
+    if (pos.y.get()>world_h.get()) pos.y.sub(world_h.get());
   }
 
   void draw() {

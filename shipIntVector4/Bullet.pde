@@ -23,8 +23,8 @@ public class Bullet {
   }
 
   void draw() {
-    float xx = -player.pos.x+pos.x+screen_w.get()/2;
-    float yy = -player.pos.y+pos.y+screen_h.get()/2;
+    float xx = -player.pos.x.get()+pos.x.get()+screen_w.get()/2;
+    float yy = -player.pos.y.get()+pos.y.get()+screen_h.get()/2;
 
     if (yy>0 && yy<screen_h.get() && xx>0 &&  xx<screen_w.get()) { //in view
       if (active) {

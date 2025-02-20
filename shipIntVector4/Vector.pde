@@ -2,7 +2,8 @@ static int cos_table[] = {10, 9, 8, 7, 4, 2, 0, -2, -5, -7, -8, -9, -10, -9, -8,
 static int sin_table[] = {0, 2, 5, 7, 8, 9, 10, 9, 8, 7, 5, 2, 0, -2, -4, -7, -8, -9, -10, -9, -8, -7, -5, -2};
 
 static class Vector {
-  short x, y;
+  Mem16 x = new Mem16();
+  Mem16 y = new Mem16();
 
   Vector() {
   }
@@ -12,29 +13,29 @@ static class Vector {
   }
 
   Vector set(int x, int y) {
-    this.x = (short)x;
-    this.y = (short)y;
+    this.x.set(x);
+    this.y.set(y);
     return this;
   }
 
   Vector set(Vector p) {
-    return set(p.x, p.y);
+    return set(p.x.get(), p.y.get());
   }
 
   Vector copy() {
-    return new Vector(x, y);
+    return new Vector(x.get(), y.get());
   }
 
   Vector add(Vector p) {
-    return set(x+p.x, y+p.y);
+    return set(x.get()+p.x.get(), y.get()+p.y.get());
   }
 
   Vector mult(int v) {
-    return set(x*v, y*v);
+    return set(x.get()*v, y.get()*v);
   }
 
   Vector div(int v) {
-    return set(x/v, y/v);
+    return set(x.get()/v, y.get()/v);
   }
 
   static Vector fromAngle(int deg) { //degrees, scale
@@ -49,7 +50,7 @@ static class Vector {
   }
 
   int heading() {
-    return (int)degrees(atan2(y, x))+90;
+    return (int)degrees(atan2(y.get(), x.get()))+90;
   }
 
 }

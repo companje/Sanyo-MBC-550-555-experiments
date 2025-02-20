@@ -3,18 +3,18 @@ import processing.sound.*;
 int COLS=72;
 int BYTES_PER_ROW=8*COLS;  //  25 lines
 
-Mem16 world_w = new Mem16(0);
-Mem16 world_h = new Mem16(2);
-Mem16 screen_w = new Mem16(4);
-Mem16 screen_h = new Mem16(6);
-Mem16 timeLastBullet = new Mem16(8);
-Mem16 frameCounter = new Mem16(10);
-Mem16 spriteIndex = new Mem16(12);
-Mem16 toAngle = new Mem16(14);
-Mem16 angle = new Mem16(16);
-Mem16 thrust = new Mem16(18);
-Mem16 tmp = new Mem16(20);
-Mem16 tmp2 = new Mem16(22);
+Mem16 world_w = new Mem16();
+Mem16 world_h = new Mem16();
+Mem16 screen_w = new Mem16();
+Mem16 screen_h = new Mem16();
+Mem16 timeLastBullet = new Mem16();
+Mem16 frameCounter = new Mem16();
+Mem16 spriteIndex = new Mem16();
+Mem16 toAngle = new Mem16();
+Mem16 angle = new Mem16();
+Mem16 thrust = new Mem16();
+Mem16 tmp = new Mem16();
+Mem16 tmp2 = new Mem16();
 
 PImage img_enemy, img_bullet, img_explosion;
 PImage img_ship[] = new PImage[24];
@@ -41,8 +41,6 @@ void setup() {
   toAngle.set(angle.get());
   thrust.set(100);
 
-  //initStars();
-
   for (int i=0; i<stars.length; i++) stars[i] = new Star();
   for (int i=0; i<bullets.length; i++) bullets[i] = new Bullet();
   for (int i=0; i<img_ship.length; i++) img_ship[i] = loadImage("ship-"+(((i+6)%24)+1)+".png");
@@ -53,7 +51,6 @@ void setup() {
   img_explosion = loadImage("explosion.png");
   fire = new SoundFile(this, "fire.mp3");
 }
-
 
 void update() {
   frameCounter.inc();
@@ -103,8 +100,8 @@ void keyPressed() {
 }
 
 void warp(Vector p) {
-  if (p.y-player.pos.y-world_h.get()+screen_h.get() > 0) p.y-=world_h.get();
-  if (p.y-player.pos.y+screen_h.get() < 0) p.y+=world_h.get();
-  if (p.x-player.pos.x-world_w.get()+screen_w.get() > 0) p.x-=world_w.get();
-  if (p.x-player.pos.x+screen_w.get() < 0) p.x+=world_w.get();
+  if (p.y.get()-player.pos.y.get()-world_h.get()+screen_h.get() > 0) p.y.sub(world_h.get());
+  if (p.y.get()-player.pos.y.get()+screen_h.get() < 0) p.y.add(world_h.get());
+  if (p.x.get()-player.pos.x.get()-world_w.get()+screen_w.get() > 0) p.x.sub(world_w.get());
+  if (p.x.get()-player.pos.x.get()+screen_w.get() < 0) p.x.add(world_w.get());
 }
