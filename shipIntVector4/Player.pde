@@ -17,7 +17,7 @@ public class Player {
     while (tmp.get()<0) tmp.add(360);
     tmp.mod(360);
     tmp.div(15);
-    
+
     spriteIndex.set(tmp.get()); // ((angle + 360) % 360) / 15 );
 
     tmp.set(thrust.get());
@@ -43,7 +43,11 @@ public class Player {
   }
 
   void draw() {
-    set_cursor(16, 42);
-    draw_img(img_ship[spriteIndex.get()]);
+    set_row_col(16, 36);
+    si.mov(img_up);
+    draw_sprite();
+    
+    //img_ship[spriteIndex.get()]
+    //draw_img(img_ship[spriteIndex.get()]);
   }
 }

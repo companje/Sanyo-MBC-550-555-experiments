@@ -47,7 +47,7 @@ public class Star {
       //point(xx,yy);
       //point(xx+1,yy);
       
-      set_cursor(int(yy/height*50), int(xx/width*72));
+      set_row_col(int(yy/height*50), int(xx/width*72));
       draw_img(img_star[star_index]);
     
     }

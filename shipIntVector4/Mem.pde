@@ -2,7 +2,7 @@
 static class Mem {
   protected static int mem[] = new int[1024*1024];
   static int mem_counter; //incrementing address for memory
-  
+
   Reg reg;
   int addr = 0;
   int offset = 0;
@@ -26,18 +26,22 @@ static class Mem {
     return (addr+offset);
   }
 
-  void set(int v) {
-    throw new Error("Missing Override for Mem.set() in subclass");
+  void set(int o, int v) {
+    throw new Error("Missing Override for Mem.set(offset, value) in subclass");
   }
 
   int get() {
     throw new Error("Missing Override for Mem.get() in subclass");
   }
-  
+
+  int get(int i) {
+    throw new Error("Missing Override for Mem.get(i) in subclass");
+  }
+
   void mov(int v) {
     set(v);
   }
-  
+
   void mov(Reg r) {
     set(r.get());
   }
@@ -45,33 +49,36 @@ static class Mem {
   String toString() {
     return (reg!=null ? "["+reg.name+"]=":"") + "["+getAddr()+"]="+get();
   }
-  
+
   void sub(int v) {
     set(get()-v);
   }
-  
+
   void add(int v) {
     set(get()+v);
   }
-  
+
   void mult(int v) {
     set(get()*v);
   }
-  
+
   void div(int v) {
     set(get()/v);
   }
-  
+
   void mod(int v) {
     set(get()%v);
   }
 
+  void set(int b) {
+    set(0, b);
+  }
 }
 
 static class Mem8 extends Mem {
   Mem8() {
     super(mem_counter);
-    mem_counter++; 
+    mem_counter++;
   }
   Mem8(Reg8 r) {
     super(r);
@@ -85,15 +92,23 @@ static class Mem8 extends Mem {
   int get() {
     return mem[getAddr()];
   }
-  void set(int b) {
-    mem[getAddr()] = b & 255;
+  int get(int i) {
+    return mem[getAddr()+i];
+  }
+  void set(int i, int b) {
+    mem[getAddr()+i] = b & 255;
+  }
+  void setWord(int i, int v) {
+    if (v>0xffff) println("Warning: Overflow in mem.setWord("+i+","+v+")");
+    mem[getAddr()+i+0] = (v>>8);
+    mem[getAddr()+i+1] = (v&255);
   }
 }
 
 static class Mem16 extends Mem {
   Mem16() {
     super(mem_counter);
-    mem_counter+=2; 
+    mem_counter+=2;
   }
   Mem16(Reg16 r) {
     super(r);
@@ -116,7 +131,7 @@ static class Mem16 extends Mem {
     mem[getAddr()+1] = (v&255);
   }
   void inc() {
-    set(get()+1); 
+    set(get()+1);
   }
 }
 
@@ -136,9 +151,10 @@ Mem8 mem(Reg8 r, int offset) {
   return new Mem8(r, offset);
 }
 
-Mem mem(int v) {
-  throw new Error("byte or word implicit");
-}
+//Mem mem(int v) {
+//  Thread.dumpStack();
+//  throw new Error("byte or word implicit");
+//}
 
 Mem8 mem8(int v) {
   return new Mem8(v);

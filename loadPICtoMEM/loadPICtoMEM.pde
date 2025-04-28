@@ -3,10 +3,10 @@ int COLS=72, ROWS=50;
 //int greenOffset = 0xC000;
 PGraphics pg;
 PImage img, bg, beker;
-int R=0xf0000, G=0xC000, B=0xf4000;
+int R=0xf0000, G=0x0C000, B=0xf4000;
 Viewport view;
 int rows,cols;
-String input_filename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Keyboard-Sprite/data/player/player-rotate.png";
+//String input_filename = "player-rotate.png"; ///Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Keyboard-Sprite/data/player/player-rotate.png";
 String output_filename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/Keyboard-Sprite/data/player/player-rotations.bin";
 
 void settings() {

@@ -31,7 +31,7 @@ class Reg {
   void add(int v) {
     set(get()+v);
   }
-  
+
   void add(Reg r) {
     set(get()+r.get());
   }
@@ -72,8 +72,30 @@ class Reg {
     set(get()^b.get());
   }
 
+  void sub(int v) {
+    set(get()-v);
+  }
+
+  void sub(Mem m) {
+    set(get()-m.get());
+  }
+
+  void sub(Reg r) {
+    set(get()-r.get());
+  }
+
   void mul(Reg b) {
     throw new Error("Missing override for MUL in subclass");
+  }
+
+  void push() {
+    sp.set(sp.get()-2);
+    mem(sp).set(get());
+  }
+
+  void pop() {
+    mov(mem(sp));
+    sp.set(sp.get()+2);
   }
 
   void cmp(int b) {
