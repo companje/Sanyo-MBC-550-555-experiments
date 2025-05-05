@@ -1,5 +1,6 @@
 %include "sanyo.asm"
 
+PULSE_WIDTH equ 20
 BEAT_LEN equ 360
 SONG_LEN equ 64*BEAT_LEN
 
@@ -33,7 +34,7 @@ setup:
   call load_song
 
 update:
-  mov dx,20 ; length per bit (20=default)
+  ; mov dx,20 ; length per bit (20=default) -> now using PULSE_WIDTH
   mov si,music
   mov cx,SONG_LEN  ; num bytes to play
   call play
@@ -66,15 +67,14 @@ load_song: ; deze code leest de data van de 'song' en kopieert de juiste samples
 
 
 
-
 play:
   xor bp,bp
 .nextbyte:
-  push dx             ; belangrijk want dx wordt ook gebruik voor duration
+  ; push dx             ; belangrijk want dx wordt ook gebruik voor duration
   mov al,[CH_1+bp]
   mov dl,[CH_2+bp]
   or al,dl            ; for each bit in the byte: 00=0, 01=1, 10=1, 11=1
-  pop dx
+  ; pop dx
   mov bl,8
   mov bh,1
 .nextbit:
@@ -87,7 +87,7 @@ play:
 .sendbit:
   out 0x3A,al
   push cx
-  mov cx,dx
+  mov cx,PULSE_WIDTH
 .wait: loop .wait
   pop cx
   pop ax

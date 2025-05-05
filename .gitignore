@@ -8,3 +8,4 @@ emulator/Sanyo_MBC_555/frames/*
 /Cashman-disassemble/oud
 mbc555-bootsector-disassembled/Sanyo-MS-DOS-2.11-minimal.img
 *.wav
+Composition1/app.lst
