@@ -267,24 +267,24 @@ def generate_bell_note(freq, duration_sec=.3, sample_rate=SAMPLE_RATE):
 if __name__ == "__main__":
     save_to_inc_file(
         generate_tone_with_beats(tone_freq=440, tone_duration=0.2, beat_duration=0.08, repeats=6),
-        "tone_with_beat.inc"
+        "inc/tone_with_beat.inc"
     )
 
     save_to_inc_file(
         generate_beat_pulse(repeats=6, beat_duration=0.1, rest_duration=0.15),
-        "strong_beat.inc"
+        "inc/strong_beat.inc"
     )
 
     intro_pattern = ['gcec', 'gcec', 'gbdb', 'gbdb', 'adfd', 'adfd', 'acec', 'acec']
     save_to_inc_file(
         generate_intro_sequence(intro_pattern, note_duration=0.12),
-        "intro_arpeggio.inc"
+        "inc/intro_arpeggio.inc"
     )
 
     chords = ['gcec', 'gcec', 'gbdb', 'gbdb', 'adfd', 'adfd', 'acec', 'acec']
     save_to_inc_file(
         generate_string_intro_chords(chords, duration=0.6, waveform='triangle'),
-        "intro_strings.inc"
+        "inc/intro_strings.inc"
     )
 
     save_to_inc_file(
@@ -295,25 +295,25 @@ if __name__ == "__main__":
             steps=25,
             include_final_hit=True
         ),
-        "drumroll.inc"
+        "inc/drumroll.inc"
     )
 
     save_to_inc_file(
         generate_piano_note_duty(freq=261.63),  # C4
-        "piano_duty_c4.inc"
+        "inc/piano_duty_c4.inc"
     )
 
     save_to_inc_file(
         build_intro_song(),
-        "full_song_structured.inc"
+        "inc/full_song_structured.inc"
     )
 
     save_to_inc_file(
         generate_flute_note(freq=523.25),  # C5, helder fluitje
-        "flute_c5.inc"
+        "inc/flute_c5.inc"
     )
 
     save_to_inc_file(
         generate_bell_note(freq=880),  # A5-ish
-        "bell_a5.inc"
+        "inc/bell_a5.inc"
     )
