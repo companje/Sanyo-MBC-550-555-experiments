@@ -11,7 +11,7 @@ color[] palette = {
 };
 
 void setup() {
-  img = loadImage("kipjes.png"); //IMG_0547.jpg"); //eleven3.jpg");
+  img = loadImage("city.jpg"); //IMG_0547.jpg"); //eleven3.jpg");
   size(576, 200); //of 640
   img.resize(width, height);
   //posterizeImage(8);
@@ -23,9 +23,9 @@ void setup() {
   //savePIC(img, "kipjes.pic"); //this is Michtron PIC format
   ////more ideal would be the sprite / bin format with 4 bytes per cell
   
-  //saveBIN(img, "kipjes.bin"); //getSnapshot
+  //saveBIN(img, "city.bin"); //getSnapshot
   
-  img.save("kipjes-dithered.png");
+  img.save("city-dithered.png");
   
   noLoop();
 }

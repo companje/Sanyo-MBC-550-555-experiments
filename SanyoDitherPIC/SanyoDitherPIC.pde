@@ -13,8 +13,8 @@ void setup() {
   //  }
   //}
 
-  String inputFilename = "data/input/beker.png";
-  String outputFilename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/bootpic/beker.pic";
+  String inputFilename = "data/input/city.jpg";
+  String outputFilename = "/Users/rick/Sanyo/Sanyo-MBC-550-555-experiments/City1/city.pic";
   PImage img = loadImage(inputFilename);
   savePIC(img, outputFilename, false);
   println("done");

@@ -1,41 +1,3 @@
-%include "sanyo.asm"
-
-setup:
-  mov si,sound
-  mov cx,-1
-  call play
-  hlt
-
-play:
-  lodsb               ; laad byte in AL
-  mov bl,8            ; 8 bits
-  mov bh,1            ; bitmask = bit 0
-.nextbit:
-  push ax
-  mov ah,al
-  mov al,0
-  and ah,bh
-  jz .sendbit
-  mov al,8            ; bit 3 aan
-.sendbit:
-  out 0x3A,al
-  push cx
-  mov cx,22
-.wait: loop .wait
-  pop cx
-  pop ax
-  shl bh,1
-  dec bl
-  jnz .nextbit
-  loop play
-  ret
-
-sound: incbin "bin/falle-intro.bin"
-
-
-; ONDERSTAANDE NIET WEGGOOIEN!
-
-
 ; %include "sanyo.asm"
 
 ; PULSE_WIDTH equ 27
@@ -193,7 +155,139 @@ sound: incbin "bin/falle-intro.bin"
 
 ; music:
 
+
+
+
+
+
+
+
+%include "sanyo.asm"
+
+xx: dw 2
+
+setup:
+  mov cx,500
+  mov ax,GREEN
+  mov es,ax
+
+  ; mov ax,-1
+  ; .lp
+  mov di,10*4*COLS ; + 10*COLS 
+  ; times 2 stosw
+  ; loop .lp
+
+  mov si,sound
+  mov cx,-1       ; number of bytes to read
+
+play:
+
+
+  lodsb               ; laad byte in AL
+  
+  ; push ax
+  ; push bx
+  ; mov bx,colors
+  ; mov ax,[bx+xx]
+  ; mov es,ax
+  ; pop bx
+  ; pop ax
+
+  stosb
+
+
+  mov bl,8            ; 8 bits
+  mov bh,1            ; bitmask = bit 0
+.nextbit:
+  push ax
+  mov ah,al
+  mov al,0
+  test ah,bh
+  jz .sendbit
+  mov al,8            
+.sendbit:
+  out 0x3A,al         ; bit 3 (byte value 8 or 0) = break bit on keyboard
+  
+  push cx
+  mov cx,20           ; pulse width
+.wait: loop .wait
+  pop cx
+  ; times 10 nop
+
+  
+  push ax
+; push ax
+  mov al,13
+  out 48,al
+  ; pop ax
+  ; mov ax,bx
+  ; xchg ah,al
+  ; out 50,al
+  ; ; push ax
+  ; mov al,13
+  ; out 48,al
+  ; ; pop ax
+
+  ; mov ax,cx
+  ; xor ah,ah
+  ; push bx
+  ; mov bx,sinlut
+  ; xlat
+  ; pop bx
+  mov ax,[xx]
+
+  ; mov ax,bx
+  out 50,al
+  pop ax
+
+
+  pop ax
+  shl bh,1
+  dec bl
+
+
+  
+
+  jnz .nextbit
+
+  test cx,16
+  jz .cont
+
+  ; push ax
+  ; mov ax,BLUE
+  ; mov es,ax
+  ; pop ax
+  ; mov [xx],si
+  ; push cx
+  ; mov cl,1
+  ; shl word [xx],1
+  inc word [xx]
+  ; pop cx
+
+  and word [xx],4
+
+.cont
+  loop play
+  hlt
+
+
+
+sinlut: db 0,25,50,70,86,96,100,96,86,70,50,25,0,-25,-50,-70,-86,-96,-100,-96,-86,-70,-50,-25,0
+colors: dw RED,GREEN,BLUE
+
+
+sound: 
+; %include "bin/wonderful-days-1.inc"
+; incbin "bin/wdays-vocals.bin"
+incbin "bin/8088mph4-8k.bin"
+; incbin "bin/beat2.bin"
+
+; sound: incbin "bin/falle-vocals.bin"
+; sound: incbin "bin/reverb-pitch.bin" ; vocals
+; ; sound: incbin "bin/falle-bass2.bin"
+; ; sound: incbin "bin/falle-other.bin"
+
+
+
 times (180*1024)-($-$$) db 0
-
-
 

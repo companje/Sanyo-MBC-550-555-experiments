@@ -18,5 +18,7 @@ if pgrep -x "mame" > /dev/null; then
 fi
 
 
-mame mbc55x -flop1 "$img" -debug -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 800x600 -prescale 2 -gamma 3 -contrast 1.5
+# -aviwrite screendump.avi
+
+mame mbc55x -flop1 "$img"  -debug -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 800x600 -prescale 2 -gamma 3 -contrast 1.5
 

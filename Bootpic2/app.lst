@@ -183,13 +183,11 @@
    173                                  
    174                                  draw_pic:          ; DI=offset, [BH,BL]=rows,cols
    175 000000A5 B800F0                    mov ax, RED
-   176 000000A8 E80D00                    call draw_channel
-   177                                    mov ax, GREEN
-   177          ******************       error: symbol `GREEN' not defined
-   178 000000AB E80A00                    call draw_channel
-   179                                    mov ax, BLUE
-   179          ******************       error: symbol `BLUE' not defined
-   180 000000AE E80700                    call draw_channel
+   176 000000A8 E80700                    call draw_channel
+   177                                    ; mov ax, GREEN
+   178 000000AB E80400                    call draw_channel
+   179                                    ; mov ax, BLUE
+   180 000000AE E80100                    call draw_channel
    181 000000B1 C3                        ret
    182                                  
    183                                  draw_channel: 

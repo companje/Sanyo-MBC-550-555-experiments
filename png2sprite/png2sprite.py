@@ -15,9 +15,13 @@ def save_sprite(img, filename):
     wd8 = w // 8
     hd4 = h // 4
 
+    print(f"width x height = {w} x {h}")
+
     bytes_data = bytearray(2 + 3 * whd8)
     bytes_data[0] = wd8  # cols
     bytes_data[1] = hd4  # rows
+
+    print(f"cols x rows = {wd8} x {hd4}")
 
     for y in range(h):
         for x in range(w):

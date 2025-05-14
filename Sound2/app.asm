@@ -1,11 +1,8 @@
 %include "sanyo.asm"
 
 setup:
-  mov dx,20 ; pitch (24=default)  loop delay
   mov si,sound
   mov cx,endsound-sound
-  call play
-  hlt
 
 play:
   lodsb
@@ -21,7 +18,7 @@ play:
 .sendbit:
   out 0x3A,al
   push cx
-  mov cx,dx
+  mov cx,20
 .wait: loop .wait
   pop cx
   pop ax
@@ -31,7 +28,7 @@ play:
   loop play
   ret
 
-%include "wonderful-days-1.inc"
+%include "inc/wonderful-days-1.inc"
 endsound:
 
 times (180*1024)-($-$$) db 0
