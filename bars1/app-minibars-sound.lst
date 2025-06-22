@@ -1,0 +1,103 @@
+     1                                  org 0
+     2                                  cpu 8086
+     3                                  COLS  equ 64
+     4                                  RED   equ 0xf000
+     5                                  GREEN equ 0x0800
+     6                                  BLUE  equ 0xf400
+     7                                  NUM equ 200*COLS
+     8                                  
+     9                                  setup:
+    10 00000000 0E                        push cs
+    11 00000001 1F                        pop ds
+    12                                  
+    13 00000002 B001                      mov al,1
+    14 00000004 E630                      out 0x30,al      ; set address
+    15 00000006 B040                      mov al,COLS      
+    16 00000008 E632                      out 0x32,al      ; set value
+    17                                    
+    18 0000000A BB0008                    mov bx,GREEN
+    19 0000000D 8EC3                      mov es,bx
+    20 0000000F BEC800                    mov si,200
+    21                                  
+    22                                  draw:
+    23                                  
+    24 00000012 89F8                      mov ax,di
+    25 00000014 D1E8<rep 2h>              times 2 shr ax,1
+    26 00000018 243F                      and al,0x3f
+    27                                  
+    28 0000001A D0E0<rep 4h>              times 4 shl al,1
+    29                                  
+    30 00000022 01E8                      add ax,bp
+    31                                    
+    32 00000024 D0E8<rep 5h>              times 5 shr al,1
+    33 0000002E BB[8400]                  mov bx,intensity12
+    34 00000031 D7                        xlat
+    35                                  
+    36 00000032 268805                    mov [es:di],al
+    37                                  
+    38 00000035 E63A                      out 0x3a,al
+    39                                  
+    40 00000037 01F7                      add di,si
+    41                                  
+    42 00000039 81FF0032                  cmp di,NUM
+    43 0000003D 72D3                      jb draw
+    44 0000003F 81EF0032                  sub di,NUM
+    45 00000043 45                        inc bp
+    46 00000044 81E5FF00                  and bp,255 ;254
+    47                                  
+    48 00000048 41                        inc cx
+    49 00000049 F7C1FF07                  test cx,2047
+    50 0000004D 75C3                      jnz draw
+    51                                    ; inc si
+    52                                    ; add si,13
+    53                                    ; and si,8191
+    54                                  
+    55                                  
+    56 0000004F E80500                    call clear_channel
+    57 00000052 E81300                    call next_channel
+    58                                  
+    59 00000055 EBBB                      jmp draw
+    60                                  
+    61                                  
+    62                                  clear_channel:
+    63 00000057 57                        push di
+    64 00000058 51                        push cx
+    65 00000059 50                        push ax
+    66 0000005A 31FF                      xor di,di
+    67 0000005C B90019                    mov cx,NUM/2
+    68 0000005F B80000                    mov ax,0
+    69 00000062 F3AB                      rep stosw
+    70 00000064 58                        pop ax
+    71 00000065 59                        pop cx
+    72 00000066 5F                        pop di
+    73 00000067 C3                        ret
+    74                                  
+    75                                  next_channel:
+    76 00000068 06                        push es
+    77 00000069 58                        pop ax
+    78                                    ; xor ax,0x400
+    79 0000006A 3D00F0                    cmp ax,RED
+    80 0000006D 7505                      jne .b
+    81 0000006F B80008                    mov ax,GREEN
+    82 00000072 EB0D                      jmp .c2
+    83                                  .b:
+    84 00000074 3D00F4                    cmp ax,BLUE
+    85 00000077 7405                      je .rd
+    86 00000079 B800F4                    mov ax,BLUE
+    87 0000007C EB03                      jmp .c2
+    88                                  .rd:
+    89 0000007E B800F0                    mov ax,RED
+    90                                  .c2:
+    91 00000081 50                        push ax
+    92 00000082 07                        pop es
+    93 00000083 C3                        ret
+    94                                  
+    95 00000084 FFFFFF0000000000FF-     intensity12: db -1,-1,-1,0,0,0,0,0,-1,-1,-1
+    95 0000008D FFFF               
+    96                                  ; intensity12: db -1,-1,-1,0x55,0,0,0,0x55,-1,-1,-1
+    97                                  
+    98                                  %assign num $-$$
+    99                                  %warning total num
+    99          ******************       warning: total 143 [-w+user]
+   100                                  
+   101 0000008F 00<rep 2CF71h>          times (180*1024)-num db  0                 ; fill up with zeros until file size=180k

@@ -1,13 +1,13 @@
 %include "sanyo.asm"
 
-PULSE_WIDTH equ 1 ; play duration per bit
+PULSE_WIDTH equ 5 ; play duration per bit
 SAMPLE_RATE equ 8000
 NUM_BEATS equ 16
 BITS_PER_BEAT equ SAMPLE_RATE / NUM_BEATS   ; how many bits to read from the sample per beat
-SONG_LEN equ NUM_BEATS * BITS_PER_BEAT
+SONG_LEN equ 12000 ;NUM_BEATS * BITS_PER_BEAT
 
 CH_1 equ music+0*SONG_LEN    ; binary sample data per channel is stored separately 
-CH_2 equ music+1*SONG_LEN    ; and mixed together in play function.
+CH_2 equ music+1*SONG_LEN   ; and mixed together in play function.
 CH_3 equ music+2*SONG_LEN
 CH_4 equ music+3*SONG_LEN
 
@@ -20,10 +20,15 @@ CH_4 equ music+3*SONG_LEN
 %endmacro
 
 channel1:
-  dw 0,strings
-  dw 4,strings
-  dw 8,strings
-  dw 12,strings
+  measure_beat_sample 1,1,hymn_voice_intro
+  ; measure_beat_sample 1,1,hymn_bass_intro
+  ; measure_beat_sample 2,1,hymn_bass_intro
+  ; measure_beat_sample 3,1,hymn_bass_intro
+
+  ; dw 0,strings
+  ; dw 4,strings
+  ; dw 8,strings
+  ; dw 12,strings
   ; dw 0,choirF5,1,choirF5,2,choirF5,3,choirF5
   ; dw 4,choirC5,5,choirC5,6,choirC5,7,choirC5
   ; dw 8,choirEs5,9,choirEs5,10,choirEs5,11,choirEs5
@@ -31,25 +36,36 @@ channel1:
 end_channel
 
 channel2:
-  dw 0,beat
-  ; dw 1,beat
-  dw 2,beat
-  ; dw 3,beat
-  dw 4,beat
-  ; dw 5,beat
-  dw 6,beat
-  dw 7,beat
-  dw 8,beat
-  ; dw 9,beat
-  dw 10,beat
-  ; dw 11,beat
-  dw 12,beat
-  ; dw 13,beat
-  dw 14,beat
-  dw 15,beat
+  measure_beat_sample 1,1,hymn_voice_intro
+
+  ; dw 0,strings
+  ; dw 4,strings
+  ; dw 8,strings
+  ; dw 12,strings
+
+  
 end_channel
 
 channel3:
+  measure_beat_sample 1,1,hymn_voice_intro
+
+; dw 0,beat
+;   ; dw 1,beat
+;   dw 2,beat
+;   ; dw 3,beat
+;   dw 4,beat
+;   ; dw 5,beat
+;   dw 6,beat
+;   dw 7,beat
+;   dw 8,beat
+;   ; dw 9,beat
+;   dw 10,beat
+;   ; dw 11,beat
+;   dw 12,beat
+;   ; dw 13,beat
+;   dw 14,beat
+;   dw 15,beat
+
   ; measure_beat_sample 1,1,hymn_bass_intro
   ; measure_beat_sample 2,1,hymn_bass_intro
   ; measure_beat_sample 3,1,hymn_bass_intro
@@ -58,7 +74,7 @@ end_channel
 
 channel4:
   measure_beat_sample 1,1,hymn_voice_intro
-  
+
 end_channel
 
 setup:
@@ -78,8 +94,9 @@ setup:
   mov bx,CH_4
   call load_channel
 
-update:
-  mov si,music
+; update:
+  ; mov si,music
+  
   mov cx,SONG_LEN  ; num bytes to play
   call play
   hlt
@@ -137,9 +154,6 @@ play:
   ; pop bx
 
 
-
-
-
   ; mov dl,[CH_3+bp]
   ; or al,dl
   ; mov dl,[CH_4+bp]
@@ -160,6 +174,8 @@ play:
   mov bx,ax
   mov ah,[bx]
   pop bx
+  ; mov ah,[CH_1+bp]
+
 
 .tdm_counter:
   inc byte [TDM]
@@ -178,17 +194,10 @@ play:
 
 
 
-; .tdm:
-;   dec byte [TDM]
-;   jns .end_tdm
-;   mov byte [TDM],4
-; .end_tdm:
-
-
-;   push cx
-;   mov cx,PULSE_WIDTH
-; .wait: loop .wait
-;   pop cx
+  push cx
+  mov cx,PULSE_WIDTH
+.wait: loop .wait
+  pop cx
 
 
   ; pop ax
@@ -197,16 +206,16 @@ play:
   jnz .nextbit
 
   inc bp
-  loop .nextbyte
+  loop .nextbyte  ; play until CX=0
   ret
 
 
 ; vocals: incbin "bin/vocals.bin"
 
-choirF5: incbin "bin/b37-choir-F5.bin" ; threshold=.06
-choirC5: incbin "bin/b37-choir-C5.bin" ; threshold=.06
-choirEs5: incbin "bin/b37-choir-Es5.bin" ; threshold=.06
-choirA5: incbin "bin/b37-choir-A5.bin" ; threshold=.06
+; choirF5: incbin "bin/b37-choir-F5.bin" ; threshold=.06
+; choirC5: incbin "bin/b37-choir-C5.bin" ; threshold=.06
+; choirEs5: incbin "bin/b37-choir-Es5.bin" ; threshold=.06
+; choirA5: incbin "bin/b37-choir-A5.bin" ; threshold=.06
 
 ; ; tone: incbin "bin/1khz.bin"
 ; ; tick: incbin "bin/tick.bin"
@@ -218,17 +227,19 @@ choirA5: incbin "bin/b37-choir-A5.bin" ; threshold=.06
 ; tone: incbin "bin/1khz.bin"
 ; drum: incbin "bin/risset.bin"
 
-bass: incbin "bin/falle-bass.bin"
+; bass: incbin "bin/falle-bass.bin"
 ; falle_vocals: incbin "bin/falle-vocals.bin"
 ; falle_clap: incbin "bin/falle-clap.bin"
 beat: incbin "bin/beat2.bin"
 
-hymn_voice_intro: incbin "bin/hymn_voice_intro.bin"
-hymn_bass_intro: incbin "bin/hymn_bass_intro.bin"
+hymn_voice_intro: incbin "bin/sanyo-boot-1.bin"
 
-bm_chord_square: incbin "bin/bm_chord_square2.bin"
-
+; hymn_voice_intro: incbin "bin/hymn_voice_intro.bin"
 strings: incbin "bin/strings-b-1-sq.bin"
+
+; hymn_bass_intro: incbin "bin/hymn_bass_intro.bin"
+; bm_chord_square: incbin "bin/bm_chord_square2.bin"
+
 
 ; strings1: incbin "bin/strings1.bin"
 ; strings2: incbin "bin/strings2.bin"

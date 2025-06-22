@@ -1,0 +1,340 @@
+     1                                  org 0
+     2                                  cpu 8086
+     3                                  
+     4                                  COLS  equ 72
+     5                                  TOP   equ 9*4*COLS+20*4    ; row=9,col=20
+     6                                  RED   equ 0xf000
+     7                                  GREEN equ 0x0800
+     8                                  BLUE  equ 0xf400
+     9                                  
+    10                                  effect_timeout equ 20      ; every 30 frames another effect
+    11                                  isqrt_table    equ 3000    ; available location in code segment
+    12                                  
+    13                                  ; using dx and bx registers as t,i,x,y variables
+    14                                  %define t dh
+    15                                  %define i dl
+    16                                  %define x bh
+    17                                  %define y bl
+    18                                  
+    19                                  setup:
+    20 00000000 0E                        push cs
+    21 00000001 1F                        pop ds
+    22                                  
+    23                                  draw:
+    24                                  
+    25 00000002 B80008                    mov ax,GREEN
+    26 00000005 8EC0                      mov es,ax
+    27 00000007 B90F00                    mov cx,15
+    28                                  .lp:
+    29                                  
+    30 0000000A 89C8                      mov ax,cx
+    31 0000000C 83E80F                    sub ax,15
+    32 0000000F E81E00                    call sin
+    33 00000012 89C3                      mov bx,ax
+    34                                  
+    35 00000014 89C8                      mov ax,cx
+    36 00000016 83E808                    sub ax,8
+    37 00000019 E81400                    call sin
+    38 0000001C D1E8                      shr ax,1
+    39 0000001E 89C2                      mov dx,ax
+    40                                    
+    41                                    ; mov bx,0
+    42                                    ; mov dx,cx
+    43                                  
+    44 00000020 81C32001                  add bx,288
+    45 00000024 83C228                    add dx,40
+    46                                  
+    47 00000027 E82300                    call calc_bit_for_pixel
+    48 0000002A 260815                    or [es:di], dl
+    49                                  
+    50 0000002D E2DB                      loop .lp
+    51                                  
+    52                                    ; mov si,img + 6*16
+    53                                    ; mov di,0
+    54                                    ; mov cx,4
+    55                                    ; rep movsw
+    56                                    ; add si,4
+    57                                  
+    58 0000002F F4                        hlt
+    59                                  
+    60                                  sin: ; sine function
+    61 00000030 E80900                      call wrap
+    62 00000033 53                          push bx
+    63 00000034 040F                        add al,15 ; sin(-15) = sin_table[0]
+    64 00000036 BB[9C00]                    mov bx,sin_table
+    65 00000039 D7                          xlat 
+    66 0000003A 5B                          pop bx
+    67 0000003B C3                          ret
+    68                                  
+    69                                  wrap: ; while (al>15) al-=15; while (al<-15) al+=15
+    70 0000003C 3C0F                        cmp al,15
+    71 0000003E 7F05                        jg .sub16
+    72 00000040 3CF1                        cmp al,-15
+    73 00000042 7C05                        jl .add16
+    74 00000044 C3                          ret
+    75                                    .sub16:
+    76 00000045 2C1F                        sub al,31
+    77 00000047 EBF3                        jmp wrap
+    78                                    .add16:
+    79 00000049 041F                        add al,31
+    80 0000004B EBEF                        jmp wrap
+    81                                  
+    82                                  
+    83                                  calc_bit_for_pixel:
+    84                                    ;input BX,DX = x,y
+    85                                    ;output DI = (y\4)*(4*COLS) + (y%4) + (x\8)*4
+    86                                    ;output DL = 2^(7-(x % 8))
+    87 0000004D 51                        push cx
+    88 0000004E 89D0                      mov ax,dx        ; y
+    89 00000050 31D2                      xor dx,dx        ; dx=0
+    90 00000052 B104                      mov cl,4         
+    91 00000054 F7F1                      div cx           ; ax=y/4, dx=y%4
+    92 00000056 89D7                      mov di,dx        ; vram offset (dx=y%4)
+    93 00000058 B92001                    mov cx,4*COLS    
+    94 0000005B F7E1                      mul cx           ; ax*=(4*COLS)
+    95 0000005D 01C7                      add di,ax        ; di+=ax
+    96 0000005F 89D8                      mov ax,bx        ; x
+    97 00000061 31D2                      xor dx,dx        ; dx=0
+    98 00000063 B90800                    mov cx,8         
+    99 00000066 F7F1                      div cx           ; 8 bits per col
+   100 00000068 B90200                    mov cx,2 
+   101 0000006B D3E0                      shl ax,cl        ; ax*=4       
+   102 0000006D 01C7                      add di,ax        ; di+=(x/8)*4
+   103 0000006F B080                      mov al,128       ; highest bit
+   104 00000071 88D1                      mov cl,dl        ; dl contains x%8
+   105 00000073 D2E8                      shr al,cl        ; shift right number of bits to the correct pixel in char
+   106 00000075 88C2                      mov dl,al
+   107 00000077 59                        pop cx
+   108 00000078 C3                        ret
+   109                                  
+   110                                  ; ───────────────────────────────────────────────────────────────────────────
+   111                                  
+   112                                  ; update_pix_in_channel:
+   113                                  ;   mov es,ax           ; color segment
+   114                                  ;   mov al,dl           ; DL contains active bit pattern
+   115                                  ;   test [color], dh    ; deze checkt of de gewenste kleur bevat en of deze pixel in dit kanaal dus aan of uit moet staan.
+   116                                  ;   jnz .on
+   117                                  ;   not al
+   118                                  ;   and [es:di],al
+   119                                  ;   jmp .done
+   120                                  ; .on
+   121                                  ;   or [es:di],al   ; turn on pixel
+   122                                  ; .done
+   123                                  ;   ret
+   124                                  
+   125                                  ; setpix: 
+   126                                  
+   127                                  ;   call calc_bit_for_pixel ; DI=byte for pixel, DL=bit for pixel in byte
+   128                                  
+   129                                  ;   mov ax,RED
+   130                                  ;   mov dh,Color.R
+   131                                  
+   132                                  ;   call update_pix_in_channel  ; dl is not affected
+   133                                  
+   134                                  ;   mov ax,GREEN
+   135                                  ;   mov dh,Color.G
+   136                                  ;   call update_pix_in_channel ; dl is not affected
+   137                                  
+   138                                  ;   mov ax,BLUE
+   139                                  ;   mov dh,Color.B
+   140                                  ;   call update_pix_in_channel ; dl is not affected
+   141                                  
+   142                                  ;   ret 
+   143                                  
+   144                                  
+   145                                  ; setpix: 
+   146                                  ;     ;bx,di = x,y
+   147                                  ;     ;dx:si = 3c00:0000
+   148                                  ;     ;si=(y//4)*(4*80))+(y%4)+(x//8)*4
+   149                                  ;     ;[si]|=2^(7-(x%8))
+   150                                  ;     mov ax,di
+   151                                  ;     xor dx,dx
+   152                                  ;     mov cl,4
+   153                                  ;     div cx
+   154                                  ;     mov si,dx
+   155                                  ;     mov cx,320
+   156                                  ;     mul cx
+   157                                  ;     add si,ax
+   158                                  ;     mov ax,bx
+   159                                  ;     mov cx,8
+   160                                  ;     div cx
+   161                                  ;     mov cx,2
+   162                                  ;     shl ax,cl
+   163                                  ;     add si,ax
+   164                                  ;     mov al,80
+   165                                  ;     mov cl,dl
+   166                                  ;     shr al,cl
+   167                                  ;     or [ds:si],dl
+   168                                  ;     ret
+   169                                  
+   170                                  crt_init:
+   171 00000079 31DB                      xor bx,bx
+   172                                    .lp:
+   173 0000007B 88D8                      mov al,bl
+   174 0000007D E630                      out 0x30,al           ; address / register select
+   175 0000007F 8A87[8C00]                mov al,[iosys+bx]
+   176 00000083 E632                      out 0x32,al           ; data
+   177 00000085 43                        inc bx
+   178 00000086 80FB0D                    cmp bl,13
+   179 00000089 75F0                      jne .lp
+   180 0000008B C3                        ret
+   181                                  
+   182 0000008C 705059484100323800-     iosys: db 0x70,0x50,0x59,0x48,0x41,0x00,0x32,0x38,0x00,0x03,0x00,0x00,0x00,0x00,0x00,0x00
+   182 00000095 03000000000000     
+   183                                  
+   184                                  ;   mov es,ax
+   185                                  ;   mov cx,16
+   186                                  ; .rows
+   187                                  ;   push cx
+   188                                  ;   mov ax,cx
+   189                                  ;   mov cx,576
+   190                                  ;   mul cx
+   191                                  ;   add ax,TOP
+   192                                  ;   mov di,ax
+   193                                  
+   194                                  ;   mov si,img
+   195                                  
+   196                                  ;   ; mov bx,5
+   197                                  ;   ; times 3 shr bx
+   198                                  ;   ; xlat
+   199                                  
+   200                                  
+   201                                  ;   mov cx,16*4
+   202                                  ;   rep movsw
+   203                                  
+   204                                  ;   ; mov di,ax
+   205                                  ;   ; add di,288
+   206                                  ;   ; mov si,img
+   207                                  ;   ; mov cx,16*4
+   208                                  ;   ; .lp
+   209                                  ;   ; rep movsw
+   210                                  ;   ; loop .lp
+   211                                  
+   212                                  ;   pop cx
+   213                                  
+   214                                  ;   loop .rows
+   215                                  ;   ret
+   216                                  
+   217                                  ; ------------------------
+   218                                  
+   219                                      ; mov di,TOP+576
+   220                                      ; mov si,img
+   221                                      ; mov cx,16*4
+   222                                      ; rep movsw
+   223                                  
+   224                                  
+   225                                      ; mov ds,ax
+   226                                      ; mov di,TOP+1*288
+   227                                      ; mov si,TOP
+   228                                      ; mov cx,16*2
+   229                                      ; .lp:
+   230                                      ; ; mov ax,-1
+   231                                      ; ; stosb
+   232                                      ; movsb
+   233                                      ; add si,3
+   234                                      ; add di,3
+   235                                      ; movsb
+   236                                  
+   237                                      ; mov cx,16*4
+   238                                  
+   239                                      ; mov ax,-1
+   240                                      ; rep stosw
+   241                                      ; mov al,[es:di-288+2]
+   242                                      ; stosb
+   243                                      ; mov al,[es:di-288+3]
+   244                                      ; stosb
+   245                                      ; ; mov al,[es:di-288-1]
+   246                                      ; mov al,0
+   247                                      ; stosb
+   248                                      ; mov al,0
+   249                                      ; stosb
+   250                                      ; stosw
+   251                                      ; loop .lp
+   252                                  
+   253                                  ;     hlt
+   254                                  
+   255                                  
+   256                                  ; fx2: ; y+t
+   257                                  ;     mov al,y
+   258                                  ;     add al,t
+   259                                  ;     ret
+   260                                  
+   261                                  ; fx3: ; y-t
+   262                                  ;     mov al,y
+   263                                  ;     sub al,t
+   264                                  ;     ret
+   265                                  
+   266                                  ; fx4: ; sin(x+y+t)
+   267                                  ;     mov al,x
+   268                                  ;     add al,y
+   269                                  ;     add al,t
+   270                                  ;     call sin
+   271                                  ;     ret
+   272                                  
+   273                                  ; fx5: ; bitmap_data[i+t]
+   274                                  ;     push bx
+   275                                  ;     mov al,i
+   276                                  ;     add al,t
+   277                                  ;     mov bx,bitmap_data
+   278                                  ;     xlat
+   279                                  ;     pop bx
+   280                                  ;     ret
+   281                                  
+   282                                  ; fx6: ; ((y-x)*-8)+t
+   283                                  ;     mov al,y
+   284                                  ;     sub al,x
+   285                                  ;     mov cl,-8
+   286                                  ;     mul cl
+   287                                  ;     ; call limit
+   288                                  ;     and al,15  
+   289                                      
+   290                                  ;     add al,t
+   291                                  ;     ret
+   292                                  
+   293                                  
+   294                                  
+   295                                  ; ; img:
+   296                                  ; ;   dw 0x0000,0x0000,0x0000,0x0000
+   297                                  ; ;   dw 0x0000,0x0100,0x0000,0x8000
+   298                                  ; ;   dw 0x0000,0x0300,0x0000,0xc000
+   299                                  ; ;   dw 0x0000,0x0301,0x0000,0xc080
+   300                                  ; ;   dw 0x0000,0x0703,0x0000,0xe0c0
+   301                                  ; ;   dw 0x0000,0x0f07,0x0000,0xf0e0
+   302                                  ; ;   dw 0x0300,0x1f0f,0xc000,0xf8f0
+   303                                  ; ;   dw 0x0700,0x3f1f,0xe000,0xfcf8
+   304                                  ; ;   dw 0x0f01,0x3f3f,0xf080,0xfcfc
+   305                                  ; ;   dw 0x1f03,0x3f3f,0xf8c0,0xfcfc
+   306                                  ; ;   dw 0x1f07,0x7f3f,0xf8e0,0xfefc
+   307                                  ; ;   dw 0x1f07,0x7f7f,0xf8e0,0xfefe
+   308                                  ; ;   dw 0x3f07,0x7f7f,0xfce0,0xfefe
+   309                                  ; ;   dw 0x3f0f,0x7f7f,0xfcf0,0xfefe
+   310                                  ; ;   dw 0x3f0f,0xff7f,0xfcf0,0xfffe
+   311                                  ; ;   dw 0x7f1f,0xffff,0xfef8,0xffff
+   312                                  
+   313                                  ;   ; wanneer ik de eerste 4 regels full width cirkels neem en die alleen verticaal spiegel
+   314                                  ;   ; kan ik in 124 bytes bitmap data (zonder de eerste) de dots inladen.
+   315                                  ;   ; nu is het 48 bytes aan data maar met veel code om te flippen enzo
+   316                                  
+   317                                  ;   ; wanneer ik het verticaal spiegelen helemaal aan het eind van elk frame doe kan het
+   318                                  ;   ; sneller en kleiner! want ik hoef dan maar 16x 3 beeldlijnen te kopieren met movsw+movsb
+   319                                  
+   320                                  ; fx_table:
+   321                                  ;     db fx2,fx3,fx4,fx5,fx6
+   322                                  
+   323                                     
+   324                                  sin_table: ;31 bytes, (input -15..15 index=0..31)
+   325 0000009C 00FDFAF7F5F3F1F1F1-         db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
+   325 000000A5 F1F3F5F7FAFD       
+   326 000000AB 000306090B0D0F0F0F-         db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
+   326 000000B4 0F0D0B09060300     
+   327                                  ;     ; tried to mirror the second line of the sine table with code 
+   328                                  ;     ; but would take a same of amount of bytes
+   329                                  
+   330                                  
+   331                                  %assign num $-$$
+   332                                  %warning total num
+   332          ******************       warning: total 187 [-w+user]
+   333                                  
+   334                                  bitmap_data:                          ; destination for 128 bytes rendered bitmap data
+   335                                  
+   336 000000BB 00<rep 2CF45h>          times (180*1024)-($-$$) db 0

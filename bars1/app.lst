@@ -1,0 +1,357 @@
+     1                                  org 0
+     2                                  ; cpu 8086
+     3                                  BITS 16
+     4                                  
+     5                                  COLS  equ 64
+     6                                  RED   equ 0xf000
+     7                                  GREEN equ 0x1c00
+     8                                  BLUE  equ 0xf400
+     9                                  NUM equ 200*COLS
+    10                                  
+    11                                  %define t dh
+    12                                  %define i dl
+    13                                  %define x bh
+    14                                  %define y bl
+    15                                  
+    16                                  %include "macros.asm"
+     1                              <1> %macro next_effect 0
+     2                              <1>   
+     3                              <1> %endmacro
+     4                              <1> 
+     5                              <1> %macro generate_sin_table 0
+     6                              <1>   push cs
+     7                              <1>   pop es
+     8                              <1>   mov di,sin_table
+     9                              <1>   xor ax,ax
+    10                              <1>   mov cx,255
+    11                              <1> .sin_loop:
+    12                              <1>   push ax
+    13                              <1>   push cx
+    14                              <1>   ; call sin
+    15                              <1>   mov cl,6
+    16                              <1>   mov dl,al        ; dl=angle 0..255
+    17                              <1>   shr dl,cl        ; angle/6 = quadrant 0..3
+    18                              <1>   mov dh,dl        ; dh=copy of quadrant
+    19                              <1>   and dh,1         ; dh=1 if quadrant is odd 1 or 3
+    20                              <1>   mov bl,dh        ; bl=dh
+    21                              <1>   shl bl,cl        ; r = bl<<6
+    22                              <1>   mov ch,dl        ; gt1
+    23                              <1>   shr ch,1
+    24                              <1>   sub bl,dh        ; s (0 of 63)
+    25                              <1>   and al,63        ; i
+    26                              <1>   xor al,bl        ; i^bl
+    27                              <1>   mov bx,qsin_table
+    28                              <1>   xlat
+    29                              <1>   neg ch
+    30                              <1>   xor al,ch
+    31                              <1>   neg ch,
+    32                              <1>   add al,ch
+    33                              <1>   add al,128
+    34                              <1>   ; end call sin
+    35                              <1>   stosb
+    36                              <1>   pop cx
+    37                              <1>   pop ax
+    38                              <1>   inc ax
+    39                              <1>   loop .sin_loop
+    40                              <1> %endmacro
+    17                                  
+    18 00000000 EB28                    jmp setup
+    19                                  
+    20 00000002 00                      offset: db 0
+    21 00000003 0100                    di_step: dw 1;  11 226; //160 ; increase step for di
+    22 00000005 01                      frame: db 1
+    23                                  ; effect: db 0
+    24 00000006 [0800]                  effect_ptr: dw fx_table
+    25 00000008 [B8][27][B8][27]-       fx_table: db fx0,fx1,fx0,fx1,fx0,fx1,fx0,fx1,fx0,fx1,fx0,fx1,fx0,fx1,fx0,fx1
+    25 0000000C [B8][27][B8][27]-  
+    25 00000010 [B8][27][B8][27]-  
+    25 00000014 [B8][27][B8][27]   
+    26                                  
+    27                                  ; intensity12: db -1, -1, -1, -1, 0, 0, 0,0, 0, 0, -1, -1, -1, -1 
+    28                                  ; intensity12: db -1, -1, -1, -1, 0x55, 34, 0,0, 34, 0x55, -1, -1, -1, -1 
+    29 00000018 00000000000000FFFF-     intensity12: db 0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1,-1,-1
+    29 00000021 FFFFFFFFFFFF       
+    30                                  
+    31                                  fx1:
+    32 00000027 88D8                      mov al,y
+    33                                    ; add al,y
+    34                                    ; add al,t
+    35 00000029 C3                        ret
+    36                                  
+    37                                  
+    38                                  setup:
+    39 0000002A 0E                        push cs
+    40 0000002B 1F                        pop ds
+    41 0000002C E87001                    call init_keyboard
+    42                                    generate_sin_table
+     6 0000002F 0E                  <1>  push cs
+     7 00000030 07                  <1>  pop es
+     8 00000031 BF[C401]            <1>  mov di,sin_table
+     9 00000034 31C0                <1>  xor ax,ax
+    10 00000036 B9FF00              <1>  mov cx,255
+    11                              <1> .sin_loop:
+    12 00000039 50                  <1>  push ax
+    13 0000003A 51                  <1>  push cx
+    14                              <1> 
+    15 0000003B B106                <1>  mov cl,6
+    16 0000003D 88C2                <1>  mov dl,al
+    17 0000003F D2EA                <1>  shr dl,cl
+    18 00000041 88D6                <1>  mov dh,dl
+    19 00000043 80E601              <1>  and dh,1
+    20 00000046 88F3                <1>  mov bl,dh
+    21 00000048 D2E3                <1>  shl bl,cl
+    22 0000004A 88D5                <1>  mov ch,dl
+    23 0000004C D0ED                <1>  shr ch,1
+    24 0000004E 28F3                <1>  sub bl,dh
+    25 00000050 243F                <1>  and al,63
+    26 00000052 30D8                <1>  xor al,bl
+    27 00000054 BB[4A01]            <1>  mov bx,qsin_table
+    28 00000057 D7                  <1>  xlat
+    29 00000058 F6DD                <1>  neg ch
+    30 0000005A 30E8                <1>  xor al,ch
+    31 0000005C F6DD                <1>  neg ch,
+    32 0000005E 00E8                <1>  add al,ch
+    33 00000060 0480                <1>  add al,128
+    34                              <1> 
+    35 00000062 AA                  <1>  stosb
+    36 00000063 59                  <1>  pop cx
+    37 00000064 58                  <1>  pop ax
+    38 00000065 40                  <1>  inc ax
+    39 00000066 E2D1                <1>  loop .sin_loop
+    43 00000068 E81F01                    call crt_setup
+    44 0000006B 31FF                      xor di,di
+    45                                    ; xor si,si
+    46 0000006D 31DB                      xor bx,bx
+    47 0000006F 31D2                      xor dx,dx
+    48 00000071 FEC6                      inc t
+    49                                  draw:
+    50                                  
+    51 00000073 E8B400                    call calc_xy
+    52                                  
+    53                                  
+    54                                    ; call fx1
+    55 00000076 B0FF                    mov al,255
+    56                                  ; xor al,y
+    57                                  
+    58                                  
+    59 00000078 B104                      mov cl,4
+    60 0000007A D2E8                      shr al,cl
+    61 0000007C 53                        push bx
+    62 0000007D BB[1800]                  mov bx,intensity12
+    63 00000080 D7                        xlat
+    64 00000081 5B                        pop bx
+    65                                    
+    66                                    
+    67 00000082 268805                    mov [es:di],al
+    68                                  
+    69                                  
+    70                                    ;update di (many times per frame)
+    71 00000085 A1[0300]                  mov ax,[di_step]
+    72 00000088 30E4                      xor ah,ah
+    73 0000008A 01C7                      add di,ax
+    74 0000008C 81FF0032                  cmp di,NUM
+    75 00000090 7C04                      jl .done1
+    76 00000092 81EF0032                  sub di,NUM
+    77                                  .done1:
+    78                                  
+    79                                  ;every x cycles increase the [frame] number
+    80 00000096 45                        inc bp
+    81 00000097 F7C5FF01                  test bp,511 ;1023  ; 8191
+    82 0000009B 7502                      jne .done2
+    83 0000009D FEC6                      inc t
+    84                                  .done2:
+    85                                  
+    86                                   
+    87                                  ;every x frame go the next effect
+    88 0000009F F6C67F                    test t,127 
+    89 000000A2 7512                      jnz .done3
+    90 000000A4 FEC6                      inc t
+    91 000000A6 FE06[0300]                inc byte [di_step]
+    92 000000AA A0[0300]                  mov al,[di_step]
+    93 000000AD A2[0200]                  mov [offset],al
+    94 000000B0 E86600                    call clear_channel
+    95 000000B3 E84700                    call next_channel
+    96                                  .done3:
+    97                                  
+    98                                  
+    99                                  ;   test t,63
+   100                                  ;   jnz .done4
+   101                                  ;   call clear_channel
+   102                                  ; .done4:
+   103                                  
+   104                                  
+   105                                    ; call check_keys
+   106                                    ; jne .done5
+   107                                    ; inc byte [di_step]
+   108                                  ; .done5:
+   109                                  
+   110                                  
+   111                                  
+   112 000000B6 EBBB                      jmp draw
+   113                                  
+   114                                  
+   115                                  %macro sin 0
+   116                                  ;   ; push bx
+   117                                  ;   ; mov bx,sin_table
+   118                                  ;   ; xlat
+   119                                  ;   ; pop bx
+   120                                    mov si,sin_table
+   121                                    add si,ax
+   122                                    lodsb
+   123                                  %endmacro
+   124                                  
+   125                                  ; sin:
+   126                                  ;   mov si,sin_table
+   127                                  ;   add si,ax
+   128                                  ;   lodsb
+   129                                  ;   ret
+   130                                  
+   131                                  
+   132                                  
+   133                                  fx0:
+   134 000000B8 30E4                      xor ah,ah
+   135 000000BA 88F8                      mov al,x
+   136 000000BC 0206[0200]<rep 4h>        times 4 add al,[offset]
+   137 000000CC D0E0                      shl al,1
+   138                                    
+   139                                    sin
+   116                              <1> 
+   117                              <1> 
+   118                              <1> 
+   119                              <1> 
+   120 000000CE BE[C401]            <1>  mov si,sin_table
+   121 000000D1 01C6                <1>  add si,ax
+   122 000000D3 AC                  <1>  lodsb
+   140                                  
+   141 000000D4 88C1                      mov cl,al
+   142 000000D6 88D8                      mov al,y
+   143 000000D8 0206[0200]                add al,[offset]
+   144 000000DC 0206[0200]<rep 4h>        times 4 add al,[offset]
+   145 000000EC D0E8                      shr al,1
+   146                                  
+   147                                    sin
+   116                              <1> 
+   117                              <1> 
+   118                              <1> 
+   119                              <1> 
+   120 000000EE BE[C401]            <1>  mov si,sin_table
+   121 000000F1 01C6                <1>  add si,ax
+   122 000000F3 AC                  <1>  lodsb
+   148                                  
+   149 000000F4 00C8                      add al,cl
+   150 000000F6 00F0                      times 1 add al,t
+   151 000000F8 B104                      mov cl,4
+   152 000000FA D2E8                      shr al,cl
+   153 000000FC C3                        ret
+   154                                  
+   155                                  
+   156                                  next_channel:
+   157 000000FD 06                        push es
+   158 000000FE 58                        pop ax
+   159                                    ; xor ax,0x400
+   160 000000FF 3D00F0                    cmp ax,RED
+   161 00000102 7505                      jne .b
+   162 00000104 B8001C                    mov ax,GREEN
+   163 00000107 EB0D                      jmp .c2
+   164                                  .b:
+   165 00000109 3D00F4                    cmp ax,BLUE
+   166 0000010C 7405                      je .rd
+   167 0000010E B800F4                    mov ax,BLUE
+   168 00000111 EB03                      jmp .c2
+   169                                  .rd:
+   170 00000113 B800F0                    mov ax,RED
+   171                                  .c2:
+   172 00000116 50                        push ax
+   173 00000117 07                        pop es
+   174 00000118 C3                        ret
+   175                                  
+   176                                  clear_channel:
+   177 00000119 57                        push di
+   178 0000011A 51                        push cx
+   179 0000011B 50                        push ax
+   180 0000011C 31FF                      xor di,di
+   181 0000011E B90019                    mov cx,NUM/2
+   182 00000121 B80000                    mov ax,0
+   183 00000124 F3AB                      rep stosw
+   184 00000126 58                        pop ax
+   185 00000127 59                        pop cx
+   186 00000128 5F                        pop di
+   187 00000129 C3                        ret
+   188                                  
+   189                                  calc_xy:
+   190 0000012A 89F8                      mov ax,di
+   191 0000012C D1E8<rep 2h>              times 2 shr ax,1
+   192 00000130 243F                      and al,0x3f
+   193 00000132 88C7                      mov x,al
+   194 00000134 89F8                      mov ax,di
+   195 00000136 B108                      mov cl,8    ; /255
+   196 00000138 D3E8                      shr ax,cl
+   197 0000013A B102                      mov cl,2    ; *4
+   198 0000013C D3E0                      shl ax,cl
+   199 0000013E 89C1                      mov cx,ax   ; keep copy of ax
+   200 00000140 89F8                      mov ax,di
+   201 00000142 83E003                    and ax,3
+   202 00000145 09C8                      or ax,cx    ; al now contains y 0..199
+   203 00000147 88C3                      mov y,al
+   204 00000149 C3                        ret
+   205                                  
+   206 0000014A 000306090C0F121518-     qsin_table: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   206 00000153 1B1E2124272A2D3033-
+   206 0000015C 36393B3E414346494B-
+   206 00000165 4E50525557595B5E60-
+   206 0000016E 62646667696B6C6E70-
+   206 00000177 71727475767778797A-
+   206 00000180 7B7B7C7D7D7E7E7E7E-
+   206 00000189 7E                 
+   207                                  
+   208                                  ; ------------------------------------
+   209                                  
+   210                                  crt_setup:
+   211 0000018A B001                      mov al,1
+   212 0000018C E630                      out 0x30,al      ; set address
+   213 0000018E B040                      mov al,COLS      
+   214 00000190 E632                      out 0x32,al      ; set value
+   215                                  
+   216 00000192 B8001C                    mov ax,GREEN
+   217 00000195 8EC0                      mov es,ax
+   218 00000197 E87FFF                    call clear_channel
+   219                                  
+   220 0000019A B005                      mov al, 5
+   221 0000019C E610                      out 10h, al 
+   222 0000019E C3                        ret
+   223                                  
+   224                                  init_keyboard:
+   225 0000019F B000                      mov al,0
+   226 000001A1 E63A                      out 0x3a,al           ; keyboard \force state/
+   227 000001A3 E63A                      out 0x3a,al           ; keyboard \force state/
+   228 000001A5 B0FF                      mov al,0xFF
+   229 000001A7 E63A                      out 0x3a,al           ; keyboard \reset/
+   230 000001A9 E63A                      out 0x3a,al           ; keyboard \mode/
+   231 000001AB B037                      mov al,0x37
+   232 000001AD E63A                      out 0x3a,al           ; keyboard \set command
+   233 000001AF C3                        ret
+   234                                  
+   235                                  check_keys:
+   236 000001B0 E43A                      in al,0x3a        ; get keyboard status
+   237 000001B2 88C4                      mov ah,al
+   238 000001B4 2408                      and al,0b00001000 ; keep only 1 for 'ctrl'
+   239                                    ; mov [cs:key.ctrl],al
+   240 000001B6 F6C402                    test ah,2         ; keypressed flag is in ah, not in al anymore
+   241 000001B9 7408                      jz .return
+   242 000001BB E438                      in al,0x38        ; get data byte from keyboard  
+   243                                    ; mov [cs:key.code],al
+   244 000001BD B037                      mov al,0x37
+   245 000001BF E63A                      out 0x3a,al       ; drop key?  
+   246 000001C1 0C01                      or al,1           ; set zero flag to false to indicate a keypress
+   247                                    ; mov ax,[cs:key]   ; ctrl status in ah, keycode in al, ZF low means a key was pressed
+   248 000001C3 C3                      .return ret
+   249                                  
+   250                                  
+   251                                  sin_table: 
+   252                                  
+   253                                  
+   254                                  %assign num $-$$
+   255                                  %warning total num
+   255          ******************       warning: total 452 [-w+user]
+   256                                  
+   257 000001C4 00<rep 2CE3Ch>          times (180*1024)-num db  0                 ; fill up with zeros until file size=180k

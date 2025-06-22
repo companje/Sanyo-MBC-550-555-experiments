@@ -1,0 +1,573 @@
+     1                                  COLS  equ 72
+     2                                  ROWS  equ 50
+     3                                  BYTES_PER_ROW equ 8*COLS  ; 25 lines
+     4                                  RED   equ 0xf000
+     5                                  GREEN equ 0xc000
+     6                                  BLUE  equ 0xf400
+     7                                  
+     8                                  %macro set_cursor 2
+     9                                    mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4   ; one based
+    10                                  %endmacro
+    11                                  
+    12                                  %macro crt_param 2
+    13                                    push ax
+    14                                    mov al,%1
+    15                                    out 0x30,al
+    16                                    mov al,%2
+    17                                    out 0x32,al
+    18                                    pop ax
+    19                                  %endmacro
+    20                                  
+    21 00000000 EB10                    jmp setup
+    22                                  
+    23                                  HOR_TOTAL equ 0
+    24                                  HOR_DISPL equ 1
+    25                                  HOR_SYNC  equ 2
+    26                                  SYNC_WIDTH equ 3
+    27                                  VERT_TOTAL equ 4
+    28                                  VERT_ADJ equ 5
+    29                                  VERT_DISPL equ 6
+    30                                  ILACE_SKEW equ 7
+    31                                  MAX_ADDR equ 8
+    32                                  CURS_START equ 9
+    33                                  
+    34 00000002 704859484100323800-     crt: db  112, 72, 89, 72, 65, 0, 50, 56, 0, 3, 0,0,0,0,0,0
+    34 0000000B 03000000000000     
+    35                                  ;         |   |   |   |   |   |  |   |   |  |__Cursor Start Raster
+    36                                  ;         |   |   |   |   |   |  |   |   |__Maximum Raster Address
+    37                                  ;         |   |   |   |   |   |  |   |__Interlace and Skew
+    38                                  ;         |   |   |   |   |   |  |__Vertical Displayed    
+    39                                  ;         |   |   |   |   |   |__Vertical Total Adjust     
+    40                                  ;         |   |   |   |   |__Vertical Total               
+    41                                  ;         |   |   |   |__Sync Width                       
+    42                                  ;         |   |   |__Horizontal Sync Position             
+    43                                  ;         |   |__Horizontal Displayed                      
+    44                                  ;         |__Horizontal Total                              
+    45                                  
+    46                                  
+    47                                  setup:
+    48 00000012 0E                        push cs
+    49 00000013 1F                        pop ds
+    50                                  
+    51 00000014 E86500                    call crt_init
+    52                                  
+    53                                    
+    54                                    crt_param HOR_DISPL,20
+    13 00000017 50                  <1>  push ax
+    14 00000018 B001                <1>  mov al,%1
+    15 0000001A E630                <1>  out 0x30,al
+    16 0000001C B014                <1>  mov al,%2
+    17 0000001E E632                <1>  out 0x32,al
+    18 00000020 58                  <1>  pop ax
+    55                                    crt_param VERT_DISPL,12
+    13 00000021 50                  <1>  push ax
+    14 00000022 B006                <1>  mov al,%1
+    15 00000024 E630                <1>  out 0x30,al
+    16 00000026 B00C                <1>  mov al,%2
+    17 00000028 E632                <1>  out 0x32,al
+    18 0000002A 58                  <1>  pop ax
+    56                                  
+    57                                  
+    58                                  
+    59 0000002B B88181                    mov ax,0b1000000110000001
+    60                                  
+    61                                  .lp:
+    62                                    ; push ds
+    63                                    ; push ax
+    64                                    ; mov ax,0xff00
+    65                                    ; mov ds,ax
+    66                                    ; pop ax
+    67                                    ;   mov si,8
+    68                                  
+    69                                    ; lodsw
+    70                                    ; hlt
+    71                                    ; pop ds
+    72                                  
+    73                                  
+    74                                    ; mov bx,RED
+    75                                    ; mov es,bx
+    76                                    ; mov di,0
+    77                                    ; mov cx,0x1000
+    78                                    ; rep stosw
+    79                                  
+    80 0000002E BB00C0                    mov bx,GREEN
+    81 00000031 8EC3                      mov es,bx
+    82 00000033 BF0000                    mov di,0
+    83 00000036 B90010                    mov cx,0x1000
+    84 00000039 F3AB                      rep stosw
+    85                                    
+    86 0000003B D1C0                      rol ax,1
+    87                                  
+    88 0000003D BB00F4                  mov bx,BLUE
+    89 00000040 8EC3                      mov es,bx
+    90 00000042 BF0000                    mov di,0
+    91                                    ; add di,8
+    92 00000045 B90010                    mov cx,0x1000
+    93 00000048 F3AB                      rep stosw
+    94                                  
+    95 0000004A D1C8                      ror ax,1
+    96                                  
+    97 0000004C BB00F0                  mov bx,RED
+    98 0000004F 8EC3                      mov es,bx
+    99 00000051 BF0000                    mov di,0
+   100                                    ; add di,4
+   101 00000054 B90010                    mov cx,0x1000
+   102 00000057 F3AB                      rep stosw
+   103                                  
+   104 00000059 D1C0                      rol ax,1
+   105                                  
+   106                                  
+   107 0000005B 50                        push ax
+   108 0000005C FEC2                      inc dl
+   109 0000005E 88D0                      mov al,dl
+   110 00000060 E87400                    call sin
+   111                                  
+   112                                    ; mov bx,sin_table
+   113                                    ; xlat 
+   114                                  
+   115                                  
+   116 00000063 88C6                      mov dh,al
+   117 00000065 80C628                    add dh,40
+   118                                  
+   119 00000068 58                        pop ax
+   120                                  
+   121                                    crt_param HOR_DISPL,dh
+    13 00000069 50                  <1>  push ax
+    14 0000006A B001                <1>  mov al,%1
+    15 0000006C E630                <1>  out 0x30,al
+    16 0000006E 88F0                <1>  mov al,%2
+    17 00000070 E632                <1>  out 0x32,al
+    18 00000072 58                  <1>  pop ax
+   122                                  
+   123                                  
+   124                                    ; and dl,31
+   125                                  
+   126                                    ; mov bx,BLUE
+   127                                    ; mov es,bx
+   128                                    ; mov di,2
+   129                                    ; mov cx,0x1000
+   130                                    ; rep stosw
+   131                                    ; rol ax,1
+   132                                  
+   133                                    ; crt_param 1,dl
+   134                                    ; crt_param 6,dl
+   135                                    ; crt_param 1,dl
+   136                                  ;   inc dl
+   137                                  ;   and dl,127
+   138                                  ; or dl,7
+   139 00000073 B98813                    mov cx,5000
+   140                                    .w:
+   141 00000076 90                        nop
+   142 00000077 E2FD                      loop .w
+   143                                  
+   144                                    ; neg ax
+   145 00000079 EBB3                      jmp .lp
+   146                                  
+   147                                  
+   148                                    ; mov ax,BLUE
+   149                                    ; mov es,ax
+   150                                    ; mov di,0
+   151                                    ; mov ax,0b1010101010101010
+   152                                    ; times 5 stosw
+   153                                  
+   154                                  
+   155                                  
+   156                                  
+   157                                  ;   mov cx,80
+   158                                  ; .lp2:
+   159                                  ;   mov al,6
+   160                                  ;   out 0x30,al
+   161                                  ;   mov al,cl
+   162                                  ;   out 0x32,al
+   163                                  ;   loop .lp2
+   164                                  
+   165                                    ; push cx
+   166                                    ; mov cx,1000
+   167                                    ; .wait: 
+   168                                    ; aam 
+   169                                    ; loop .wait
+   170                                    ; pop cx
+   171                                    ; loop change
+   172                                    ; jmp xx
+   173                                  
+   174 0000007B F4                        hlt
+   175                                    
+   176                                  crt_init:
+   177 0000007C 31DB                      xor bx,bx
+   178                                    .lp:
+   179 0000007E 88D8                      mov al,bl
+   180 00000080 E630                      out 0x30,al           ; address / register select
+   181 00000082 8A87[0200]                mov al,[crt+bx]
+   182 00000086 E632                      out 0x32,al           ; data
+   183 00000088 43                        inc bx
+   184 00000089 80FB0D                    cmp bl,13
+   185 0000008C 75F0                      jne .lp
+   186 0000008E C3                        ret
+   187                                  
+   188                                  ;   mov cx,5
+   189                                  
+   190                                  ; .lp:
+   191                                  ;   mov si,slash
+   192                                  ;   or di,di
+   193                                  ;   jp .cont
+   194                                  ;   mov si,backslash
+   195                                  ; .cont:
+   196                                  ;   call draw_spr
+   197                                  
+   198                                  ;   add di,4*4
+   199                                  
+   200                                  ;   inc bl
+   201                                  ;   cmp bl,5
+   202                                  ;   jne .lp
+   203                                  
+   204                                  ;   xor bl,bl
+   205                                  ;   add di,4*4*72
+   206                                    
+   207                                  
+   208                                    ; test di,
+   209                                  ;   jz .lp
+   210                                  ; add di,72*4*4
+   211                                  
+   212 0000008F E2ED                      loop .lp
+   213                                  
+   214                                  
+   215                                    ; inc bl
+   216                                    ; cmp bl,15
+   217                                    ; jl .lp
+   218                                    ; inc bh
+   219                                    ; cmp bh,15
+   220                                    ; jl .lp
+   221                                  
+   222                                  
+   223                                    
+   224                                    ; push dx
+   225                                    ; mov al,dl                ; al=index
+   226                                    ; xor ah,ah               ; ah=0
+   227                                    ; mov cl,16
+   228                                    ; div cl                  ; calculate x and y from i
+   229                                    ; xchg ax,bx              ; bh=x, bl=y
+   230                                    ; pop dx
+   231                                  
+   232                                  
+   233 00000091 F4                        hlt
+   234                                  
+   235                                  
+   236                                    
+   237                                  
+   238                                  
+   239                                    ; loop .lp
+   240                                  
+   241                                    ; grid4x4 0,0
+   242                                    ; mov si,slash
+   243                                    ; call draw_spr
+   244                                  
+   245                                    ; grid4x4 1,0
+   246                                    ; mov si,backslash
+   247                                    ; call draw_spr
+   248                                  
+   249                                    ; grid4x4 1,1
+   250                                    ; mov si,backslash
+   251                                    ; call draw_spr
+   252                                  
+   253                                  
+   254                                  
+   255 00000092 F4                        hlt
+   256                                  
+   257                                  draw_spr:
+   258 00000093 53                        push bx
+   259 00000094 8B1C                      mov bx,[si]
+   260 00000096 46                        inc si
+   261 00000097 46                        inc si
+   262 00000098 E80200                    call draw_pic
+   263 0000009B 5B                        pop bx
+   264 0000009C C3                        ret
+   265                                  
+   266                                  draw_pic:
+   267 0000009D 50                        push ax
+   268 0000009E B800F0                    mov ax, RED
+   269 000000A1 E80E00                    call draw_channel
+   270 000000A4 B800C0                    mov ax, GREEN
+   271 000000A7 E80800                    call draw_channel
+   272 000000AA B800F4                    mov ax, BLUE
+   273 000000AD E80200                    call draw_channel
+   274 000000B0 58                        pop ax
+   275 000000B1 C3                        ret
+   276                                  
+   277                                  ; ───────────────────────────────────────────────────────────────────────────
+   278                                  
+   279                                  draw_channel:
+   280 000000B2 51                        push cx
+   281 000000B3 57                        push di
+   282 000000B4 8EC0                      mov es,ax
+   283 000000B6 31C9                      xor cx,cx
+   284 000000B8 88F9                      mov cl,bh        ; rows (bl)
+   285                                  .rows_loop:
+   286 000000BA 51                        push cx
+   287 000000BB 31C9                      xor cx,cx
+   288 000000BD 88D9                      mov cl,bl        ; cols (bh)
+   289                                  .cols_loop:
+   290 000000BF A5                        movsw
+   291 000000C0 A5                        movsw
+   292 000000C1 E2FC                      loop .cols_loop
+   293 000000C3 81C72001                  add di,COLS*4    ; one row down
+   294 000000C7 B400                      mov ah,0
+   295 000000C9 88D8                      mov al,bl
+   296 000000CB D1E0<rep 2h>              times 2 shl ax,1
+   297 000000CF 29C7                      sub di,ax       ; di-=4*bh   ; bh cols to the left on the new row
+   298 000000D1 59                        pop cx
+   299 000000D2 E2E6                      loop .rows_loop
+   300 000000D4 5F                        pop di
+   301 000000D5 59                        pop cx
+   302 000000D6 C3                        ret
+   303                                  
+   304                                  
+   305                                  ; crt_init:
+   306                                  ;   xor bx,bx
+   307                                  ;   .lp:
+   308                                  ;   mov al,bl
+   309                                  ;   out 0x30,al           ; address / register select
+   310                                  ;   mov al,[iosys+bx]
+   311                                  ;   out 0x32,al           ; data
+   312                                  ;   inc bx
+   313                                  ;   cmp bl,13
+   314                                  ;   jne .lp
+   315                                  
+   316                                  
+   317                                  ;   call clear_pages
+   318                                  
+   319                                  ;   xor t,t
+   320                                  
+   321                                  ;   ; mov ax,0x0c00
+   322                                  ;   ; mov bx,1
+   323                                  ;   ; call draw_frame
+   324                                    
+   325                                    
+   326                                  
+   327                                  ;   ; mov ax,0x2c00
+   328                                  ;   ; mov bx,0
+   329                                  ;   ; call draw_frame
+   330                                  
+   331                                  ;   ; mov ax,0x3c00
+   332                                  ;   ; mov bx,0
+   333                                  ;   ; call draw_frame
+   334                                  
+   335                                  
+   336                                  ; switch:  
+   337                                  ;   mov ax,0x1c00
+   338                                  ;   mov bx,0b01010101
+   339                                  ;   call draw_frame
+   340                                  
+   341                                  ;   mov al,5
+   342                                  ;   out 0x10,al
+   343                                  ;   call delay
+   344                                  
+   345                                  
+   346                                  ;   mov ax,0x0800
+   347                                  ;   mov bx,-1
+   348                                  ;   call draw_frame
+   349                                  
+   350                                  ;   mov al,4
+   351                                  ;   out 0x10,al
+   352                                  ;   call delay
+   353                                  
+   354                                  ;   ; mov cx,500
+   355                                  ;   ; mov ax,0xf400
+   356                                  ;   ; mov es,ax
+   357                                  ;   ; xor di,di
+   358                                  ;   ; mov ax,-1
+   359                                  ;   ; rep movsw
+   360                                  
+   361                                  ;   ; mov cx,500
+   362                                  ;   ; mov ax,0xf000
+   363                                  ;   ; mov es,ax
+   364                                  ;   ; xor di,di
+   365                                  ;   ; mov ax,0x7f
+   366                                  ;   ; rep movsw
+   367                                  
+   368                                  ;   jmp switch
+   369                                  
+   370                                  ;   hlt
+   371                                  
+   372                                  ; delay:
+   373                                  ;   mov cx,5000
+   374                                  ;   .delay: 
+   375                                  ;   ; aam
+   376                                  ;   loop .delay
+   377                                  ;   ret
+   378                                  
+   379                                  ; fx0:
+   380                                  ;   mov al,x
+   381                                  ;   mul y
+   382                                  ;   add al,t
+   383                                  ;   ; add al,t
+   384                                  ;   ; call sin
+   385                                  
+   386                                  ;   ; mov dl,al
+   387                                  ;   ; mov al,y
+   388                                  ;   ; ; shr al,1
+   389                                  ;   ; ; shr al,1
+   390                                  ;   ; add al,t
+   391                                  ;   ; call sin
+   392                                  ;   ; add al,dl
+   393                                  
+   394                                  ;   ; mov dl,al
+   395                                  ;   ; sub al,t
+   396                                  
+   397                                  ;   ret
+   398                                  
+   399                                  ; draw_frame:
+   400                                  ;   xor i,i
+   401                                  ;   mov es,ax
+   402                                  ;   mov di,TOPLEFT
+   403                                  ;   mov ax,-1
+   404                                  ;   xor bx,bx   ; bh=y, bl=x  [0..49]
+   405                                  ;   mov cx,50 ; rows
+   406                                  ; .row:
+   407                                  ;   push cx
+   408                                  ;   mov cx,50
+   409                                  ;   xor x,x
+   410                                  ; .col:
+   411                                  ;   call fx0
+   412                                  
+   413                                  ;   and ax,7
+   414                                  ;   shl al,1
+   415                                  ;   shl al,1
+   416                                  ;   add ax,intensity
+   417                                  ;   mov si,ax
+   418                                  ;   movsw
+   419                                  ;   movsw
+   420                                  
+   421                                  ;   inc i
+   422                                  ;   inc x
+   423                                  ;   loop .col
+   424                                  ;   pop cx
+   425                                  ;   add di,2*4*HSPACE
+   426                                  ;   inc y
+   427                                  ;   loop .row
+   428                                  ;   inc t
+   429                                  
+   430                                  ;   ret
+   431                                  
+   432                                  ; clear_pages:
+   433                                  ;   mov ax,0x0800
+   434                                  ;   call clear_page
+   435                                  ;   ; mov ax,0x0c00
+   436                                  ;   ; call clear_page
+   437                                  ;   mov ax,0x1c00
+   438                                  ;   call clear_page
+   439                                  ;   ; mov ax,0x2c00
+   440                                  ;   ; call clear_page
+   441                                  ;   ; mov ax,0x3c00
+   442                                  ;   ; call clear_page
+   443                                  ;   ret
+   444                                  
+   445                                  ; clear_page:
+   446                                  ;   mov es,ax
+   447                                  ;   xor di,di
+   448                                  ;   mov ax,0
+   449                                  ;   mov cx,8000
+   450                                  ;   rep stosw
+   451                                  ;   ret
+   452                                  
+   453                                  
+   454                                  sin: ; sine function
+   455 000000D7 E80900                      call wrap
+   456 000000DA 53                          push bx
+   457 000000DB 040F                        add al,15 ; sin(-15) = sin_table[0]
+   458 000000DD BB[2201]                    mov bx,sin_table
+   459 000000E0 D7                          xlat 
+   460 000000E1 5B                          pop bx
+   461 000000E2 C3                          ret
+   462                                  
+   463                                  wrap: ; while (al>15) al-=15; while (al<-15) al+=15
+   464 000000E3 3C0F                        cmp al,15
+   465 000000E5 7F05                        jg .sub16
+   466 000000E7 3CF1                        cmp al,-15
+   467 000000E9 7C05                        jl .add16
+   468 000000EB C3                          ret
+   469                                    .sub16:
+   470 000000EC 2C1F                        sub al,31
+   471 000000EE EBF3                        jmp wrap
+   472                                    .add16:
+   473 000000F0 041F                        add al,31
+   474 000000F2 EBEF                        jmp wrap
+   475                                  
+   476                                  limit: ; if (al>15) al=15; else if (al<-15) al=-15;
+   477 000000F4 3C0F                        cmp al,15
+   478 000000F6 7F07                        jg .pos16
+   479 000000F8 3CF1                        cmp al,-15
+   480 000000FA 7D05                        jnl .ret
+   481 000000FC B0F1                        mov al,-15
+   482 000000FE C3                          ret
+   483                                    .pos16:
+   484 000000FF B00F                        mov al,15
+   485                                    .ret:
+   486 00000101 C3                          ret
+   487                                  
+   488                                  ; calc_isqrt_xx_yy: ; isqrt_table[i] = sqrt(x^2+y^2)
+   489                                  ;     push dx
+   490                                  ;     push di
+   491                                  ;     mov di,isqrt_table      ; di=isqrt_table[0]
+   492                                  ;     add di,dx               ; di+=i
+   493                                  ;     mov al,x
+   494                                  ;     inc al
+   495                                  ;     mul al                  ; x*x
+   496                                  ;     xchg ax,cx
+   497                                  ;     mov al,y
+   498                                  ;     inc al
+   499                                  ;     mul al                  ; y*y
+   500                                  ;     add ax,cx               ; + 
+   501                                  ;   .isqrt:  ; while((L+1)^2<=y) L++; return L
+   502                                  ;     xchg cx,ax              ; cx=y
+   503                                  ;     xor ax,ax               ; ax=L=0
+   504                                  ;   .loop:
+   505                                  ;     inc ax
+   506                                  ;     push ax
+   507                                  ;     mul ax
+   508                                  ;     cmp ax,cx
+   509                                  ;     pop ax
+   510                                  ;     jl .loop
+   511                                  ;     dec ax
+   512                                  ;   .end_isqrt:
+   513                                  ;     mov [di],al             ; store al
+   514                                  ;     pop di
+   515                                  ;     pop dx
+   516                                  ;     ret
+   517                                  
+   518                                  ; ; https://cpctech.cpcwiki.de/docs/hd6845s/hd6845sp.htm
+   519                                  ; iosys: db 0x70,0x50,0x59,0x48,0x41,0x00,0x32,0x38,0x00,0x03,0,0,0,0,0,0
+   520                                  
+   521                                  ; crt80: db 0x65,0x50,0x53,0x48,0x69,0x02,0x64,0x64,0x00,0x03,0,0,0,0,0,0
+   522                                  ; crt72: db 0x70,0x48,0x55,0x4A,0x41,0x00,0x32,0x38,0x00,0x03,0,0,0,0,0,0
+   523                                  ; ;           |    |    |    |    |    |    |    |    |    |__Cursor Start Raster Register (R10) (3 / 3)
+   524                                  ; ;           |    |    |    |    |    |    |    |    |__Maximum Raster Address Register    (R9) (0 / 0)
+   525                                  ; ;           |    |    |    |    |    |    |    |__Interlace and Skew Register (R8)   (0x64=100 / 0x38=56)   
+   526                                  ; ;           |    |    |    |    |    |    |__Vertical Displayed Register      (R6) V:(0x64=100 / 0x32=50)
+   527                                  ; ;           |    |    |    |    |    |__Vertical Total Adjust Register        (R5) V:(0x02=2   / 0x00=0)
+   528                                  ; ;           |    |    |    |    |__Vertical Total Register                    (R4) V:(0x41=65  / 0x69=105)
+   529                                  ; ;           |    |    |    |__Sync Width Register                             (R3)   (0x48=72  / 0x4a=74)
+   530                                  ; ;           |    |    |__Horizontal Sync Position Register                    (R2) H:(0x53=83  / 0x55=85)
+   531                                  ; ;           |    |__Horizontal Displayed Register                             (R1) H:(0x48=72  / 0x50=80)
+   532                                  ; ;           |__Horizontal Total Register                                      (R0) H:(0x65=101 / 0x70=112)
+   533                                                
+   534 00000102 0000000088002200AA-     intensity: db 0,0,0,0,136,0,34,0,170,0,170,0,170,17,170,68,170,85,170,85,85,238,85,187,119,255,221,255,255,255,255,255
+   534 0000010B 00AA00AA11AA44AA55-
+   534 00000114 AA5555EE55BB77FFDD-
+   534 0000011D FFFFFFFFFF         
+   535                                  
+   536                                  sin_table: ;31 bytes, (output -15..15 index=0..31)
+   537 00000122 00FDFAF7F5F3F1F1F1-         db 0,-3,-6,-9,-11,-13,-15,-15,-15,-15,-13,-11,-9,-6,-3,
+   537 0000012B F1F3F5F7FAFD       
+   538 00000131 000306090B0D0F0F0F-         db 0, 3, 6, 9, 11, 13, 15, 15, 15, 15, 13, 11, 9, 6, 3,0  
+   538 0000013A 0F0D0B09060300     
+   539                                  
+   540                                  ; db 0,0,1,1,2,3,3,4,5,5,6,7,7,8,8,9,10,10,11,12,12,13,13,14,15,15,16,17,17,18,18,19,20,20,21,21,22,23,23,24,24,25,26,26,27,27,28,28,29,30,30,31,31,32,32,33,33,34,35,35,36,36,37,37,38,38,39,39,40,40,41,41,42,42,43,43,44,44,45,45,45,46,46,47,47,48,48,48,49,49,50,50,50,51,51,52,52,52,53,53,53,54,54,54,55,55,55,56,56,56,57,57,57,57,58,58,58,58,59,59,59,59,60,60,60,60,60,61,61,61,61,61,61,62,62,62,62,62,62,62,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,63,62,62,62,62,62,62,62,62,61,61,61,61,61,60,60,60,60,60,59,59,59,59,58,58,58,58,57,57,57,57,56,56,56,55,55,55,54,54,54,53,53,53,52,52,52,51,51,50,50,50,49,49,48,48,48,47,47,46,46,45,45,45,44,44,43,43,42,42,41,41,40,40,39,39,38,38,37,37,36,36,35,35,34,34,33,32,32,31,31,30,30,29,29,28,27,27,26,26,25,25,24,23,23,22,22,21,20,20,19,19,18,17,17,16,15,15,14,14,13,12,12,11,10,10,9,9,8,7,7,6,5,5,4,3,3,2,2,1,0,0,0,-1,-1,-2,-3,-3,-4,-5,-5,-6,-6,-7,-8,-8,-9,-10,-10,-11,-11,-12,-13,-13,-14,-15,-15,-16,-16,-17,-18,-1...
+   541                                  
+   542                                  ; slash: incbin "data/slash.spr"
+   543                                  ; backslash: incbin "data/backslash.spr"
+   544                                           
+   545                                  %assign num $-$$
+   546                                  %warning total num
+   546          ******************       warning: total 321 [-w+user]
+   547                                     
+   548 00000141 00<rep 2CEBFh>          times (180*1024)-($-$$) db 0

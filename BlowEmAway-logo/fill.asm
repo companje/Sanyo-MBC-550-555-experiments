@@ -25,19 +25,17 @@ fill_pink2:
   ret
 
 fill_pink3:
-  mov ax,0xffff
+  mov ah,0b1111111111111111
   call fill_red
-  mov ah,0b00010001
-  mov al,0b01000100
+  mov ah,0b0001000101000100
   call fill_green
   call fill_blue
   ret
 
 fill_pink4:
-  mov ax,0xffff
+  mov ax,0b1111111111111111
   call fill_red
-  mov ah,0b11110111
-  mov al,0b01111111
+  mov ax,0b1111011101111111
   call fill_green
   call fill_blue
   ret

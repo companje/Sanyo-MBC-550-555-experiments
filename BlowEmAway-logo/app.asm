@@ -1,6 +1,11 @@
 %include "sanyo.asm"
-
+%include "fill.asm"
 setup:
+
+call fill_pink4
+
+hlt
+
   call draw_logo
 
   set_cursor 20,33

@@ -15,6 +15,9 @@ void init() {
   int shape[] = {10, 0, 11, 0, 12, 0, 10, 1, 11, 2};
   for (int i=0; i<shape.length; i+=2)
     setDot(shape[i], shape[i+1], true);
+
+  for (int i=0; i<400; i++)
+    setDot(int(random(80)), int(random(25)), true);
 }
 
 void setDot(int x, int y, boolean c) {
@@ -36,7 +39,7 @@ int countNeighbours(int x, int y) {
   for (int[] b : nb) {
     int xx = (x+b[0]+COLS) % COLS;
     int yy = (y+b[1]+ROWS) % ROWS;
-    if (getDot(xx,yy)) n++;
+    if (getDot(xx, yy)) n++;
   }
   return n;
 }

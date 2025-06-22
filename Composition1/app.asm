@@ -209,7 +209,7 @@ play:
   out 0x3A,al         ; bit 3 (byte value 8 or 0) = break bit on keyboard
   
   push cx
-  mov cx,20           ; pulse width
+  mov cx,15           ; pulse width
 .wait: loop .wait
   pop cx
   ; times 10 nop
@@ -279,8 +279,9 @@ colors: dw RED,GREEN,BLUE
 sound: 
 ; %include "bin/wonderful-days-1.inc"
 ; incbin "bin/wdays-vocals.bin"
-incbin "bin/8088mph4-8k.bin"
+; incbin "bin/8088mph4-8k.bin"
 ; incbin "bin/beat2.bin"
+incbin "bin/Cyber Dreams.bin"
 
 ; sound: incbin "bin/falle-vocals.bin"
 ; sound: incbin "bin/reverb-pitch.bin" ; vocals

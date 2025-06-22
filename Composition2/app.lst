@@ -440,7 +440,7 @@
    356                              <1>   set_cursor 1,1 ; nodig?
     43                              <2> 
     44 00000191 BF0000              <2>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
-   357 00000194 E9FA01              <1>   jmp setup
+   357 00000194 E9CE01              <1>   jmp setup
    358                              <1> 
    359                              <1> ; ───────────────────────────────────────────────────────────────────────────
    360                              <1> 
@@ -854,14 +854,14 @@
    768 00000343 1000                <1> .base dw 16
    769                              <1> 
      2                                  
-     3                                  PULSE_WIDTH equ 1 ; play duration per bit
+     3                                  PULSE_WIDTH equ 5 ; play duration per bit
      4                                  SAMPLE_RATE equ 8000
      5                                  NUM_BEATS equ 16
      6                                  BITS_PER_BEAT equ SAMPLE_RATE / NUM_BEATS   ; how many bits to read from the sample per beat
-     7                                  SONG_LEN equ NUM_BEATS * BITS_PER_BEAT
+     7                                  SONG_LEN equ 12000 ;NUM_BEATS * BITS_PER_BEAT
      8                                  
      9                                  CH_1 equ music+0*SONG_LEN    ; binary sample data per channel is stored separately 
-    10                                  CH_2 equ music+1*SONG_LEN    ; and mixed together in play function.
+    10                                  CH_2 equ music+1*SONG_LEN   ; and mixed together in play function.
     11                                  CH_3 equ music+2*SONG_LEN
     12                                  CH_4 equ music+3*SONG_LEN
     13                                  
@@ -874,377 +874,391 @@
     20                                  %endmacro
     21                                  
     22                                  channel1:
-    23 00000345 0000[C26A]                dw 0,strings
-    24 00000349 0400[C26A]                dw 4,strings
-    25 0000034D 0800[C26A]                dw 8,strings
-    26 00000351 0C00[C26A]                dw 12,strings
-    27                                    ; dw 0,choirF5,1,choirF5,2,choirF5,3,choirF5
-    28                                    ; dw 4,choirC5,5,choirC5,6,choirC5,7,choirC5
-    29                                    ; dw 8,choirEs5,9,choirEs5,10,choirEs5,11,choirEs5
-    30                                    ; dw 12,choirA5,13,choirA5,14,choirA5,15,choirA5
-    31                                  end_channel
-    19 00000355 00000000            <1>  dw 0,0
-    32                                  
-    33                                  channel2:
-    34 00000359 0000[1F27]                dw 0,beat
-    35                                    ; dw 1,beat
-    36 0000035D 0200[1F27]                dw 2,beat
-    37                                    ; dw 3,beat
-    38 00000361 0400[1F27]                dw 4,beat
-    39                                    ; dw 5,beat
-    40 00000365 0600[1F27]                dw 6,beat
-    41 00000369 0700[1F27]                dw 7,beat
-    42 0000036D 0800[1F27]                dw 8,beat
-    43                                    ; dw 9,beat
-    44 00000371 0A00[1F27]                dw 10,beat
-    45                                    ; dw 11,beat
-    46 00000375 0C00[1F27]                dw 12,beat
-    47                                    ; dw 13,beat
-    48 00000379 0E00[1F27]                dw 14,beat
-    49 0000037D 0F00[1F27]                dw 15,beat
-    50                                  end_channel
-    19 00000381 00000000            <1>  dw 0,0
+    23                                    measure_beat_sample 1,1,hymn_voice_intro
+    15 00000345 0000[5905]          <1>  dw (%1-1)*4+(%2-1), %3
+    24                                    ; measure_beat_sample 1,1,hymn_bass_intro
+    25                                    ; measure_beat_sample 2,1,hymn_bass_intro
+    26                                    ; measure_beat_sample 3,1,hymn_bass_intro
+    27                                  
+    28                                    ; dw 0,strings
+    29                                    ; dw 4,strings
+    30                                    ; dw 8,strings
+    31                                    ; dw 12,strings
+    32                                    ; dw 0,choirF5,1,choirF5,2,choirF5,3,choirF5
+    33                                    ; dw 4,choirC5,5,choirC5,6,choirC5,7,choirC5
+    34                                    ; dw 8,choirEs5,9,choirEs5,10,choirEs5,11,choirEs5
+    35                                    ; dw 12,choirA5,13,choirA5,14,choirA5,15,choirA5
+    36                                  end_channel
+    19 00000349 00000000            <1>  dw 0,0
+    37                                  
+    38                                  channel2:
+    39                                    measure_beat_sample 1,1,hymn_voice_intro
+    15 0000034D 0000[5905]          <1>  dw (%1-1)*4+(%2-1), %3
+    40                                  
+    41                                    ; dw 0,strings
+    42                                    ; dw 4,strings
+    43                                    ; dw 8,strings
+    44                                    ; dw 12,strings
+    45                                  
+    46                                    
+    47                                  end_channel
+    19 00000351 00000000            <1>  dw 0,0
+    48                                  
+    49                                  channel3:
+    50                                    measure_beat_sample 1,1,hymn_voice_intro
+    15 00000355 0000[5905]          <1>  dw (%1-1)*4+(%2-1), %3
     51                                  
-    52                                  channel3:
-    53                                    ; measure_beat_sample 1,1,hymn_bass_intro
-    54                                    ; measure_beat_sample 2,1,hymn_bass_intro
-    55                                    ; measure_beat_sample 3,1,hymn_bass_intro
-    56                                   
-    57                                  end_channel
-    19 00000385 00000000            <1>  dw 0,0
-    58                                  
-    59                                  channel4:
-    60                                    measure_beat_sample 1,1,hymn_voice_intro
-    15 00000389 0000[8828]          <1>  dw (%1-1)*4+(%2-1), %3
-    61                                    
-    62                                  end_channel
-    19 0000038D 00000000            <1>  dw 0,0
-    63                                  
-    64                                  setup:
-    65 00000391 BE[4503]                  mov si,channel1
-    66 00000394 BB[696F]                  mov bx,CH_1
-    67 00000397 E82500                    call load_channel
+    52                                  ; dw 0,beat
+    53                                  ;   ; dw 1,beat
+    54                                  ;   dw 2,beat
+    55                                  ;   ; dw 3,beat
+    56                                  ;   dw 4,beat
+    57                                  ;   ; dw 5,beat
+    58                                  ;   dw 6,beat
+    59                                  ;   dw 7,beat
+    60                                  ;   dw 8,beat
+    61                                  ;   ; dw 9,beat
+    62                                  ;   dw 10,beat
+    63                                  ;   ; dw 11,beat
+    64                                  ;   dw 12,beat
+    65                                  ;   ; dw 13,beat
+    66                                  ;   dw 14,beat
+    67                                  ;   dw 15,beat
     68                                  
-    69 0000039A BE[5903]                  mov si,channel2
-    70 0000039D BB[A98E]                  mov bx,CH_2
-    71 000003A0 E81C00                    call load_channel
-    72                                  
-    73 000003A3 BE[8503]                  mov si,channel3
-    74 000003A6 BB[E9AD]                  mov bx,CH_3
-    75 000003A9 E81300                    call load_channel
-    76                                  
-    77 000003AC BE[8903]                  mov si,channel4
-    78 000003AF BB[29CD]                  mov bx,CH_4
-    79 000003B2 E80A00                    call load_channel
-    80                                  
-    81                                  update:
-    82 000003B5 BE[696F]                  mov si,music
-    83 000003B8 B9401F                    mov cx,SONG_LEN  ; num bytes to play
-    84 000003BB E82100                    call play
-    85 000003BE F4                        hlt
-    86                                  
-    87                                  
-    88                                  load_channel: ; convert notes data to bit wave
-    89 000003BF AD                        lodsw
-    90 000003C0 B9F401                    mov cx,BITS_PER_BEAT
-    91 000003C3 F7E1                      mul cx
-    92 000003C5 01D8                      add ax,bx     ; bx bevat de dst offset (bijv CH_1 of CH_2)
-    93 000003C7 89C7                      mov di,ax
-    94                                  
-    95                                    ;load sample address and check for 0. if 0 return.
-    96 000003C9 AD                        lodsw
-    97 000003CA 09C0                      or ax,ax
-    98 000003CC 740F                      jz .r
-    99                                  
-   100 000003CE 56                        push si
-   101 000003CF 89C6                      mov si,ax
-   102 000003D1 8CD8                      mov ax,ds
-   103 000003D3 8EC0                      mov es,ax
-   104 000003D5 AD                        lodsw      ; load length of sample
-   105 000003D6 89C1                      mov cx,ax
-   106 000003D8 F3A4                      rep movsb  ; load sample to es:di (song+360*beat_offset)
-   107 000003DA 5E                        pop si
-   108                                  
-   109 000003DB EBE2                      jmp load_channel
-   110 000003DD C3                      .r ret
+    69                                    ; measure_beat_sample 1,1,hymn_bass_intro
+    70                                    ; measure_beat_sample 2,1,hymn_bass_intro
+    71                                    ; measure_beat_sample 3,1,hymn_bass_intro
+    72                                   
+    73                                  end_channel
+    19 00000359 00000000            <1>  dw 0,0
+    74                                  
+    75                                  channel4:
+    76                                    measure_beat_sample 1,1,hymn_voice_intro
+    15 0000035D 0000[5905]          <1>  dw (%1-1)*4+(%2-1), %3
+    77                                  
+    78                                  end_channel
+    19 00000361 00000000            <1>  dw 0,0
+    79                                  
+    80                                  setup:
+    81 00000365 BE[4503]                  mov si,channel1
+    82 00000368 BB[AC4F]                  mov bx,CH_1
+    83 0000036B E82200                    call load_channel
+    84                                  
+    85 0000036E BE[4D03]                  mov si,channel2
+    86 00000371 BB[8C7E]                  mov bx,CH_2
+    87 00000374 E81900                    call load_channel
+    88                                  
+    89 00000377 BE[5503]                  mov si,channel3
+    90 0000037A BB[6CAD]                  mov bx,CH_3
+    91 0000037D E81000                    call load_channel
+    92                                  
+    93 00000380 BE[5D03]                  mov si,channel4
+    94 00000383 BB[4CDC]                  mov bx,CH_4
+    95 00000386 E80700                    call load_channel
+    96                                  
+    97                                  ; update:
+    98                                    ; mov si,music
+    99                                    
+   100 00000389 B9E02E                    mov cx,SONG_LEN  ; num bytes to play
+   101 0000038C E82100                    call play
+   102 0000038F F4                        hlt
+   103                                  
+   104                                  
+   105                                  load_channel: ; convert notes data to bit wave
+   106 00000390 AD                        lodsw
+   107 00000391 B9F401                    mov cx,BITS_PER_BEAT
+   108 00000394 F7E1                      mul cx
+   109 00000396 01D8                      add ax,bx     ; bx bevat de dst offset (bijv CH_1 of CH_2)
+   110 00000398 89C7                      mov di,ax
    111                                  
-   112                                  
-   113 000003DE 00                      TDM: db 0
-   114                                  
-   115                                  play:
-   116 000003DF 31ED                      xor bp,bp
-   117                                  .nextbyte:
-   118                                    ; push ax
-   119                                  
-   120                                  
-   121                                   
-   122                                  
-   123                                    ; eerste aanpak: CH_1 en CH_2 optellen met OR
-   124                                    ; mov al,[CH_1+bp]
-   125                                    ; mov dl,[CH_2+bp]
-   126                                    ; or al,dl            ; for each bit in the byte: 00=0, 01=1, 10=1, 11=1
-   127                                    ; pop bx
+   112                                    ;load sample address and check for 0. if 0 return.
+   113 0000039A AD                        lodsw
+   114 0000039B 09C0                      or ax,ax
+   115 0000039D 740F                      jz .r
+   116                                  
+   117 0000039F 56                        push si
+   118 000003A0 89C6                      mov si,ax
+   119 000003A2 8CD8                      mov ax,ds
+   120 000003A4 8EC0                      mov es,ax
+   121 000003A6 AD                        lodsw      ; load length of sample
+   122 000003A7 89C1                      mov cx,ax
+   123 000003A9 F3A4                      rep movsb  ; load sample to es:di (song+360*beat_offset)
+   124 000003AB 5E                        pop si
+   125                                  
+   126 000003AC EBE2                      jmp load_channel
+   127 000003AE C3                      .r ret
    128                                  
-   129                                    ; nu wissel ik per byte van kanaal maar het moet denk ik per bit.
-   130                                    ; push bx
-   131                                    ; mov ax,SONG_LEN
-   132                                    ; mul byte [TDM]
-   133                                    ; add ax,music
-   134                                    ; add ax,bp
-   135                                    ; mov bx,ax
-   136                                    ; mov al,[bx]
-   137                                    ; pop bx
-   138                                  
+   129                                  
+   130 000003AF 00                      TDM: db 0
+   131                                  
+   132                                  play:
+   133 000003B0 31ED                      xor bp,bp
+   134                                  .nextbyte:
+   135                                    ; push ax
+   136                                  
+   137                                  
+   138                                   
    139                                  
-   140                                  
-   141                                  
-   142                                  
-   143                                    ; mov dl,[CH_3+bp]
-   144                                    ; or al,dl
-   145                                    ; mov dl,[CH_4+bp]
-   146                                    ; or al,dl
-   147                                  
-   148 000003E1 B308                      mov bl,8
-   149 000003E3 B701                      mov bh,1
-   150                                  .nextbit:
-   151                                  
-   152 000003E5 53                        push bx
-   153 000003E6 B8401F                    mov ax,SONG_LEN
-   154 000003E9 8B1E[DE03]                mov bx,[TDM]
-   155 000003ED 30FF                      xor bh,bh
-   156 000003EF F7E3                      mul bx
-   157                                  
-   158 000003F1 05[696F]                  add ax,music
-   159 000003F4 01E8                      add ax,bp
-   160 000003F6 89C3                      mov bx,ax
-   161 000003F8 8A27                      mov ah,[bx]
-   162 000003FA 5B                        pop bx
-   163                                  
-   164                                  .tdm_counter:
-   165 000003FB FE06[DE03]                inc byte [TDM]
-   166 000003FF 8026[DE03]03              and byte [TDM], 3
-   167                                  
-   168                                  
-   169                                    ; push ax
-   170                                    ; mov ah,al
-   171 00000404 B000                      mov al,0
-   172 00000406 20FC                      and ah,bh
-   173 00000408 7402                      jz .sendbit
-   174 0000040A B008                      mov al,8
-   175                                  .sendbit:
-   176 0000040C E63A                      out 0x3A,al
-   177                                  
+   140                                    ; eerste aanpak: CH_1 en CH_2 optellen met OR
+   141                                    ; mov al,[CH_1+bp]
+   142                                    ; mov dl,[CH_2+bp]
+   143                                    ; or al,dl            ; for each bit in the byte: 00=0, 01=1, 10=1, 11=1
+   144                                    ; pop bx
+   145                                  
+   146                                    ; nu wissel ik per byte van kanaal maar het moet denk ik per bit.
+   147                                    ; push bx
+   148                                    ; mov ax,SONG_LEN
+   149                                    ; mul byte [TDM]
+   150                                    ; add ax,music
+   151                                    ; add ax,bp
+   152                                    ; mov bx,ax
+   153                                    ; mov al,[bx]
+   154                                    ; pop bx
+   155                                  
+   156                                  
+   157                                    ; mov dl,[CH_3+bp]
+   158                                    ; or al,dl
+   159                                    ; mov dl,[CH_4+bp]
+   160                                    ; or al,dl
+   161                                  
+   162 000003B2 B308                      mov bl,8
+   163 000003B4 B701                      mov bh,1
+   164                                  .nextbit:
+   165                                  
+   166 000003B6 53                        push bx
+   167 000003B7 B8E02E                    mov ax,SONG_LEN
+   168 000003BA 8B1E[AF03]                mov bx,[TDM]
+   169 000003BE 30FF                      xor bh,bh
+   170 000003C0 F7E3                      mul bx
+   171                                  
+   172 000003C2 05[AC4F]                  add ax,music
+   173 000003C5 01E8                      add ax,bp
+   174 000003C7 89C3                      mov bx,ax
+   175 000003C9 8A27                      mov ah,[bx]
+   176 000003CB 5B                        pop bx
+   177                                    ; mov ah,[CH_1+bp]
    178                                  
    179                                  
-   180                                  
-   181                                  ; .tdm:
-   182                                  ;   dec byte [TDM]
-   183                                  ;   jns .end_tdm
-   184                                  ;   mov byte [TDM],4
-   185                                  ; .end_tdm:
-   186                                  
-   187                                  
-   188                                  ;   push cx
-   189                                  ;   mov cx,PULSE_WIDTH
-   190                                  ; .wait: loop .wait
-   191                                  ;   pop cx
-   192                                  
+   180                                  .tdm_counter:
+   181 000003CC FE06[AF03]                inc byte [TDM]
+   182 000003D0 8026[AF03]03              and byte [TDM], 3
+   183                                  
+   184                                  
+   185                                    ; push ax
+   186                                    ; mov ah,al
+   187 000003D5 B000                      mov al,0
+   188 000003D7 20FC                      and ah,bh
+   189 000003D9 7402                      jz .sendbit
+   190 000003DB B008                      mov al,8
+   191                                  .sendbit:
+   192 000003DD E63A                      out 0x3A,al
    193                                  
-   194                                    ; pop ax
-   195 0000040E D0E7                      shl bh,1
-   196 00000410 FECB                      dec bl
-   197 00000412 75D1                      jnz .nextbit
-   198                                  
-   199 00000414 45                        inc bp
-   200 00000415 E2CA                      loop .nextbyte
-   201 00000417 C3                        ret
+   194                                  
+   195                                  
+   196                                  
+   197 000003DF 51                        push cx
+   198 000003E0 B90500                    mov cx,PULSE_WIDTH
+   199 000003E3 E2FE                    .wait: loop .wait
+   200 000003E5 59                        pop cx
+   201                                  
    202                                  
-   203                                  
-   204                                  ; vocals: incbin "bin/vocals.bin"
-   205                                  
-   206 00000418 <bin 16Eh>              choirF5: incbin "bin/b37-choir-F5.bin" ; threshold=.06
-   207 00000586 <bin 175h>              choirC5: incbin "bin/b37-choir-C5.bin" ; threshold=.06
-   208 000006FB <bin 15Fh>              choirEs5: incbin "bin/b37-choir-Es5.bin" ; threshold=.06
-   209 0000085A <bin 166h>              choirA5: incbin "bin/b37-choir-A5.bin" ; threshold=.06
-   210                                  
-   211                                  ; ; tone: incbin "bin/1khz.bin"
-   212                                  ; ; tick: incbin "bin/tick.bin"
-   213                                  ; pluck: incbin "bin/pluck.bin"
+   203                                    ; pop ax
+   204 000003E6 D0E7                      shl bh,1
+   205 000003E8 FECB                      dec bl
+   206 000003EA 75CA                      jnz .nextbit
+   207                                  
+   208 000003EC 45                        inc bp
+   209 000003ED E2C3                      loop .nextbyte  ; play until CX=0
+   210 000003EF C3                        ret
+   211                                  
+   212                                  
+   213                                  ; vocals: incbin "bin/vocals.bin"
    214                                  
-   215                                  ; sound:  
-   216                                  
-   217                                  
-   218                                  ; tone: incbin "bin/1khz.bin"
-   219                                  ; drum: incbin "bin/risset.bin"
-   220                                  
-   221 000009C0 <bin 1D5Fh>             bass: incbin "bin/falle-bass.bin"
-   222                                  ; falle_vocals: incbin "bin/falle-vocals.bin"
-   223                                  ; falle_clap: incbin "bin/falle-clap.bin"
-   224 0000271F <bin 169h>              beat: incbin "bin/beat2.bin"
+   215                                  ; choirF5: incbin "bin/b37-choir-F5.bin" ; threshold=.06
+   216                                  ; choirC5: incbin "bin/b37-choir-C5.bin" ; threshold=.06
+   217                                  ; choirEs5: incbin "bin/b37-choir-Es5.bin" ; threshold=.06
+   218                                  ; choirA5: incbin "bin/b37-choir-A5.bin" ; threshold=.06
+   219                                  
+   220                                  ; ; tone: incbin "bin/1khz.bin"
+   221                                  ; ; tick: incbin "bin/tick.bin"
+   222                                  ; pluck: incbin "bin/pluck.bin"
+   223                                  
+   224                                  ; sound:  
    225                                  
-   226 00002888 <bin 2F60h>             hymn_voice_intro: incbin "bin/hymn_voice_intro.bin"
-   227 000057E8 <bin B08h>              hymn_bass_intro: incbin "bin/hymn_bass_intro.bin"
-   228                                  
-   229 000062F0 <bin 7D2h>              bm_chord_square: incbin "bin/bm_chord_square2.bin"
-   230                                  
-   231 00006AC2 <bin 4A7h>              strings: incbin "bin/strings-b-1-sq.bin"
-   232                                  
-   233                                  ; strings1: incbin "bin/strings1.bin"
-   234                                  ; strings2: incbin "bin/strings2.bin"
-   235                                  ; strings3: incbin "bin/strings3.bin"
-   236                                  ; strings4: incbin "bin/strings4.bin"
-   237                                  ; strings_end: incbin "bin/strings-end.bin"
-   238                                  ; amenbreak: incbin "bin/amen-break.bin"      ; threshold=.09 
-   239                                  ; hihat: incbin "bin/hi-hat.bin"                ; threshold=.01 
-   240                                  ; bassdrum: incbin "bin/base-drum.bin"
-   241                                  ; blakhole: incbin "bin/s1-001-blakhole.bin"
-   242                                  ; bassline: incbin "bin/bass-line.bin"         ; threshold=.1 ? 
-   243                                  ; choir: incbin "bin/b37-choir.bin"            ; threshold=.06
-   244                                  ; choir2: incbin "bin/b37-choir-2.bin"
-   245                                  ; choir3: incbin "bin/b37-choir-3.bin"
-   246                                  ; bells: incbin "bin/bells.bin"
-   247                                  ; bells2: incbin "bin/bells2.bin"
-   248                                  ; bells3: incbin "bin/bells3.bin"
-   249                                  ; effect: incbin "bin/s1-006-effect.bin"
-   250                                  ; intro1: incbin "bin/intro1.bin"
-   251                                  ; vocals: incbin "bin/vocals.bin"
-   252                                  
-   253                                  music:
-   254                                  
-   255                                  
-   256                                  
-   257                                  
-   258                                  
-   259                                  
-   260                                  
-   261                                  
-   262                                  ; %include "sanyo.asm"
+   226                                  
+   227                                  ; tone: incbin "bin/1khz.bin"
+   228                                  ; drum: incbin "bin/risset.bin"
+   229                                  
+   230                                  ; bass: incbin "bin/falle-bass.bin"
+   231                                  ; falle_vocals: incbin "bin/falle-vocals.bin"
+   232                                  ; falle_clap: incbin "bin/falle-clap.bin"
+   233 000003F0 <bin 169h>              beat: incbin "bin/beat2.bin"
+   234                                  
+   235 00000559 <bin 45ACh>             hymn_voice_intro: incbin "bin/sanyo-boot-1.bin"
+   236                                  
+   237                                  ; hymn_voice_intro: incbin "bin/hymn_voice_intro.bin"
+   238 00004B05 <bin 4A7h>              strings: incbin "bin/strings-b-1-sq.bin"
+   239                                  
+   240                                  ; hymn_bass_intro: incbin "bin/hymn_bass_intro.bin"
+   241                                  ; bm_chord_square: incbin "bin/bm_chord_square2.bin"
+   242                                  
+   243                                  
+   244                                  ; strings1: incbin "bin/strings1.bin"
+   245                                  ; strings2: incbin "bin/strings2.bin"
+   246                                  ; strings3: incbin "bin/strings3.bin"
+   247                                  ; strings4: incbin "bin/strings4.bin"
+   248                                  ; strings_end: incbin "bin/strings-end.bin"
+   249                                  ; amenbreak: incbin "bin/amen-break.bin"      ; threshold=.09 
+   250                                  ; hihat: incbin "bin/hi-hat.bin"                ; threshold=.01 
+   251                                  ; bassdrum: incbin "bin/base-drum.bin"
+   252                                  ; blakhole: incbin "bin/s1-001-blakhole.bin"
+   253                                  ; bassline: incbin "bin/bass-line.bin"         ; threshold=.1 ? 
+   254                                  ; choir: incbin "bin/b37-choir.bin"            ; threshold=.06
+   255                                  ; choir2: incbin "bin/b37-choir-2.bin"
+   256                                  ; choir3: incbin "bin/b37-choir-3.bin"
+   257                                  ; bells: incbin "bin/bells.bin"
+   258                                  ; bells2: incbin "bin/bells2.bin"
+   259                                  ; bells3: incbin "bin/bells3.bin"
+   260                                  ; effect: incbin "bin/s1-006-effect.bin"
+   261                                  ; intro1: incbin "bin/intro1.bin"
+   262                                  ; vocals: incbin "bin/vocals.bin"
    263                                  
-   264                                  ; xx: dw 2
+   264                                  music:
    265                                  
-   266                                  ; setup:
-   267                                  ;   mov cx,500
-   268                                  ;   mov ax,GREEN
-   269                                  ;   mov es,ax
+   266                                  
+   267                                  
+   268                                  
+   269                                  
    270                                  
-   271                                  ;   ; mov ax,-1
-   272                                  ;   ; .lp
-   273                                  ;   mov di,10*4*COLS ; + 10*COLS 
-   274                                  ;   ; times 2 stosw
-   275                                  ;   ; loop .lp
+   271                                  
+   272                                  
+   273                                  ; %include "sanyo.asm"
+   274                                  
+   275                                  ; xx: dw 2
    276                                  
-   277                                  ;   mov si,sound
-   278                                  ;   mov cx,-1       ; number of bytes to read
-   279                                  
-   280                                  ; play:
+   277                                  ; setup:
+   278                                  ;   mov cx,500
+   279                                  ;   mov ax,GREEN
+   280                                  ;   mov es,ax
    281                                  
-   282                                  
-   283                                  ;   lodsb               ; laad byte in AL
-   284                                    
-   285                                  ;   ; push ax
-   286                                  ;   ; push bx
-   287                                  ;   ; mov bx,colors
-   288                                  ;   ; mov ax,[bx+xx]
-   289                                  ;   ; mov es,ax
-   290                                  ;   ; pop bx
-   291                                  ;   ; pop ax
+   282                                  ;   ; mov ax,-1
+   283                                  ;   ; .lp
+   284                                  ;   mov di,10*4*COLS ; + 10*COLS 
+   285                                  ;   ; times 2 stosw
+   286                                  ;   ; loop .lp
+   287                                  
+   288                                  ;   mov si,sound
+   289                                  ;   mov cx,-1       ; number of bytes to read
+   290                                  
+   291                                  ; play:
    292                                  
-   293                                  ;   stosb
-   294                                  
-   295                                  
-   296                                  ;   mov bl,8            ; 8 bits
-   297                                  ;   mov bh,1            ; bitmask = bit 0
-   298                                  ; .nextbit:
-   299                                  ;   push ax
-   300                                  ;   mov ah,al
-   301                                  ;   mov al,0
-   302                                  ;   test ah,bh
-   303                                  ;   jz .sendbit
-   304                                  ;   mov al,8            
-   305                                  ; .sendbit:
-   306                                  ;   out 0x3A,al         ; bit 3 (byte value 8 or 0) = break bit on keyboard
-   307                                    
-   308                                  ;   push cx
-   309                                  ;   mov cx,20           ; pulse width
-   310                                  ; .wait: loop .wait
-   311                                  ;   pop cx
-   312                                  ;   ; times 10 nop
-   313                                  
-   314                                    
-   315                                  ;   push ax
-   316                                  ; ; push ax
-   317                                  ;   mov al,13
-   318                                  ;   out 48,al
-   319                                  ;   ; pop ax
-   320                                  ;   ; mov ax,bx
-   321                                  ;   ; xchg ah,al
-   322                                  ;   ; out 50,al
-   323                                  ;   ; ; push ax
-   324                                  ;   ; mov al,13
-   325                                  ;   ; out 48,al
-   326                                  ;   ; ; pop ax
-   327                                  
-   328                                  ;   ; mov ax,cx
-   329                                  ;   ; xor ah,ah
-   330                                  ;   ; push bx
-   331                                  ;   ; mov bx,sinlut
-   332                                  ;   ; xlat
-   333                                  ;   ; pop bx
-   334                                  ;   mov ax,[xx]
-   335                                  
-   336                                  ;   ; mov ax,bx
-   337                                  ;   out 50,al
-   338                                  ;   pop ax
-   339                                  
-   340                                  
-   341                                  ;   pop ax
-   342                                  ;   shl bh,1
-   343                                  ;   dec bl
-   344                                  
-   345                                  
-   346                                    
-   347                                  
-   348                                  ;   jnz .nextbit
-   349                                  
-   350                                  ;   test cx,16
-   351                                  ;   jz .cont
-   352                                  
-   353                                  ;   ; push ax
-   354                                  ;   ; mov ax,BLUE
-   355                                  ;   ; mov es,ax
-   356                                  ;   ; pop ax
-   357                                  ;   ; mov [xx],si
-   358                                  ;   ; push cx
-   359                                  ;   ; mov cl,1
-   360                                  ;   ; shl word [xx],1
-   361                                  ;   inc word [xx]
-   362                                  ;   ; pop cx
+   293                                  
+   294                                  ;   lodsb               ; laad byte in AL
+   295                                    
+   296                                  ;   ; push ax
+   297                                  ;   ; push bx
+   298                                  ;   ; mov bx,colors
+   299                                  ;   ; mov ax,[bx+xx]
+   300                                  ;   ; mov es,ax
+   301                                  ;   ; pop bx
+   302                                  ;   ; pop ax
+   303                                  
+   304                                  ;   stosb
+   305                                  
+   306                                  
+   307                                  ;   mov bl,8            ; 8 bits
+   308                                  ;   mov bh,1            ; bitmask = bit 0
+   309                                  ; .nextbit:
+   310                                  ;   push ax
+   311                                  ;   mov ah,al
+   312                                  ;   mov al,0
+   313                                  ;   test ah,bh
+   314                                  ;   jz .sendbit
+   315                                  ;   mov al,8            
+   316                                  ; .sendbit:
+   317                                  ;   out 0x3A,al         ; bit 3 (byte value 8 or 0) = break bit on keyboard
+   318                                    
+   319                                  ;   push cx
+   320                                  ;   mov cx,20           ; pulse width
+   321                                  ; .wait: loop .wait
+   322                                  ;   pop cx
+   323                                  ;   ; times 10 nop
+   324                                  
+   325                                    
+   326                                  ;   push ax
+   327                                  ; ; push ax
+   328                                  ;   mov al,13
+   329                                  ;   out 48,al
+   330                                  ;   ; pop ax
+   331                                  ;   ; mov ax,bx
+   332                                  ;   ; xchg ah,al
+   333                                  ;   ; out 50,al
+   334                                  ;   ; ; push ax
+   335                                  ;   ; mov al,13
+   336                                  ;   ; out 48,al
+   337                                  ;   ; ; pop ax
+   338                                  
+   339                                  ;   ; mov ax,cx
+   340                                  ;   ; xor ah,ah
+   341                                  ;   ; push bx
+   342                                  ;   ; mov bx,sinlut
+   343                                  ;   ; xlat
+   344                                  ;   ; pop bx
+   345                                  ;   mov ax,[xx]
+   346                                  
+   347                                  ;   ; mov ax,bx
+   348                                  ;   out 50,al
+   349                                  ;   pop ax
+   350                                  
+   351                                  
+   352                                  ;   pop ax
+   353                                  ;   shl bh,1
+   354                                  ;   dec bl
+   355                                  
+   356                                  
+   357                                    
+   358                                  
+   359                                  ;   jnz .nextbit
+   360                                  
+   361                                  ;   test cx,16
+   362                                  ;   jz .cont
    363                                  
-   364                                  ;   and word [xx],4
-   365                                  
-   366                                  ; .cont
-   367                                  ;   loop play
-   368                                  ;   hlt
-   369                                  
-   370                                  
-   371                                  
-   372                                  ; sinlut: db 0,25,50,70,86,96,100,96,86,70,50,25,0,-25,-50,-70,-86,-96,-100,-96,-86,-70,-50,-25,0
-   373                                  ; colors: dw RED,GREEN,BLUE
+   364                                  ;   ; push ax
+   365                                  ;   ; mov ax,BLUE
+   366                                  ;   ; mov es,ax
+   367                                  ;   ; pop ax
+   368                                  ;   ; mov [xx],si
+   369                                  ;   ; push cx
+   370                                  ;   ; mov cl,1
+   371                                  ;   ; shl word [xx],1
+   372                                  ;   inc word [xx]
+   373                                  ;   ; pop cx
    374                                  
-   375                                  
-   376                                  ; sound: 
-   377                                  ; ; %include "bin/wonderful-days-1.inc"
-   378                                  ; ; incbin "bin/wdays-vocals.bin"
-   379                                  ; incbin "bin/8088mph4-8k.bin"
-   380                                  ; ; incbin "bin/beat2.bin"
+   375                                  ;   and word [xx],4
+   376                                  
+   377                                  ; .cont
+   378                                  ;   loop play
+   379                                  ;   hlt
+   380                                  
    381                                  
-   382                                  ; ; sound: incbin "bin/falle-vocals.bin"
-   383                                  ; ; sound: incbin "bin/reverb-pitch.bin" ; vocals
-   384                                  ; ; ; sound: incbin "bin/falle-bass2.bin"
-   385                                  ; ; ; sound: incbin "bin/falle-other.bin"
+   382                                  
+   383                                  ; sinlut: db 0,25,50,70,86,96,100,96,86,70,50,25,0,-25,-50,-70,-86,-96,-100,-96,-86,-70,-50,-25,0
+   384                                  ; colors: dw RED,GREEN,BLUE
+   385                                  
    386                                  
-   387                                  
-   388                                  
-   389 00006F69 00<rep 26097h>          times (180*1024)-($-$$) db 0
-   390                                  
-   391                                  
+   387                                  ; sound: 
+   388                                  ; ; %include "bin/wonderful-days-1.inc"
+   389                                  ; ; incbin "bin/wdays-vocals.bin"
+   390                                  ; incbin "bin/8088mph4-8k.bin"
+   391                                  ; ; incbin "bin/beat2.bin"
+   392                                  
+   393                                  ; ; sound: incbin "bin/falle-vocals.bin"
+   394                                  ; ; sound: incbin "bin/reverb-pitch.bin" ; vocals
+   395                                  ; ; ; sound: incbin "bin/falle-bass2.bin"
+   396                                  ; ; ; sound: incbin "bin/falle-other.bin"
+   397                                  
+   398                                  
+   399                                  
+   400 00004FAC 00<rep 28054h>          times (180*1024)-($-$$) db 0
+   401                                  
+   402                                  
