@@ -1,0 +1,226 @@
+     1                                  RED   equ 0xf000
+     2                                  GREEN equ 0x1c00
+     3                                  BLUE  equ 0xf400
+     4                                  COLS  equ 72
+     5                                  ROWS  equ 50
+     6                                  ; TOP   equ 9*4*COLS+20*4    ; row=9,col=20
+     7                                  ; STEP equ 4+4608; //9+288; //5+COLS*4; //4 ; +COLS*4
+     8                                  NUM equ COLS*4*ROWS
+     9                                  
+    10                                  ; %define t bp
+    11                                  %define i di
+    12                                  %define x bh
+    13                                  %define y bl
+    14                                  
+    15 00000000 EB00                    jmp setup
+    16                                  
+    17                                  setup:
+    18 00000002 0E                        push cs
+    19 00000003 1F                        pop ds
+    20 00000004 E8B800                    call generate_sin_table
+    21                                  
+    22 00000007 E8A600                    call clear_green      ; only needed in MAME
+    23 0000000A B005                      mov al, 5
+    24 0000000C E610                      out 10h, al           ; select address 0x1c000 as green video page
+    25                                  
+    26 0000000E BF0000                    mov di,0
+    27                                   
+    28                                  draw:
+    29                                    
+    30 00000011 89F8                      mov ax,di
+    31 00000013 B92001                    mov cx,COLS*4
+    32 00000016 31D2                      xor dx,dx
+    33 00000018 F7F1                      div cx
+    34                                  
+    35 0000001A 88C7                      mov x,al
+    36 0000001C 88D3                      mov y,dl
+    37                                  
+    38 0000001E 0206[7900]                add al,[t]
+    39 00000022 30E4                      xor ah,ah
+    40                                  
+    41 00000024 BE[F901]                  mov si,sin_table
+    42 00000027 01C6                      add si,ax
+    43 00000029 AC                        lodsb
+    44                                  
+    45 0000002A 30E4                      xor ah,ah
+    46 0000002C 00D8                      add al,y
+    47                                  
+    48 0000002E 01C6                      add si,ax
+    49                                  
+    50                                  
+    51 00000030 B104                      mov cl,4
+    52 00000032 D2E8                      shr al,cl
+    53 00000034 31D2                      xor dx,dx
+    54 00000036 B10C                      mov cl,12
+    55 00000038 F6E1                      mul cl
+    56 0000003A 30E4                      xor ah,ah
+    57                                  
+    58 0000003C BE[3901]                  mov si,img
+    59 0000003F 01C6                      add si,ax
+    60                                  
+    61                                  
+    62                                  
+    63                                  
+    64                                  .nx2:
+    65                                  
+    66                                  
+    67 00000041 E83D00                    call draw_cell
+    68                                  
+    69                                    ;*****************
+    70 00000044 033E[7F00]                add di,[step]
+    71 00000048 81FF4038                  cmp di,NUM
+    72 0000004C 7229                      jb .n1
+    73 0000004E 81EF4038                  sub di,NUM
+    74 00000052 45                        inc bp
+    75                                  
+    76 00000053 F7C57F00                  test bp,127
+    77 00000057 751E                      jnz .n1
+    78 00000059 FE06[7900]                inc byte [t]
+    79                                  
+    80 0000005D F606[7900]3F              test byte [t],63
+    81 00000062 7513                      jnz .n1
+    82 00000064 FE06[7A00]                inc byte [effect]
+    83 00000068 8306[7F00]0C              add word [step],12
+    84 0000006D F606[7A00]03              test byte [effect],3
+    85 00000072 7503                      jnz .n1
+    86 00000074 E82600                    call clear_all
+    87                                  
+    88                                  .n1:
+    89 00000077 EB98                      jmp draw
+    90                                  
+    91 00000079 01                      t: db 1
+    92 0000007A 01                      effect: db 1
+    93 0000007B 00                      sin_t: db 0
+    94 0000007C 00                      cos_t: db 0
+    95 0000007D 00                      xct: db 0
+    96 0000007E 00                      yst: db 0
+    97                                  
+    98 0000007F 0412                    step: dw 4+4608 ;STEP equ 4+4608; //9+288; //5+COLS*4; //4 ; +COLS*4
+    99                                  
+   100                                  
+   101                                  ; ───────────────────────────────────────────────────────────────────────────
+   102                                  
+   103                                  draw_cell:        ; draw 8x4px (12 bytes) from SI to DI
+   104                                    ; push di
+   105                                    ; push di
+   106                                    ; push di
+   107 00000081 89FB                      mov bx,di       ; dit zou sneller kunnen zijn dan push/pop. Wel meer bytes.
+   108 00000083 B800F0                    mov ax,RED
+   109 00000086 8EC0                      mov es,ax
+   110 00000088 A5                        movsw
+   111 00000089 A5                        movsw
+   112 0000008A B41C                      mov ah,GREEN>>8 ; save 1 byte because AL is already 0
+   113 0000008C 8EC0                      mov es,ax
+   114                                    ; pop di
+   115 0000008E 89DF                      mov di,bx
+   116 00000090 A5                        movsw
+   117 00000091 A5                        movsw
+   118 00000092 B4F4                      mov ah,BLUE>>8
+   119 00000094 8EC0                      mov es,ax
+   120                                    ; pop di
+   121 00000096 89DF                      mov di,bx
+   122 00000098 A5                        movsw
+   123 00000099 A5                        movsw
+   124 0000009A 89DF                      mov di,bx
+   125                                    ; pop di
+   126 0000009C C3                        ret
+   127                                  
+   128                                  ; ───────────────────────────────────────────────────────────────────────────
+   129                                  
+   130                                  clear_all:
+   131 0000009D B8001C                    mov ax,GREEN
+   132 000000A0 E81000                    call clear_channel
+   133 000000A3 B800F0                    mov ax,RED
+   134 000000A6 E80A00                    call clear_channel
+   135 000000A9 B800F4                    mov ax,BLUE
+   136 000000AC E80400                    call clear_channel
+   137                                  ;   push di
+   138                                  ;   xor di,di
+   139                                  ;   mov cx,NUM
+   140                                  ; .jj:
+   141                                  ;   push cx
+   142                                  ;   push ax
+   143                                  ;   push bx
+   144                                  ;   mov si,img
+   145                                  ;   call draw_cell
+   146                                  ;   pop bx
+   147                                  ;   pop ax
+   148                                  ;   pop cx
+   149                                  ;   add di,4
+   150                                  ;   loop .jj
+   151                                  ;   pop di
+   152 000000AF C3                        ret
+   153                                  
+   154                                  clear_green:
+   155 000000B0 B8001C                    mov ax,GREEN
+   156                                  
+   157                                  clear_channel:
+   158 000000B3 8EC0                      mov es,ax
+   159 000000B5 B94038                    mov cx,COLS*4*ROWS
+   160 000000B8 31FF                      xor di,di
+   161 000000BA 31C0                      xor ax,ax
+   162 000000BC F3AB                      rep stosw         ; clear screen
+   163 000000BE C3                        ret
+   164                                  
+   165                                  ; ───────────────────────────────────────────────────────────────────────────
+   166                                  
+   167                                  generate_sin_table:   ; convert quart sine table to full sine table
+   168 000000BF 0E                        push cs
+   169 000000C0 07                        pop es
+   170 000000C1 BF[F901]                  mov di,sin_table
+   171 000000C4 31C0                      xor ax,ax
+   172 000000C6 B9FF00                    mov cx,255
+   173                                  .sin_loop:
+   174 000000C9 50                        push ax
+   175 000000CA 51                        push cx
+   176                                    ; call sin
+   177 000000CB B106                      mov cl,6
+   178 000000CD 88C2                      mov dl,al        ; dl=angle 0..255
+   179 000000CF D2EA                      shr dl,cl        ; angle/6 = quadrant 0..3
+   180 000000D1 88D6                      mov dh,dl        ; dh=copy of quadrant
+   181 000000D3 80E601                    and dh,1         ; dh=1 if quadrant is odd 1 or 3
+   182 000000D6 88F3                      mov bl,dh        ; bl=dh
+   183 000000D8 D2E3                      shl bl,cl        ; r = bl<<6
+   184 000000DA 88D5                      mov ch,dl        ; gt1
+   185 000000DC D0ED                      shr ch,1
+   186 000000DE 28F3                      sub bl,dh        ; s (0 of 63)
+   187 000000E0 243F                      and al,63        ; i
+   188 000000E2 30D8                      xor al,bl        ; i^bl
+   189 000000E4 BB[F900]                  mov bx,qsin_table
+   190 000000E7 D7                        xlat
+   191 000000E8 F6DD                      neg ch
+   192 000000EA 30E8                      xor al,ch
+   193 000000EC F6DD                      neg ch,
+   194 000000EE 00E8                      add al,ch
+   195 000000F0 0480                      add al,128
+   196                                    ; end call sin
+   197 000000F2 AA                        stosb
+   198 000000F3 59                        pop cx
+   199 000000F4 58                        pop ax
+   200 000000F5 40                        inc ax
+   201 000000F6 E2D1                      loop .sin_loop
+   202 000000F8 C3                        ret
+   203                                  
+   204 000000F9 000306090C0F121518-     qsin_table: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   204 00000102 1B1E2124272A2D3033-
+   204 0000010B 36393B3E414346494B-
+   204 00000114 4E50525557595B5E60-
+   204 0000011D 62646667696B6C6E70-
+   204 00000126 71727475767778797A-
+   204 0000012F 7B7B7C7D7D7E7E7E7E-
+   204 00000138 7E                 
+   205                                  
+   206                                  ; ───────────────────────────────────────────────────────────────────────────
+   207                                  
+   208                                  ; img: incbin "material16x4-dit2.pal"
+   209 00000139 <bin C0h>               img: incbin "material-grey-dit2.pal"
+   210                                  ; img: incbin "yyyy-dit2.pal"
+   211                                  sin_table: 
+   212                                  
+   213                                  %assign num $-$$
+   214                                  %warning total num
+   214          ******************       warning: total 505 [-w+user]
+   215 000001F9 00<rep 2CE07h>          times (180*1024)-num db 0
+   216                                  
+   217                                  
+   218                                  

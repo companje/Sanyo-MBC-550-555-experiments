@@ -1,13 +1,14 @@
 PImage img, img2;
-int si, di, bx, es;
+int si, di, bx, es, ds;
 PGraphics pg;
 int COLS=72;
+int ROWS=50;
 int W=COLS*4;
 int mem[] = new int[1024*1024*2];
 int R=0xf0000, G=0x0C000, B=0xf4000;
 int channels[] = {R, G, B};
 int colorTable[] = new int[256*4*4]; //256 colors, 4 line patterns per color, 3 color channels
-int SPR = 0;
+int hstep=4, vstep=0; //2304;
 
 void setup() {
   size(1280, 800, P2D);
@@ -16,22 +17,79 @@ void setup() {
   img = createImage(COLS*8, 200, RGB);
   pg = createGraphics(width, height);
 
-  loadSprite("material16-dit2.spr",SPR);
+  //loadBin("hsb-dithered.spr",0); //sprite has 2 byte header (rows/cols)
+
+  loadBin("material16x4-dit2.pal", 0); //palette has no header
+}
+
+void effect(int t, int i, int x, int y) {
+  //float zoom = .01; //0.1 * sin(t*.001);
+  //float ox = (x-COLS/2) * zoom;
+  //float oy = (y-ROWS/2) * zoom * 3;
+  //float angle = t*.05;
+  //float cx = cos(angle);
+  //float sx = sin(angle);
+  ////float xr = ox * cx - oy * sx;
+  ////float yr = ox * sx + oy * cx;
+  //float tixy = sin(ox+angle)*cos(oy+angle); //sin(xr) * cos(yr);
+  //float tixy = sin(yr*xr+pow(t, sin(t*t)));
+  //float tixy = cos(y/50)*sin(x/72+t/50)*255;
+
+  x-=36;
+  y-=25;
+  
+  float zoom = map(sin(t*.001),-1,1,.1,.9);
+  x*=zoom;
+  y*=zoom;
+  
+  float angle = t*.001;
+  float cx = cos(angle);
+  float sx = sin(angle);
+  x = int(x * cx - y * sx);
+  y = int(x * sx + y * cx);
+  
+
+  al.mov(x);
+  al.add(t);
+  sin256();
+  al.add(y*8);
+  //sin256();
+
 }
 
 void draw() {
- 
-  si = SPR;
-  di = 0;
-  drawSprite(); //draws sprite from SI to DI
-  
+
+  for (int it=0; it<1000; it++) {
+    int x = di%W;
+    int y = di/W;
+    int i = y*COLS+x;
+    int t = frameCount*3;
+
+    effect(t, i, x, y);
+
+    cl.mov(4);
+    al.shr(cl); //scale from 0..255 to 0..15
+    cl.mov(12);
+    al.mul(cl);
+    
+    si = 0 + al.get();  //al should be between 0..16
+    drawCell();
+
+    di+=hstep+vstep; //288*4*
+    if (di>14400) {
+      di-=14400;
+    }
+  }
 
   setImageFromMemory(img);
   image(img, 0, 0, width, height);
-  //noLoop();
 }
 
 
 void keyPressed() {
-  noLoop();
+  if (keyCode==LEFT) hstep-=4;
+  if (keyCode==RIGHT) hstep+=4;
+  if (keyCode==DOWN) vstep+=288;
+  if (keyCode==UP) vstep-=288;
+  println(hstep, vstep);
 }

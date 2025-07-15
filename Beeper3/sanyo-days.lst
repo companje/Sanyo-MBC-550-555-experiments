@@ -1,0 +1,187 @@
+     1 00000000 EB23                    jmp setup
+     2                                  
+     3                                  G3  equ 0xFD  ; = 196Hz
+     4                                  C4  equ 0xBE  ; = 262Hz
+     5                                  E4  equ 0x96  ; = 330Hz
+     6                                  B3  equ 0xC9  ; = 247Hz
+     7                                  D4  equ 0xA8  ; = 294Hz
+     8                                  A3  equ 0xE1  ; = 220Hz
+     9                                  F4  equ 0x8E  ; = 349Hz
+    10                                  
+    11                                  NUM equ 32 ; wonderful days
+    12                                  PULSE_W equ 60
+    13                                  T equ 2*NUM
+    14                                  
+    15                                  song:
+    16 00000002 FDBE96BE                db G3,C4,E4,C4
+    17 00000006 FDBE96BE                db G3,C4,E4,C4
+    18 0000000A FDC9A8C9                db G3,B3,D4,B3
+    19 0000000E FDC9A8C9                db G3,B3,D4,B3
+    20 00000012 E1A88EA8                db A3,D4,F4,D4
+    21 00000016 E1A88EA8                db A3,D4,F4,D4
+    22 0000001A E1BE96BE                db A3,C4,E4,C4
+    23 0000001E E1BE96BE                db A3,C4,E4,C4
+    24                                  
+    25 00000022 00                      couplet: db 0
+    26 00000023 00                      maat: db 0
+    27 00000024 00                      noot: db 0
+    28                                  
+    29                                  setup:
+    30 00000025 0E                          push cs
+    31 00000026 1F                          pop ds
+    32 00000027 BE[0200]                    mov si,song
+    33 0000002A B80008                      mov ax,0x0800
+    34 0000002D 8EC0                        mov es,ax
+    35                                  update:
+    36 0000002F 45                          inc bp
+    37                                  
+    38 00000030 F7C50100                    test bp,1
+    39 00000034 7412                        jz .ch2
+    40                                  .ch1:
+    41 00000036 B700                        mov bh,0
+    42 00000038 AC                          lodsb
+    43 00000039 88C3                        mov bl,al
+    44 0000003B 83FD40                      cmp bp,T
+    45 0000003E 7260                        jb .done_ch
+    46 00000040 BA0A00                      mov dx,10
+    47 00000043 E86800                      call play
+    48 00000046 EB58                        jmp .done_ch
+    49                                  .ch2:
+    50 00000048 51                          push cx
+    51 00000049 89E9                        mov cx,bp
+    52 0000004B A0[F600]                    mov al,[mm]
+    53 0000004E 30E4                        xor ah,ah
+    54 00000050 21C1                        and cx,ax
+    55 00000052 D3E3                        shl bx,cl
+    56 00000054 59                          pop cx
+    57 00000055 8B16[F700]                  mov dx,[dv]
+    58 00000059 D1EB                        shr bx,1    ; higher
+    59 0000005B E85000                      call play
+    60 0000005E A0[F600]                    mov al,[mm]
+    61 00000061 83FD40                      cmp bp,1*T
+    62 00000064 7506                        jne .xx
+    63 00000066 C706[F700]3200              mov word [dv],PULSE_W-10
+    64                                  .xx:
+    65 0000006C 81FD7401                    cmp bp,6*T-T/5 ;4*T+T/2+5
+    66 00000070 7F1F                        jg .q
+    67 00000072 81FD4001                    cmp bp,5*T
+    68 00000076 7F1A                        jg .p
+    69 00000078 81FD0001                    cmp bp,4*T
+    70 0000007C 7F19                        jg .o
+    71 0000007E 81FDC000                    cmp bp,3*T
+    72 00000082 7F19                        jg .z
+    73 00000084 81FD8000                    cmp bp,2*T
+    74 00000088 7F0F                        jg .x
+    75 0000008A 83FD40                      cmp bp,1*T
+    76 0000008D 7F0E                        jg .z
+    77 0000008F EB0F                        jmp .done_ch
+    78 00000091 F4                      .q: hlt
+    79 00000092 8306[F700]03            .p: add word [dv],3
+    80 00000097 D0C8                    .o: ror al,1
+    81 00000099 D0C0                    .x: rol al,1
+    82 0000009B D0C0                        rol al,1
+    83 0000009D A2[F600]                .z: mov [mm],al
+    84                                  .done_ch:
+    85 000000A0 E82200                      call draw
+    86                                    
+    87 000000A3 81FE[2200]                  cmp si,song+NUM
+    88 000000A7 7286                        jb update
+    89 000000A9 BE[0200]                    mov si,song
+    90 000000AC EB81                        jmp update
+    91                                  
+    92                                  play:             ; bx=note, dx=duration
+    93 000000AE 89D9                        mov cx,bx
+    94 000000B0 B83500                      mov ax,0x35
+    95 000000B3 3408                    .a: xor al,8       ; toggle 'break' bit
+    96 000000B5 E63A                        out 0x3a,al    ; USART
+    97 000000B7 FECC                    .b: dec ah
+    98 000000B9 7503                        jnz .c
+    99 000000BB 4A                          dec dx
+   100 000000BC 7406                        jz .e
+   101 000000BE E2F7                    .c: loop .b
+   102 000000C0 89D9                        mov cx,bx      ; reset note
+   103 000000C2 EBEF                        jmp .a
+   104 000000C4 C3                      .e: ret
+   105                                  
+   106                                  draw:
+   107                                  ; ret
+   108                                  
+   109 000000C5 56                          push si
+   110 000000C6 1E                          push ds
+   111 000000C7 B800FF                      mov ax,0xff00
+   112 000000CA 8ED8                        mov ds,ax
+   113                                  
+   114                                  ;     xor di,di
+   115                                  
+   116                                  ;     mov si,8
+   117                                  ;     lodsw
+   118                                  
+   119 000000CC F7C50100                    test bp,1
+   120 000000D0 7402                        jz .xx
+   121 000000D2 31C0                        xor ax,ax
+   122                                  
+   123                                  ;     mov cx,14400
+   124                                  ;     rep stosb
+   125                                  .xx:
+   126                                  
+   127                                  
+   128 000000D4 51                          push cx
+   129 000000D5 B9E100                      mov cx,14400/64
+   130                                      .lp:
+   131 000000D8 AB                          stosw
+   132                                      ; movsw
+   133                                      ; add di,3
+   134 000000D9 01EF                        add di,bp
+   135                                  
+   136 000000DB 81FF4038                    cmp di,14400
+   137 000000DF 760F                    jna .x
+   138 000000E1 81EF4038                    sub di,14400
+   139                                      ; xor di,di
+   140                                  
+   141 000000E5 51                      push cx
+   142 000000E6 B98403                      mov cx,14400/16
+   143 000000E9 31C0                        xor ax,ax
+   144 000000EB F3AB                        rep stosw
+   145 000000ED 59                      pop cx
+   146                                  
+   147 000000EE 31FF                        xor di,di
+   148                                  
+   149                                  ; push ax
+   150                                  ; push cx
+   151                                  ; push di
+   152                                  ;     mov cx,14400
+   153                                  ;     mov ax,0
+   154                                  ;     .lp2
+   155                                  ;     stosw
+   156                                  ;     add di,bp
+   157                                  ;     cmp di,14400
+   158                                  ;     jna .xx
+   159                                  ;     sub di,14400
+   160                                  ;   .xx:
+   161                                  ;     loop .lp2
+   162                                  
+   163                                  ; pop di
+   164                                  ; pop cx
+   165                                  ; pop ax
+   166                                      ; sub di,14400
+   167                                      
+   168                                  .x:
+   169                                  
+   170                                      ; add di,8
+   171 000000F0 E2E6                        loop .lp
+   172 000000F2 59                          pop cx
+   173 000000F3 1F                          pop ds
+   174 000000F4 5E                          pop si
+   175 000000F5 C3                          ret
+   176                                  
+   177                                  
+   178                                  
+   179 000000F6 01                      mm: db 1
+   180 000000F7 3C00                    dv: dw PULSE_W
+   181                                  
+   182                                  %assign num $-$$
+   183                                  %warning total num
+   183          ******************       warning: total 249 [-w+user]
+   184 000000F9 00<rep 2CF07h>          times (180*1024)-num db 0
+   185                                  
+   186                                  

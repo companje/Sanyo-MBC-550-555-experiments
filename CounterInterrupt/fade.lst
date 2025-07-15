@@ -1,0 +1,302 @@
+     1                                  setup:
+     2 00000000 BB2C01                      mov bx,300
+     3 00000003 BA007D                      mov dx,32000
+     4 00000006 E80100                      call play
+     5                                      ; jmp setup
+     6 00000009 F4                          hlt
+     7                                  
+     8                                  
+     9                                  play:                     ; bx=note, dx=duration (totale duur van de noot)
+    10                                      ; Initialisatie fade-in
+    11 0000000A BE0100                      mov si, 1             ; Begin met een zeer korte 'aan'-tijd (1 cyclus)
+    12 0000000D 89DD                        mov bp, bx            ; Bewaar de oorspronkelijke BX (noot) voor de lus
+    13                                      
+    14                                      ; in al, 0x3a           ; Lees de huidige status van het USART control register
+    15                                      ; mov bl, al            ; Sla de basiswaarde op in BL
+    16                                  
+    17                                      ; Bereken het startpunt van de fade-out
+    18                                      ; Laten we zeggen dat de fade-out de laatste 10% van de duur moet zijn,
+    19                                      ; of minimaal een bepaalde vaste duur (bijv. 500 'ticks').
+    20                                      ; We kiezen hier voor een vaste 'fade_out_duration' van 500, maar je kunt dit aanpassen.
+    21 0000000F 89D1                        mov cx, dx            ; CX = totale duur
+    22 00000011 B8F401                      mov ax, 500           ; Bijvoorbeeld 500 'ticks' voor de fade-out
+    23 00000014 39C1                        cmp cx, ax            ; Is de totale duur korter dan de gewenste fade-out duur?
+    24 00000016 7E08                        jle .short_duration   ; Zo ja, dan wordt de fade-out duur gelijk aan de totale duur
+    25                                  
+    26 00000018 29C1                        sub cx, ax            ; CX = totale duur - fade_out_duration (dit is de 'normale' speeltijd)
+    27 0000001A 890E[B500]                  mov word [fade_out_start_duration], cx ; Sla het startpunt van de fade-out op
+    28 0000001E EB06                        jmp .start_fade_in
+    29                                  
+    30                                  .short_duration:
+    31 00000020 C706[B500]0000              mov word [fade_out_start_duration], 0 ; Geen normale speeltijd, direct naar fade-out
+    32                                      
+    33                                  .start_fade_in:
+    34                                  
+    35                                  ; --- Fade-in gedeelte ---
+    36                                  .fade_loop:
+    37 00000026 89E9                        mov cx, bp            ; Reset note voor de frequentie (oorspronkelijke BX)
+    38                                  
+    39                                      ; 'Aan'-fase
+    40 00000028 88D8                        mov al, bl            ; Laad de basiswaarde van AL
+    41 0000002A 0C08                        or al, 0x08           ; Zet de 'break' bit HOOG
+    42 0000002C E63A                        out 0x3a, al          ; Schrijf naar USART
+    43                                  
+    44 0000002E 89F0                        mov ax, si            ; Kopieer SI naar AX. Hierdoor komt SIL in AL.
+    45 00000030 88C4                        mov ah, al            ; Verplaats AL naar AH (AH wordt de teller)
+    46                                                            
+    47                                  .a_on:
+    48 00000032 FECC                        dec ah
+    49 00000034 75FC                        jnz .a_on
+    50                                  
+    51                                      ; 'Uit'-fase
+    52 00000036 88D8                        mov al, bl            ; Laad de basiswaarde van AL
+    53 00000038 24F7                        and al, 0xF7          ; Zet de 'break' bit LAAG
+    54 0000003A E63A                        out 0x3a, al          ; Schrijf naar USART
+    55                                  
+    56 0000003C 89E8                        mov ax, bp            ; AX = BP
+    57 0000003E 29F0                        sub ax, si            ; AX = BP - SI
+    58 00000040 88C4                        mov ah, al            ; Verplaats de lage byte van AX (AL) naar AH
+    59                                  .a_off:
+    60 00000042 FECC                        dec ah
+    61 00000044 75FC                        jnz .a_off
+    62                                  
+    63 00000046 4A                          dec dx                ; Verminder de totale duur
+    64 00000047 746B                        jz .e                 ; Als duur 0 is, einde
+    65                                  
+    66                                      ; Controleer of we de fade-out start bereikt hebben
+    67 00000049 3B16[B500]                  cmp dx, word [fade_out_start_duration]
+    68 0000004D 7E36                        jle .start_fade_out   ; Als dx <= fade_out_start_duration, begin fade-out
+    69                                  
+    70                                      ; Fade-in logic: verhoog SI geleidelijk
+    71 0000004F 46                          inc si                ; Verhoog de 'aan'-tijd
+    72                                      
+    73                                      ; Stop de fade-in als SI de helft van BP bereikt (ongeveer 50% duty cycle)
+    74 00000050 89E8                        mov ax, bp
+    75 00000052 D1E8                        shr ax, 1             ; AX = BP / 2 (voor 50% duty cycle)
+    76 00000054 39C6                        cmp si, ax            ; Vergelijk SI met de helft van BP
+    77 00000056 7CCE                        jl .fade_loop         ; Als SI kleiner is dan de helft, ga door met fade-in
+    78                                  
+    79                                      ; Als fade-in compleet is, ga naar normale afspeelmodus
+    80                                      ; Zet SI op de maximale duty cycle waarde (50% van BP)
+    81 00000058 89C6                        mov si, ax            ; SI = BP / 2 (max duty cycle)
+    82                                  
+    83                                  ; --- Normale afspeelmodus ---
+    84                                  .a_normal_play:
+    85 0000005A 89E9                        mov cx, bp            ; Reset note voor de frequentie
+    86                                  
+    87                                      ; 'Aan'-fase
+    88 0000005C 88D8                        mov al, bl            
+    89 0000005E 0C08                        or al, 0x08           
+    90 00000060 E63A                        out 0x3a, al          
+    91                                  
+    92 00000062 89F0                        mov ax, si            ; Gebruik de vaste 50% duty cycle
+    93 00000064 88C4                        mov ah, al            
+    94                                  .b_on_normal:
+    95 00000066 FECC                        dec ah
+    96 00000068 75FC                        jnz .b_on_normal
+    97                                  
+    98                                      ; 'Uit'-fase
+    99 0000006A 88D8                        mov al, bl            
+   100 0000006C 24F7                        and al, 0xF7          
+   101 0000006E E63A                        out 0x3a, al          
+   102                                  
+   103 00000070 89E8                        mov ax, bp
+   104 00000072 29F0                        sub ax, si            
+   105 00000074 88C4                        mov ah, al            
+   106                                  .b_off_normal:
+   107 00000076 FECC                        dec ah
+   108 00000078 75FC                        jnz .b_off_normal
+   109                                  
+   110 0000007A 4A                          dec dx                ; Verminder de totale duur
+   111 0000007B 7437                        jz .e                 ; Als duur 0 is, einde
+   112                                  
+   113                                      ; Controleer of we de fade-out start bereikt hebben
+   114 0000007D 3B16[B500]                  cmp dx, word [fade_out_start_duration]
+   115 00000081 7E02                        jle .start_fade_out   ; Als dx <= fade_out_start_duration, begin fade-out
+   116                                  
+   117 00000083 EBD5                        jmp .a_normal_play    ; Ga door met normale weergave
+   118                                  
+   119                                  ; --- Fade-out gedeelte ---
+   120                                  .start_fade_out:
+   121                                      ; SI heeft nu de max duty cycle waarde (BP/2).
+   122                                      ; We gaan SI nu geleidelijk verlagen.
+   123                                      
+   124                                  .fade_out_loop:
+   125 00000085 89E9                        mov cx, bp            ; Reset note voor de frequentie
+   126                                  
+   127                                      ; 'Aan'-fase
+   128 00000087 88D8                        mov al, bl            
+   129 00000089 0C08                        or al, 0x08           
+   130 0000008B E63A                        out 0x3a, al          
+   131                                  
+   132 0000008D 89F0                        mov ax, si            ; Gebruik de huidige (afnemende) duty cycle
+   133 0000008F 88C4                        mov ah, al            
+   134                                  .c_on_fade_out:
+   135 00000091 FECC                        dec ah
+   136 00000093 75FC                        jnz .c_on_fade_out
+   137                                  
+   138                                      ; 'Uit'-fase
+   139 00000095 88D8                        mov al, bl            
+   140 00000097 24F7                        and al, 0xF7          
+   141 00000099 E63A                        out 0x3a, al          
+   142                                  
+   143 0000009B 89E8                        mov ax, bp
+   144 0000009D 29F0                        sub ax, si            
+   145 0000009F 88C4                        mov ah, al            
+   146                                  .c_off_fade_out:
+   147 000000A1 FECC                        dec ah
+   148 000000A3 75FC                        jnz .c_off_fade_out
+   149                                  
+   150 000000A5 4A                          dec dx                ; Verminder de totale duur
+   151 000000A6 740C                        jz .e                 ; Als duur 0 is, einde (nu is het echt afgelopen)
+   152                                  
+   153                                      ; Fade-out logic: verlaag SI geleidelijk
+   154 000000A8 4E                          dec si                ; Verlaag de 'aan'-tijd
+   155 000000A9 83FE00                      cmp si, 0             ; Is SI 0 of minder geworden?
+   156 000000AC 7FD7                        jg .fade_out_loop     ; Zo nee, ga door met fade-out
+   157                                  
+   158                                      ; Als SI 0 is, dan is het geluid helemaal uitgefaded.
+   159                                      ; Verzeker dat de output stil is
+   160 000000AE 88D8                        mov al, bl
+   161 000000B0 24F7                        and al, 0xF7          ; Zorg dat de 'break' bit LAAG is
+   162 000000B2 E63A                        out 0x3a, al
+   163                                  
+   164                                  .e:
+   165 000000B4 C3                          ret
+   166                                  
+   167                                  ; Gegevenssectie (moet ergens in je .DATA of na je code, afhankelijk van je assembler)
+   168                                  ; Declareer deze variabele buiten de functie, in het data segment.
+   169                                  ; Bijvoorbeeld:
+   170                                  ; .DATA
+   171 000000B5 0000                    fade_out_start_duration dw 0
+   172                                  
+   173                                  
+   174                                  
+   175                                  ; play:              ; bx=note, dx=duration
+   176                                  ;     mov cx,bx
+   177                                  ; .a: xor al,8       ; toggle 'break' bit
+   178                                  ;     out 0x3a,al    ; USART
+   179                                  ; .b: dec ah
+   180                                  ;     jnz .c
+   181                                  ;     dec dx
+   182                                  ;     jz .e
+   183                                  ; .c: loop .b
+   184                                  ; .d: mov cx,bx      ; reset note
+   185                                  ;     jmp .a
+   186                                  ; .e: ret
+   187                                  ; play:                     ; bx=note, dx=duration
+   188                                  ;     ; Nieuwe variabele voor fade-in duty cycle (bijvoorbeeld in SI)
+   189                                  ;     mov si, 1             ; Begin met een zeer korte 'aan'-tijd (1 cyclus)
+   190                                  ;     mov bp, bx            ; Bewaar de oorspronkelijke BX (noot) voor de lus
+   191                                      
+   192                                  ;     ; Bewaar de initiële waarde van AL. Cruciaal als andere bits van AL
+   193                                  ;     ; belangrijk zijn voor de USART. We gebruiken BL om het op te slaan.
+   194                                  ;     ; Als je weet dat AL altijd 0x00 is bij aanvang, kun je dit weglaten.
+   195                                  ;     in al, 0x3a           ; Lees de huidige status van het USART control register
+   196                                  ;     mov bl, al            ; Sla de basiswaarde op in BL
+   197                                  
+   198                                  ; .fade_loop:
+   199                                  ;     mov cx, bp            ; Reset note voor de frequentie (oorspronkelijke BX)
+   200                                  
+   201                                  ;     ; Deel van de cyclus dat de 'break' bit hoog is (geluid aan)
+   202                                  ;     mov al, bl            ; Laad de basiswaarde van AL
+   203                                  ;     or al, 0x08           ; Zet de 'break' bit HOOG (bit 3)
+   204                                  ;     out 0x3a, al          ; Schrijf naar USART
+   205                                  
+   206                                  ;     ; --- CORRECTIE START ---
+   207                                  ;     mov ax,si
+   208                                  ;     ; mov al, sil           ; Verplaats de lage byte van SI naar AL
+   209                                  ;     mov ah, al            ; Verplaats AL naar AH (AH wordt de teller)
+   210                                  ;     ; --- CORRECTIE EINDE ---
+   211                                                            
+   212                                  ; .a_on:
+   213                                  ;     dec ah
+   214                                  ;     jnz .a_on             ; Blijf hier zolang AH > 0
+   215                                  
+   216                                  ;     ; Deel van de cyclus dat de 'break' bit laag is (geluid uit)
+   217                                  ;     mov al, bl            ; Laad de basiswaarde van AL
+   218                                  ;     and al, 0xF7          ; Zet de 'break' bit LAAG (bit 3 op 0)
+   219                                  ;     out 0x3a, al          ; Schrijf naar USART
+   220                                  
+   221                                  ;     ; Bereken de "uit" fase: totale periode (BP) min de "aan" fase (SI)
+   222                                  ;     mov ax, bp            ; AX = BP
+   223                                  ;     sub ax, si            ; AX = BP - SI (resultaat staat in AX)
+   224                                  
+   225                                  ;     ; --- CORRECTIE START ---
+   226                                  ;     mov ah, al            ; Verplaats de lage byte van AX (AL) naar AH
+   227                                  ;                           ; (AH wordt de teller voor de 'uit' fase)
+   228                                  ;     ; --- CORRECTIE EINDE ---
+   229                                  ; .a_off:
+   230                                  ;     dec ah
+   231                                  ;     jnz .a_off            ; Blijf hier zolang AH > 0
+   232                                  
+   233                                  ;     ; Nu de timing voor de totale duur (duration)
+   234                                  ;     dec dx                ; Verminder de totale duur
+   235                                  ;     jz .e                 ; Als duur 0 is, einde
+   236                                  
+   237                                  ;     ; Fade-in logic: verhoog SI geleidelijk
+   238                                  ;     inc si                ; Verhoog de 'aan'-tijd
+   239                                      
+   240                                  ;     ; Stop de fade als SI de helft van BP bereikt (ongeveer 50% duty cycle)
+   241                                  ;     ; of als SI gelijk is aan BP (100% duty cycle, maar dan is er geen "uit"-tijd meer)
+   242                                  ;     mov ax, bp
+   243                                  ;     shr ax, 1             ; AX = BP / 2 (voor 50% duty cycle)
+   244                                  ;     cmp si, ax            ; Vergelijk SI met de helft van BP
+   245                                  ;     jg .fade_finished     ; Als SI groter is dan de helft, is de fade klaar
+   246                                  
+   247                                  ;     jmp .fade_loop        ; Ga door met de volgende tooncyclus en verhoog SI
+   248                                  
+   249                                  ; .fade_finished:
+   250                                  ;     ; Hier komen we als de fade-in voltooid is.
+   251                                  ;     ; Nu spelen we de rest van de duur met de maximale duty cycle (50%)
+   252                                  ;     mov cx, bp            ; Reset note voor de frequentie (BP is de nootwaarde)
+   253                                  
+   254                                  ;     ; Zet SI op de maximale duty cycle waarde (50% van BP)
+   255                                  ;     mov ax, bp
+   256                                  ;     shr ax, 1             ; AX = BP / 2
+   257                                  ;     mov si, ax            ; Zet SI op de 50% duty cycle waarde
+   258                                  
+   259                                  ; .a_normal_play:
+   260                                  ;     ; Deel van de cyclus dat de 'break' bit hoog is
+   261                                  ;     mov al, bl            ; Laad de basiswaarde van AL
+   262                                  ;     or al, 0x08           ; Zet de 'break' bit HOOG
+   263                                  ;     out 0x3a, al          ; USART
+   264                                  
+   265                                  ;     ; --- CORRECTIE START ---
+   266                                  ;     ; mov al, sil           ; Verplaats de lage byte van SI naar AL
+   267                                  ;     mov ax,si
+   268                                  ;     mov ah, al            ; Verplaats AL naar AH
+   269                                  ;     ; --- CORRECTIE EINDE ---
+   270                                  ; .b_on_normal:
+   271                                  ;     dec ah
+   272                                  ;     jnz .b_on_normal
+   273                                  
+   274                                  ;     ; Deel van de cyclus dat de 'break' bit laag is
+   275                                  ;     mov al, bl            ; Laad de basiswaarde van AL
+   276                                  ;     and al, 0xF7          ; Zet de 'break' bit LAAG
+   277                                  ;     out 0x3a, al          ; USART
+   278                                  
+   279                                  ;     ; Bereken de "uit" fase voor normale weergave
+   280                                  ;     mov ax, bp
+   281                                  ;     sub ax, si            ; AX = BP - SI
+   282                                  
+   283                                  ;     ; --- CORRECTIE START ---
+   284                                  ;     mov ah, al            ; Verplaats de lage byte van AX (AL) naar AH
+   285                                  ;     ; --- CORRECTIE EINDE ---
+   286                                  ; .b_off_normal:
+   287                                  ;     dec ah
+   288                                  ;     jnz .b_off_normal
+   289                                  
+   290                                  ;     dec dx                ; Verminder de totale duur
+   291                                  ;     jz .e                 ; Als duur 0 is, einde
+   292                                  
+   293                                  ;     jmp .a_normal_play    ; Ga door met normale weergave
+   294                                  
+   295                                  ; .e:
+   296                                  ;     ret
+   297                                  
+   298                                  
+   299                                  %assign num $-$$
+   300                                  %warning total num
+   300          ******************       warning: total 183 [-w+user]
+   301 000000B7 00<rep 2CF49h>          times (180*1024)-num db 0

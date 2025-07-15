@@ -1,0 +1,158 @@
+     1                                  ; C3  equ 0x017C  ; = 131Hz
+     2                                  ; Cs3 equ 0x0167  ; = 138Hz
+     3                                  ; D3  equ 0x0152  ; = 147Hz
+     4                                  ; Ds3 equ 0x013F  ; = 156Hz
+     5                                  ; E3  equ 0x012D  ; = 165Hz
+     6                                  ; F3  equ 0x011C  ; = 175Hz
+     7                                  
+     8                                  G3  equ 0xFD  ;253 = 196Hz
+     9                                  A3  equ 0xE1  ;225 = 220Hz
+    10                                  B3  equ 0xC9  ;201 = 247Hz
+    11                                  ; -----
+    12                                  C4  equ 0xBE  ;190 = 262Hz
+    13                                  D4  equ 0xA8  ;168 = 294Hz
+    14                                  E4  equ 0x96  ;150 = 330Hz
+    15                                  F4  equ 0x8E  ;142 = 349Hz
+    16                                  G4  equ 0x7E  ;    = 393Hz
+    17                                  Gs4 equ 0x77  ;    = 416Hz
+    18                                  A4  equ 0x70  ;    = 442Hz
+    19                                  As4 equ 0x6A  ;    = 466Hz
+    20                                  B4  equ 0x64  ;    = 494Hz
+    21                                  ; -----
+    22                                  C5  equ 0x5e  ;    = 527Hz
+    23                                  D5  equ 0x54  ;    = 588Hz
+    24                                  Ds5 equ 0x4F  ;    = 625Hz
+    25                                  E5  equ 0x4B  ;    = 658Hz
+    26                                  F5  equ 0x47  ;    = 695Hz
+    27                                  Fs5 equ 0x43  ;    = 736Hz
+    28                                  G5  equ 0x3F  ;    = 782Hz 
+    29                                  Gs5 equ 0x3B  ; 
+    30                                  A5  equ 0x37  ;    = 881Hz
+    31                                  B5  equ 0x34  ;    = ????
+    32                                  ; ----
+    33                                  C6  equ 0x2F  ;    = ???
+    34                                  
+    35                                  setup:
+    36 00000000 0E                        push cs
+    37 00000001 1F                        pop ds
+    38 00000002 BE[3100]                  mov si,song
+    39                                  
+    40                                  update:
+    41 00000005 B700                      mov bh,0
+    42 00000007 AC                        lodsb
+    43                                    ; xchg ax,bx
+    44 00000008 88C3                      mov bl,al
+    45 0000000A BA4B00                    mov dx,75
+    46 0000000D E80B00                    call play
+    47                                  
+    48 00000010 81FE[5100]                cmp si,song+32
+    49 00000014 72EF                      jb update
+    50 00000016 BE[3100]                  mov si,song
+    51 00000019 EBEA                      jmp update
+    52                                  
+    53                                  play:             ; bx=note, dx=duration
+    54 0000001B 89D9                       mov cx,bx
+    55 0000001D 31C0                       xor ax,ax
+    56 0000001F 3408                    .a xor al,8
+    57 00000021 E63A                       out 0x3a,al
+    58 00000023 FECC                    .b dec ah
+    59 00000025 7503                       jnz .c
+    60 00000027 4A                         dec dx
+    61 00000028 7406                       jz .d
+    62 0000002A E2F7                    .c loop .b
+    63 0000002C 89D9                       mov cx,bx      ; reset note
+    64 0000002E EBEF                       jmp .a
+    65 00000030 C3                      .d ret
+    66                                  
+    67                                  song:
+    68 00000031 FDBE96BE                db G3,C4,E4,C4
+    69 00000035 FDBE96BE                db G3,C4,E4,C4
+    70 00000039 FDC9A8C9                db G3,B3,D4,B3
+    71 0000003D FDC9A8C9                db G3,B3,D4,B3
+    72 00000041 E1A88EA8                db A3,D4,F4,D4
+    73 00000045 E1A88EA8                db A3,D4,F4,D4
+    74 00000049 E1BE96BE                db A3,C4,E4,C4
+    75 0000004D E1BE96BE                db A3,C4,E4,C4
+    76                                  
+    77                                  
+    78                                  ; C - G - Am - Em - F - C - F - G
+    79                                  ; dw C4,E4,G4, C5,E5,G5   ;C
+    80                                  ; dw C4,E4,G4, C5,E5,G5   ;C
+    81                                  
+    82                                  ; dw G3,B3,D4, G4,B4,D5   ;G
+    83                                  ; dw G3,B3,D4, G4,B4,D5   ;G
+    84                                  
+    85                                  ; dw A3,C4,E4, A4,C5,E5   ;Am
+    86                                  ; dw A3,C4,E4, A4,C5,E5   ;Am
+    87                                  
+    88                                  ; dw E3,G3,B3, E4,G4,B4   ;Em
+    89                                  ; dw E3,G3,B3, E4,G4,B4   ;Em
+    90                                  
+    91                                  ; dw F3,A3,C4, F4,A4,C5   ;F
+    92                                  ; dw F3,A3,C4, F4,A4,C5   ;F
+    93                                  
+    94                                  ; dw C4,E4,G4, C5,E5,G5   ;C
+    95                                  ; dw C4,E4,G4, C5,E5,G5   ;C
+    96                                  
+    97                                  ; dw F3,A3,C4, F4,A4,C5   ;F
+    98                                  ; dw F3,A3,C4, F4,A4,C5   ;F
+    99                                  
+   100                                  ; dw G3,B3,D4, G4,B4,D5   ;G
+   101                                  ; dw G3,B3,D4, G4,B4,D5   ;G
+   102                                  
+   103                                  
+   104                                  ; ; zelfde maar rechter hand in andere volgorde
+   105                                  ; ; C - G - Am - Em - F - C - F - G
+   106                                  
+   107                                  ; ; C
+   108                                  ; dw C4,E4,G4 ; linker hand
+   109                                  ; dw C5,E5,G5,C6,G5,E5,  C5    ; rechterhand >>>> <<
+   110                                  ; dw G4,E4 ; linker hand
+   111                                  
+   112                                  ; ; G
+   113                                  ; dw G3,B3,D4 ; linker hand
+   114                                  ; dw G4,B4,D5,G5,D5,B4,  G4    ; rechter hand
+   115                                  ; dw D4,B3 ; linker hand
+   116                                  
+   117                                  ; ; Am
+   118                                  ; dw A3,C4,E4 ; linker hand
+   119                                  ; dw A4,C5,E5,A5,E5,C5,  A4    ; rechter hand
+   120                                  ; dw E4,C4 ; linker hand
+   121                                  
+   122                                  ; ; Em
+   123                                  ; dw E3,G3,B3 ; linker hand
+   124                                  ; dw E4,G4,B4,E5,B4,G4,  E4  ; rechter hand
+   125                                  ; dw B3,G3 ; linker hand
+   126                                  
+   127                                  ; ; F
+   128                                  ; dw F3,A3,C4 ; linker hand
+   129                                  ; dw F4,A4,C5,F5,C5,A4,  F4  ; rechter hand
+   130                                  ; dw C4,A3 ; linker hand
+   131                                  
+   132                                  ; ; C 
+   133                                  ; dw C4,E4,G4 ; linker hand
+   134                                  ; dw C5,E5,G5,C6,G5,E5,  C5 ; rechterhand >>>> <<
+   135                                  ; dw G4,E4 ; linker hand
+   136                                  
+   137                                  ; ; F
+   138                                  ; dw F3,A3,C4 ; linker hand
+   139                                  ; dw F4,A4,C5,F5,C5,A4,  F4  ; rechter hand
+   140                                  ; dw C4,A3 ; linker hand
+   141                                  
+   142                                  ; ; G
+   143                                  ; dw G3,B3,D4 ; linker hand
+   144                                  ; dw G4,B4,D5,G5,D5,B4,  G4 ; rechter hand
+   145                                  ; dw D4,B3 ; linker hand
+   146                                  
+   147                                  
+   148                                  
+   149                                  
+   150                                  
+   151                                  
+   152                                  
+   153                                  %assign num $-$$
+   154                                  %warning total num
+   154          ******************       warning: total 81 [-w+user]
+   155 00000051 00<rep 2CFAFh>          times (180*1024)-num db 0
+   156                                  
+   157                                  

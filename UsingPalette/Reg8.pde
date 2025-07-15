@@ -14,8 +14,20 @@ class Reg8 {
     value = v & mask;
   }
 
+  void set(Reg8 r) {
+    this.set(r.get());
+  }
+  
   void mov(int v) {
     set(v);
+  }
+  
+  void mul(int v) {
+    set(this.get()*v);
+  }
+  
+  void mul(Reg8 r) {
+    mul(r.get()); 
   }
 
   void mov(Reg8 r) {
@@ -60,6 +72,10 @@ class Reg8 {
   
   void add(int v) {
     this.set(this.get()+v);
+  }
+  
+  void sub(int v) {
+    this.set(this.get()-v);
   }
 
   void and(int v) {

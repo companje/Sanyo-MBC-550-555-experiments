@@ -1,0 +1,86 @@
+     1 00000000 0E                      push cs
+     2 00000001 1F                      pop ds
+     3 00000002 E82700                  call init_keys
+     4                                  
+     5                                  update:
+     6 00000005 8B1E[2A00]                mov bx,[pw]
+     7 00000009 BA6400                    mov dx,100
+     8 0000000C E85000                    call play
+     9                                  
+    10 0000000F E82B00                    call check_keys
+    11 00000012 74F1                      jz update
+    12                                  
+    13 00000014 3C5B                      cmp al,'['
+    14 00000016 7406                      je key_left
+    15 00000018 3C5D                      cmp al,']'
+    16 0000001A 7408                      je key_right
+    17                                  
+    18 0000001C EBE7                      jmp update
+    19                                  
+    20                                  
+    21                                  key_left:
+    22 0000001E FF06[2A00]                inc word [pw]
+    23 00000022 EBE1                      jmp update
+    24                                  
+    25                                  key_right:
+    26 00000024 FF0E[2A00]                dec word [pw]
+    27 00000028 EBDB                      jmp update
+    28                                  
+    29                                  
+    30 0000002A 5000                    pw: dw 0x50
+    31                                  
+    32                                  init_keys:
+    33 0000002C B000                      mov al,0
+    34 0000002E E63A                      out 0x3a,al           ; keyboard \force state/
+    35 00000030 E63A                      out 0x3a,al           ; keyboard \force state/
+    36 00000032 B0FF                      mov al,0xFF
+    37 00000034 E63A                      out 0x3a,al           ; keyboard \reset/
+    38 00000036 E63A                      out 0x3a,al           ; keyboard \mode/
+    39 00000038 B037                      mov al,0x37
+    40 0000003A E63A                      out 0x3a,al           ; keyboard \set command
+    41 0000003C C3                        ret
+    42                                  
+    43                                  check_keys:
+    44 0000003D E43A                      in al,0x3a        ; get keyboard status
+    45 0000003F 88C4                      mov ah,al
+    46 00000041 2408                      and al,0b00001000 ; keep only 1 for 'ctrl'
+    47 00000043 2EA2[5E00]                mov [cs:key.ctrl],al
+    48 00000047 F6C402                    test ah,2         ; keypressed flag is in ah, not in al anymore
+    49 0000004A 7410                      jz .return
+    50 0000004C E438                      in al,0x38        ; get data byte from keyboard  
+    51 0000004E 2EA2[5D00]                mov [cs:key.code],al
+    52 00000052 B037                      mov al,0x37
+    53 00000054 E63A                      out 0x3a,al       ; drop key?  
+    54 00000056 0C01                      or al,1           ; set zero flag to false to indicate a keypress
+    55 00000058 2EA1[5D00]                mov ax,[cs:key]   ; ctrl status in ah, keycode in al, ZF low means a key was pressed
+    56 0000005C C3                      .return ret
+    57                                  
+    58                                  key:
+    59 0000005D 00                        .code db 0
+    60 0000005E 00                        .ctrl db 0
+    61                                  
+    62                                  play:             ; bx=note/pulse_width, dx=duration
+    63 0000005F 89D9                       mov cx,bx
+    64 00000061 B83500                     mov ax,0x35
+    65 00000064 3408                    .a xor al,8       ; toggle 'break' bit
+    66 00000066 E63A                       out 0x3a,al    ; USART
+    67 00000068 FECC                    .b dec ah
+    68 0000006A 7503                       jnz .c
+    69 0000006C 4A                         dec dx
+    70 0000006D 7406                       jz .d
+    71 0000006F E2F7                    .c loop .b
+    72 00000071 89D9                       mov cx,bx      ; reset note
+    73 00000073 EBEF                       jmp .a
+    74 00000075 3408                    .d xor al,8       ; toggle 'control' bit
+    75 00000077 3C35                       cmp al,0x35    ; 'break' now on?
+    76 00000079 7502                       jnz .e         ; jump if not
+    77 0000007B E63A                       out 0x3A,al    ; reset USART
+    78 0000007D C3                      .e ret
+    79                                  
+    80                                  
+    81                                  
+    82                                  %assign num $-$$
+    83                                  %warning total num
+    83          ******************       warning: total 126 [-w+user]
+    84 0000007E 00<rep 2CF82h>          times (180*1024)-num db 0
+    85                                  

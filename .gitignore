@@ -9,3 +9,6 @@ emulator/Sanyo_MBC_555/frames/*
 mbc555-bootsector-disassembled/Sanyo-MS-DOS-2.11-minimal.img
 *.wav
 Composition1/app.lst
+venv311/
+*.vlw
+mame0277/

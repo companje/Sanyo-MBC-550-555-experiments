@@ -1,0 +1,399 @@
+     1                                  ticks EQU 16000 
+     2                                  
+     3                                  G3  equ 0xFD  ; = 196Hz
+     4                                  C4  equ 0xBE  ; = 262Hz
+     5                                  E4  equ 0x96  ; = 330Hz
+     6                                  B3  equ 0xC9  ; = 247Hz
+     7                                  D4  equ 0xA8  ; = 294Hz
+     8                                  A3  equ 0xE1  ; = 220Hz
+     9                                  F4  equ 0x8E  ; = 349Hz
+    10                                  G4  equ 0x7E  ; = 393Hz
+    11                                  Gs4 equ 0x77  ; = 416Hz
+    12                                  A4  equ 0x70  ; = 442Hz
+    13                                  As4 equ 0x6A  ; = 466Hz
+    14                                  B4  equ 0x64  ; = 494Hz
+    15                                  ; -----
+    16                                  C5  equ 0x5e  ; = 527Hz
+    17                                  D5  equ 0x54  ; = 588Hz
+    18                                  Ds5 equ 0x4F  ; = 625Hz
+    19                                  E5  equ 0x4B  ; = 658Hz
+    20                                  F5  equ 0x47  ; = 695Hz
+    21                                  Fs5 equ 0x43  ; = 736Hz
+    22                                  G5  equ 0x3F  ; = 782Hz 
+    23                                  Gs5 equ 0x3B  ; 
+    24                                  A5  equ 0x37  ; = 881Hz
+    25                                  B5  equ 0x34  ; = ????
+    26                                  ; ----
+    27                                  C6  equ 0x2F  ; = ???
+    28                                  
+    29                                  setup:
+    30                                    ;interrupt handler
+    31 00000000 B80000                    mov ax,0
+    32 00000003 8ED8                      mov ds,ax
+    33 00000005 3EC706E003[7B00]          mov word [ds:0xF8*4+0],onTimer0   ; 0xF8 timer0 interrupt handler
+    34 0000000C 3E8C0EE203                mov word [ds:0xF8*4+2],cs
+    35                                  
+    36                                    ;interrupt controller
+    37 00000011 B013                      mov al,0x13 ; ICW1
+    38 00000013 E600                      out 0x00,al
+    39 00000015 B0F8                      mov al,0xf8 ; ICW2
+    40 00000017 E602                      out 0x02,al
+    41 00000019 B00F                      mov al,0x0f ; ICW4
+    42 0000001B E602                      out 0x02,al
+    43 0000001D B096                      mov al,0x96 ; mask
+    44 0000001F E602                      out 0x02,al
+    45                                  
+    46                                    ;timer 0
+    47 00000021 B034                      mov al, 0x34        ; timer0
+    48 00000023 E626                      out 0x26, al
+    49 00000025 B080                      mov al, ticks & 0xff
+    50 00000027 E620                      out 0x20, al        ; timer0 lobyte
+    51 00000029 B03E                      mov al, ticks >> 8
+    52 0000002B E620                      out 0x20, al        ; timer0 hibyte
+    53                                  
+    54 0000002D 0E                        push cs
+    55 0000002E 1F                        pop ds
+    56                                  
+    57 0000002F FB                        sti ; enable interrupt
+    58                                  
+    59                                  update:
+    60                                    ;....
+    61 00000030 EBFE                      jmp update
+    62                                  
+    63                                  
+    64 00000032 00<rep 32h>             times 50 db 0     ; dit is nodig omdat de interrupt table overlapt met deze code.
+    65                                                    ; eigenlijk zou de code moeten beginnen op 0040:0000 ipv 0038:0000
+    66                                  
+    67                                  play:             ; bx=note, dx=duration
+    68 00000064 89D9                        mov cx,bx
+    69 00000066 B83500                      mov ax,0x35
+    70 00000069 3408                    .a: xor al,8       ; toggle 'break' bit
+    71 0000006B E63A                        out 0x3a,al    ; USART
+    72 0000006D FECC                    .b: dec ah
+    73 0000006F 7503                        jnz .c
+    74 00000071 4A                          dec dx
+    75 00000072 7406                        jz .e
+    76 00000074 E2F7                    .c: loop .b
+    77 00000076 89D9                        mov cx,bx      ; reset note
+    78 00000078 EBEF                        jmp .a
+    79 0000007A C3                      .e: ret
+    80                                  
+    81                                  
+    82                                  onTimer0:
+    83 0000007B 89EB                      mov bx,bp
+    84 0000007D 83E33F                    and bx,63
+    85                                    
+    86 00000080 83FD3F                    cmp bp,63
+    87 00000083 771B                      ja .pattern3
+    88                                  
+    89 00000085 83FD1F                    cmp bp,31
+    90 00000088 7708                      ja .pattern2
+    91                                  
+    92                                  .pattern1:
+    93                                  
+    94                                    ; cmp bp,48
+    95                                    ; ja .pattern1b
+    96 0000008A BA1400                    mov dx,20
+    97 0000008D E85300                    call play_chord
+    98 00000090 EB20                      jmp .c
+    99                                  
+   100                                  ; .pattern1b:  ; hier de snaredrum
+   101                                  ;   mov dx,3
+   102                                  ;   mov bx,C4
+   103                                  ;   mov dx,3
+   104                                  ;   mov bx,B5
+   105                                  ;   call play_chord
+   106                                  ;   jmp .c
+   107                                  
+   108                                  .pattern2:
+   109 00000092 BA0A00                    mov dx,10
+   110 00000095 E84B00                    call play_chord
+   111 00000098 BA0300                    mov dx,3
+   112 0000009B E81600                    call beat
+   113                                    ; mov dx,3
+   114                                    ; call play_chord
+   115 0000009E EB12                      jmp .c
+   116                                  
+   117                                  .pattern3:
+   118 000000A0 BA0300                    mov dx,3
+   119 000000A3 E80E00                    call beat
+   120 000000A6 BA0500                    mov dx,5
+   121 000000A9 E83700                    call play_chord
+   122 000000AC BA0D00                    mov dx,13
+   123 000000AF E83D00                    call play_melody
+   124                                  
+   125                                    ; mov dx,10
+   126                                    ; call play_melody
+   127                                  
+   128                                  .c:
+   129                                  
+   130                                  
+   131                                    ; mov dx,12
+   132                                    ; call beat
+   133                                    ; mov dx,5
+   134                                    ; call play_chord
+   135                                    ; mov dx,5
+   136                                    ; call play_melody
+   137                                  
+   138                                    ; mov dx,10
+   139                                    ; call play_melody
+   140                                  
+   141                                  
+   142 000000B2 45                        inc bp
+   143 000000B3 CF                        iret
+   144                                  
+   145                                  
+   146                                  beat:
+   147 000000B4 53                        push bx
+   148                                  
+   149 000000B5 89D8                      mov ax,bx
+   150 000000B7 30E4                      xor ah,ah
+   151 000000B9 B110                      mov cl,16
+   152 000000BB F6F1                      div cl
+   153 000000BD 8826[FC00]                mov [tel],ah
+   154 000000C1 A2[FB00]                  mov [maat],al
+   155                                  
+   156                                  
+   157 000000C4 BBE803                    mov bx,1000 ; wel geluid
+   158 000000C7 F606[FC00]01              test byte [tel],1   ; elke hele tel
+   159 000000CC 7409                      jz .drr
+   160 000000CE 803E[FC00]0F              cmp byte [tel],15   ; plus de laatste tel extra 5-6-7-8'en-1-2-3-4
+   161 000000D3 7402                      je .drr
+   162 000000D5 31DB                      xor bx,bx   ; geen geluid, wel constante tijd
+   163                                  
+   164                                  .drr:
+   165 000000D7 55                        push bp
+   166 000000D8 53                        push bx
+   167 000000D9 BA1900                    mov dx,25
+   168 000000DC E885FF                    call play
+   169 000000DF 5B                        pop bx
+   170 000000E0 5D                        pop bp
+   171                                  .dr:
+   172                                  
+   173 000000E1 5B                        pop bx
+   174 000000E2 C3                        ret
+   175                                  
+   176                                  play_chord:
+   177 000000E3 55                        push bp
+   178 000000E4 53                        push bx
+   179 000000E5 8A9F[FD00]                mov bl,[bx+chords]
+   180 000000E9 E878FF                    call play
+   181 000000EC 5B                        pop bx
+   182 000000ED 5D                        pop bp
+   183 000000EE C3                        ret
+   184                                  
+   185                                  play_melody:
+   186 000000EF 55                        push bp
+   187 000000F0 53                        push bx
+   188 000000F1 8A9F[3D01]                mov bl,[bx+melody]
+   189 000000F5 E86CFF                    call play
+   190 000000F8 5B                        pop bx
+   191 000000F9 5D                        pop bp
+   192 000000FA C3                        ret
+   193                                  
+   194                                  
+   195 000000FB 00                      maat: db 0
+   196 000000FC 00                      tel: db 0
+   197                                  
+   198                                  chords:
+   199 000000FD 8E6A546A                db F4,As4,D5,As4
+   200 00000101 8E6A546A                db F4,As4,D5,As4
+   201 00000105 8E705E70                db F4,A4,C5,A4
+   202 00000109 8E705E70                db F4,A4,C5,A4
+   203 0000010D 7E5E4F5E                db G4,C5,Ds5,C5
+   204 00000111 7E5E4F5E                db G4,C5,Ds5,C5
+   205 00000115 7E6A546A                db G4,As4,D5,As4
+   206 00000119 7E6A546A                db G4,As4,D5,As4
+   207                                  
+   208 0000011D 8E6A546A                db F4,As4,D5,As4
+   209 00000121 8E6A546A                db F4,As4,D5,As4
+   210 00000125 8E705E70                db F4,A4,C5,A4
+   211 00000129 8E705E70                db F4,A4,C5,A4
+   212 0000012D 7E5E4F5E                db G4,C5,Ds5,C5
+   213 00000131 7E5E4F5E                db G4,C5,Ds5,C5
+   214 00000135 7E6A546A                db G4,As4,D5,As4
+   215 00000139 7E6A546A                db G4,As4,D5,As4
+   216                                  
+   217                                  melody:
+   218 0000013D 5447005447005400        db D5,F5,0,D5,F5,0,D5,0
+   219 00000145 5E47005E47000000        db C5,F5,0,C5,F5,0,0,0
+   220 0000014D 4F3F004F3F004F00        db Ds5,G5,0,Ds5,G5,0,Ds5,0
+   221 00000155 543F00543F000000        db D5,G5,0,D5,G5,0,0,0
+   222 0000015D 5447005447005400        db D5,F5,0,D5,F5,0,D5,0
+   223 00000165 5E47004747000000        db C5,F5,0,F5,F5,0,0,0
+   224 0000016D 4F4F4F4F0000            db Ds5,Ds5,Ds5,Ds5,0,0
+   225 00000173 545E5E6A6A6A            db D5,C5,C5,As4,As4,As4
+   226 00000179 0000000000              db 0,0,0,0,0
+   227                                  
+   228                                  ; drums:
+   229                                  ; db G3
+   230                                  
+   231                                  ; play_fade:                     ; bx=note, dx=duration (totale duur van de noot)
+   232                                  ;     ; Initialisatie fade-in
+   233                                  ;     mov si, 1             ; Begin met een zeer korte 'aan'-tijd (1 cyclus)
+   234                                  ;     mov bp, bx            ; Bewaar de oorspronkelijke BX (noot) voor de lus
+   235                                      
+   236                                  ;     in al, 0x3a           ; Lees de huidige status van het USART control register
+   237                                  ;     mov bl, al            ; Sla de basiswaarde op in BL
+   238                                  
+   239                                  ;     ; Bereken het startpunt van de fade-out
+   240                                  ;     ; Laten we zeggen dat de fade-out de laatste 10% van de duur moet zijn,
+   241                                  ;     ; of minimaal een bepaalde vaste duur (bijv. 500 'ticks').
+   242                                  ;     ; We kiezen hier voor een vaste 'fade_out_duration' van 500, maar je kunt dit aanpassen.
+   243                                  ;     mov cx, dx            ; CX = totale duur
+   244                                  ;     mov ax, 500           ; Bijvoorbeeld 500 'ticks' voor de fade-out
+   245                                  ;     cmp cx, ax            ; Is de totale duur korter dan de gewenste fade-out duur?
+   246                                  ;     jle .short_duration   ; Zo ja, dan wordt de fade-out duur gelijk aan de totale duur
+   247                                  
+   248                                  ;     sub cx, ax            ; CX = totale duur - fade_out_duration (dit is de 'normale' speeltijd)
+   249                                  ;     mov word [fade_out_start_duration], cx ; Sla het startpunt van de fade-out op
+   250                                  ;     jmp .start_fade_in
+   251                                  
+   252                                  ; .short_duration:
+   253                                  ;     mov word [fade_out_start_duration], 0 ; Geen normale speeltijd, direct naar fade-out
+   254                                      
+   255                                  ; .start_fade_in:
+   256                                  
+   257                                  ; ; --- Fade-in gedeelte ---
+   258                                  ; .fade_loop:
+   259                                  ;     mov cx, bp            ; Reset note voor de frequentie (oorspronkelijke BX)
+   260                                  
+   261                                  ;     ; 'Aan'-fase
+   262                                  ;     mov al, bl            ; Laad de basiswaarde van AL
+   263                                  ;     or al, 0x08           ; Zet de 'break' bit HOOG
+   264                                  ;     out 0x3a, al          ; Schrijf naar USART
+   265                                  
+   266                                  ;     mov ax, si            ; Kopieer SI naar AX. Hierdoor komt SIL in AL.
+   267                                  ;     mov ah, al            ; Verplaats AL naar AH (AH wordt de teller)
+   268                                                            
+   269                                  ; .a_on:
+   270                                  ;     dec ah
+   271                                  ;     jnz .a_on
+   272                                  
+   273                                  ;     ; 'Uit'-fase
+   274                                  ;     mov al, bl            ; Laad de basiswaarde van AL
+   275                                  ;     and al, 0xF7          ; Zet de 'break' bit LAAG
+   276                                  ;     out 0x3a, al          ; Schrijf naar USART
+   277                                  
+   278                                  ;     mov ax, bp            ; AX = BP
+   279                                  ;     sub ax, si            ; AX = BP - SI
+   280                                  ;     mov ah, al            ; Verplaats de lage byte van AX (AL) naar AH
+   281                                  ; .a_off:
+   282                                  ;     dec ah
+   283                                  ;     jnz .a_off
+   284                                  
+   285                                  ;     dec dx                ; Verminder de totale duur
+   286                                  ;     jz .e                 ; Als duur 0 is, einde
+   287                                  
+   288                                  ;     ; Controleer of we de fade-out start bereikt hebben
+   289                                  ;     cmp dx, word [fade_out_start_duration]
+   290                                  ;     jle .start_fade_out   ; Als dx <= fade_out_start_duration, begin fade-out
+   291                                  
+   292                                  ;     ; Fade-in logic: verhoog SI geleidelijk
+   293                                  ;     inc si                ; Verhoog de 'aan'-tijd
+   294                                      
+   295                                  ;     ; Stop de fade-in als SI de helft van BP bereikt (ongeveer 50% duty cycle)
+   296                                  ;     mov ax, bp
+   297                                  ;     shr ax, 1             ; AX = BP / 2 (voor 50% duty cycle)
+   298                                  ;     cmp si, ax            ; Vergelijk SI met de helft van BP
+   299                                  ;     jl .fade_loop         ; Als SI kleiner is dan de helft, ga door met fade-in
+   300                                  
+   301                                  ;     ; Als fade-in compleet is, ga naar normale afspeelmodus
+   302                                  ;     ; Zet SI op de maximale duty cycle waarde (50% van BP)
+   303                                  ;     mov si, ax            ; SI = BP / 2 (max duty cycle)
+   304                                  
+   305                                  ; ; --- Normale afspeelmodus ---
+   306                                  ; .a_normal_play:
+   307                                  ;     mov cx, bp            ; Reset note voor de frequentie
+   308                                  
+   309                                  ;     ; 'Aan'-fase
+   310                                  ;     mov al, bl            
+   311                                  ;     or al, 0x08           
+   312                                  ;     out 0x3a, al          
+   313                                  
+   314                                  ;     mov ax, si            ; Gebruik de vaste 50% duty cycle
+   315                                  ;     mov ah, al            
+   316                                  ; .b_on_normal:
+   317                                  ;     dec ah
+   318                                  ;     jnz .b_on_normal
+   319                                  
+   320                                  ;     ; 'Uit'-fase
+   321                                  ;     mov al, bl            
+   322                                  ;     and al, 0xF7          
+   323                                  ;     out 0x3a, al          
+   324                                  
+   325                                  ;     mov ax, bp
+   326                                  ;     sub ax, si            
+   327                                  ;     mov ah, al            
+   328                                  ; .b_off_normal:
+   329                                  ;     dec ah
+   330                                  ;     jnz .b_off_normal
+   331                                  
+   332                                  ;     dec dx                ; Verminder de totale duur
+   333                                  ;     jz .e                 ; Als duur 0 is, einde
+   334                                  
+   335                                  ;     ; Controleer of we de fade-out start bereikt hebben
+   336                                  ;     cmp dx, word [fade_out_start_duration]
+   337                                  ;     jle .start_fade_out   ; Als dx <= fade_out_start_duration, begin fade-out
+   338                                  
+   339                                  ;     jmp .a_normal_play    ; Ga door met normale weergave
+   340                                  
+   341                                  ; ; --- Fade-out gedeelte ---
+   342                                  ; .start_fade_out:
+   343                                  ;     ; SI heeft nu de max duty cycle waarde (BP/2).
+   344                                  ;     ; We gaan SI nu geleidelijk verlagen.
+   345                                      
+   346                                  ; .fade_out_loop:
+   347                                  ;     mov cx, bp            ; Reset note voor de frequentie
+   348                                  
+   349                                  ;     ; 'Aan'-fase
+   350                                  ;     mov al, bl            
+   351                                  ;     or al, 0x08           
+   352                                  ;     out 0x3a, al          
+   353                                  
+   354                                  ;     mov ax, si            ; Gebruik de huidige (afnemende) duty cycle
+   355                                  ;     mov ah, al            
+   356                                  ; .c_on_fade_out:
+   357                                  ;     dec ah
+   358                                  ;     jnz .c_on_fade_out
+   359                                  
+   360                                  ;     ; 'Uit'-fase
+   361                                  ;     mov al, bl            
+   362                                  ;     and al, 0xF7          
+   363                                  ;     out 0x3a, al          
+   364                                  
+   365                                  ;     mov ax, bp
+   366                                  ;     sub ax, si            
+   367                                  ;     mov ah, al            
+   368                                  ; .c_off_fade_out:
+   369                                  ;     dec ah
+   370                                  ;     jnz .c_off_fade_out
+   371                                  
+   372                                  ;     dec dx                ; Verminder de totale duur
+   373                                  ;     jz .e                 ; Als duur 0 is, einde (nu is het echt afgelopen)
+   374                                  
+   375                                  ;     ; Fade-out logic: verlaag SI geleidelijk
+   376                                  ;     dec si                ; Verlaag de 'aan'-tijd
+   377                                  ;     cmp si, 0             ; Is SI 0 of minder geworden?
+   378                                  ;     jg .fade_out_loop     ; Zo nee, ga door met fade-out
+   379                                  
+   380                                  ;     ; Als SI 0 is, dan is het geluid helemaal uitgefaded.
+   381                                  ;     ; Verzeker dat de output stil is
+   382                                  ;     mov al, bl
+   383                                  ;     and al, 0xF7          ; Zorg dat de 'break' bit LAAG is
+   384                                  ;     out 0x3a, al
+   385                                  
+   386                                  ; .e:
+   387                                  ;     ret
+   388                                  
+   389                                  ; ; Gegevenssectie (moet ergens in je .DATA of na je code, afhankelijk van je assembler)
+   390                                  ; ; Declareer deze variabele buiten de functie, in het data segment.
+   391                                  ; ; Bijvoorbeeld:
+   392                                  ; ; .DATA
+   393                                  ; fade_out_start_duration dw 0
+   394                                  
+   395                                  
+   396                                  %assign num $-$$
+   397                                  %warning total num
+   397          ******************       warning: total 382 [-w+user]
+   398 0000017E 00<rep 2CE82h>          times (180*1024)-num db 0

@@ -1,0 +1,142 @@
+     1                                  setup:
+     2 00000000 0E                        push cs
+     3 00000001 1F                        pop ds
+     4 00000002 0E                        push cs
+     5 00000003 07                        pop es
+     6                                    
+     7 00000004 B035                      mov al,0x35
+     8 00000006 E63A                      out 0x3a,al
+     9                                  
+    10                                  
+    11 00000008 BE[2300]                  mov si,tones
+    12 0000000B B90100                    mov cx,1
+    13                                  .lp:
+    14 0000000E AD                        lodsw
+    15 0000000F 51                        push cx
+    16 00000010 56                        push si
+    17 00000011 57                        push di
+    18 00000012 89C6                      mov si,ax
+    19 00000014 E84C00                    call make_tone
+    20 00000017 E87900                    call fade_in
+    21 0000001A E86300                    call play_tone
+    22 0000001D 5F                        pop di
+    23 0000001E 5E                        pop si
+    24 0000001F 59                        pop cx
+    25 00000020 E2EC                      loop .lp
+    26                                  
+    27 00000022 F4                        hlt
+    28                                  
+    29 00000023 C400CF00DC00E900F6-     tones: dw 196,207,220,233,246,261,277,293,311,329,349,369,392,415,440,466,493,523,554,587,622,659,698,739,783,830,880,932,987,1046
+    29 0000002C 000501150125013701-
+    29 00000035 49015D01710188019F-
+    29 0000003E 01B801D201ED010B02-
+    29 00000047 2A024B026E029302BA-
+    29 00000050 02E3020F033E037003-
+    29 00000059 A403DB031604       
+    30 0000005F C409                    fade_cycles dw 2500              ; aantal cycli waarover je fade-in doet
+    31 00000061 0000                    samples_per_halfcycle dw 0      ; initieel zetten vanuit make_tone (BX)
+    32                                  
+    33                                  
+    34                                  make_tone:
+    35 00000063 31D2                      xor dx,dx
+    36 00000065 B9803E                    mov cx,16000
+    37 00000068 89C8                      mov ax,cx
+    38                                    ; shr si,1
+    39 0000006A F7F6                      div si
+    40 0000006C BF[DE00]                  mov di,data
+    41 0000006F 89C3                      mov bx,ax ; aantal stosb per fase
+    42 00000071 89C2                      mov dx,ax
+    43 00000073 B008                      mov al,8
+    44                                  .next:
+    45 00000075 AA                        stosb
+    46 00000076 4A                        dec dx
+    47 00000077 7504                      jnz .skip_toggle
+    48 00000079 3408                      xor al,8
+    49 0000007B 89DA                      mov dx,bx
+    50                                  .skip_toggle:
+    51 0000007D E2F6                      loop .next
+    52 0000007F C3                        ret
+    53                                  
+    54                                  play_tone:
+    55 00000080 B9803E                    mov cx,16000
+    56 00000083 BE[DE00]                  mov si,data
+    57                                  .next:
+    58 00000086 AC                        lodsb
+    59 00000087 E63A                      out 0x3a,al
+    60                                    ; pulse delay
+    61 00000089 51                        push cx
+    62 0000008A B90300                    mov cx,3
+    63                                  .delay:
+    64 0000008D E2FE                      loop .delay
+    65 0000008F 59                        pop cx
+    66                                    ; end delay
+    67 00000090 E2F4                      loop .next
+    68 00000092 C3                        ret
+    69                                  
+    70                                  fade_in:
+    71 00000093 BE[DE00]                  mov si, data                  ; SI = start van golfdata
+    72 00000096 B90000                    mov cx, 0                     ; CX = cyclus teller
+    73                                  
+    74                                  .next_cycle:
+    75 00000099 3B0E[5F00]                cmp cx, [fade_cycles]
+    76 0000009D 733E                      jae .end_fade                 ; als we buiten fade-gebied zitten, stop
+    77                                  
+    78                                    ; Bereken duty-percentage = (cx * 50) / fade_cycles
+    79 0000009F 89C8                      mov ax, cx
+    80 000000A1 BB3200                    mov bx, 50
+    81 000000A4 F7E3                      mul bx                        ; AX = cx * 50
+    82 000000A6 8B1E[5F00]                mov bx, [fade_cycles]
+    83 000000AA F7F3                      div bx                        ; AX = duty %, bv. 5, 10, ..., 50
+    84 000000AC 50                        push ax                       ; duty % bewaren
+    85                                  
+    86                                    ; Bereken max aantal 8'jes (max_on) = samples_per_halfcycle
+    87 000000AD A1[6100]                  mov ax, [samples_per_halfcycle]
+    88 000000B0 5B                        pop bx                        ; BX = duty %
+    89 000000B1 F7E3                      mul bx                        ; AX = duty% * max_on
+    90 000000B3 BB6400                    mov bx, 100
+    91 000000B6 F7F3                      div bx                        ; AX = aantal 8'jes die blijven
+    92 000000B8 89C3                      mov bx, ax                    ; BX = remaining 'on' samples
+    93                                  
+    94                                    ; Loop door 'aan'-segment
+    95                                  .scan_on:
+    96 000000BA 803C08                    cmp byte [si], 8
+    97 000000BD 750F                      jne .done_cycle
+    98 000000BF 83FB00                    cmp bx, 0
+    99 000000C2 7404                      je .zero_it
+   100 000000C4 4B                        dec bx
+   101 000000C5 46                        inc si
+   102 000000C6 EBF2                      jmp .scan_on
+   103                                  
+   104                                  .zero_it:
+   105 000000C8 C60400                    mov byte [si], 0
+   106 000000CB 46                        inc si
+   107 000000CC EBEC                      jmp .scan_on
+   108                                  
+   109                                  .done_cycle:
+   110                                    ; Skip de 'uit'-fase
+   111                                  .skip_zero:
+   112 000000CE 803C00                    cmp byte [si], 0
+   113 000000D1 7503                      jne .found_next
+   114 000000D3 46                        inc si
+   115 000000D4 EBF8                      jmp .skip_zero
+   116                                  
+   117                                  .found_next:
+   118 000000D6 41                        inc cx
+   119 000000D7 81FE[1E20]                cmp si, data + 8000
+   120 000000DB 72BC                      jb .next_cycle
+   121                                  
+   122                                  .end_fade:
+   123 000000DD C3                        ret
+   124                                  
+   125                                  
+   126                                  
+   127                                  
+   128                                  
+   129                                  
+   130                                  data:
+   131                                  
+   132                                  
+   133                                  %assign num $-$$
+   134                                  %warning total num
+   134          ******************       warning: total 222 [-w+user]
+   135 000000DE 00<rep 2CF22h>          times (180*1024)-num db 0

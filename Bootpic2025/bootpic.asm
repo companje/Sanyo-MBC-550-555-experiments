@@ -17,14 +17,14 @@ setup:
   mov si,img
   call draw_spr
 
-  mov cx,49
-.lp:
-  push cx
-  mov si,img
-  call draw_spr
-  add di,288
-  pop cx
-  loop .lp
+;   mov cx,49
+; .lp:
+;   push cx
+;   mov si,img
+;   call draw_spr
+;   add di,288
+;   pop cx
+;   loop .lp
 
 draw:
   jmp draw
@@ -95,8 +95,8 @@ draw_channel:
 
 ; img: incbin "16colors.png-dithered.spr"
 ; img: incbin "material16.png-dithered.spr"
-img: incbin "material16-dit2.spr"
-
+; img: incbin "material16-dit2.spr"
+img: incbin "hsb-dithered.spr"
 
 times (180*1024)-($-$$) db 0
 
