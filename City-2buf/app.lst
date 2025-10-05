@@ -1,0 +1,287 @@
+     1                                  ; GREEN equ 0x1c00
+     2                                  FONT equ 0xFF00
+     3                                  HSPACE equ 0
+     4                                  VSPACE equ 8*80*4
+     5                                  TOPLEFT equ HSPACE*4 + VSPACE
+     6                                  %define MAME
+     7                                  
+     8                                  setup:
+     9 00000000 0E                        push cs
+    10 00000001 1F                        pop ds
+    11 00000002 55                        push bp
+    12 00000003 55                        push bp
+    13 00000004 55                        push bp
+    14                                  
+    15 00000005 E87E01                    call generate_sin_table
+    16 00000008 E87200                    call crt_init
+    17                                    ; call clear_pages
+    18                                  
+    19 0000000B B408                      mov ah,8
+    20 0000000D 8EC0                      mov es,ax
+    21                                    ; xor di,di
+    22                                    ; mov ax,0
+    23                                    ; xor ax,ax
+    24                                    ; mov cx,-1
+    25 0000000F 58                        pop ax ;ax=0
+    26 00000010 5F                        pop di ;di=0
+    27 00000011 B9FFFF                    mov cx,-1
+    28 00000014 F3AB                      rep stosw
+    29                                  
+    30 00000016 B41C                      mov ah,0x1c
+    31 00000018 8EC0                      mov es,ax
+    32 0000001A B9FFFF                    mov cx,-1
+    33 0000001D 58                        pop ax
+    34 0000001E F3AB                      rep stosw
+    35                                  
+    36 00000020 EB42                      jmp switch
+    37                                  
+    38 00000022 00                      y: db 0
+    39                                  
+    40                                  draw_frame:
+    41 00000023 8EC0                      mov es,ax
+    42 00000025 BF000A                    mov di,TOPLEFT
+    43                                    ; mov ax,FONT
+    44                                    ; mov ds,ax
+    45                                    ; mov ax,-1
+    46 00000028 31DB                      xor bx,bx   ; bh=y, bl=x  [0..49]
+    47 0000002A B92200                    mov cx,34 ; rows
+    48                                  .row:
+    49 0000002D 880E[2200]                mov byte [y],cl
+    50                                  
+    51 00000031 51                        push cx
+    52 00000032 B95000                    mov cx,80
+    53                                  .col:
+    54                                    ; pop cx
+    55                                    ; mul cx
+    56                                    ; push cx
+    57 00000035 BB[0002]                  mov bx,sin_table
+    58 00000038 88C8                      mov al,cl
+    59 0000003A D7                        xlat
+    60 0000003B 88C2                      mov dl,al
+    61                                    ; mov bx,sin_table ;+64
+    62 0000003D A0[2200]                  mov al,[y]
+    63 00000040 D7                        xlat
+    64 00000041 00D0                      add al,dl
+    65                                    ; mul dl
+    66                                  
+    67                                  ;   xor al,cl
+    68                                  ; mov bl,al
+    69                                  ;   lea ax,[sin_table+bx]
+    70                                  
+    71                                  
+    72                                  ; mov al,bl
+    73                                  
+    74                                    ; mov bl,cl
+    75                                    ; lea ax,[sin_table+64+bx]
+    76                                  
+    77                                    ; mul dl
+    78                                  
+    79                                    ; mul byte [y]
+    80                                    ; shr ax,1
+    81                                    ; shr ax,1
+    82                                    ; ; ror bx,1
+    83                                    ; ; cbw
+    84                                    ; ; mul cl
+    85                                    ; mov bx,ax
+    86                                    ; lea si,[sin_table+bx]
+    87                                    ; lodsb
+    88                                    ; push cx
+    89                                    ;call sin
+    90                                    ; pop cx
+    91                                  
+    92 00000043 01E8                      add ax,bp
+    93 00000045 83E01F                    and ax,31
+    94 00000048 89C6                      mov si,ax
+    95                                    ; add ax,bp
+    96                                    ; call sin
+    97                                    ; xchg si,ax
+    98                                  
+    99                                    ; mov si,cx
+   100                                    ; add si,bp
+   101                                  
+   102 0000004A D1E6<rep 3h>              times 3 shl si,1
+   103 00000050 81C6[8600]                add si,font ; /////using incbin font otherwise remove this line and set segment to FONT
+   104                                  
+   105 00000054 A5                        movsw
+   106 00000055 A5                        movsw
+   107                                  
+   108 00000056 FEC3                      inc bl
+   109                                    ; pop ax ; restore row counter into ax
+   110 00000058 E2DB                      loop .col
+   111 0000005A 59                        pop cx
+   112 0000005B 83C700                    add di,2*4*HSPACE
+   113 0000005E FEC7                      inc bh
+   114 00000060 E2CB                      loop .row
+   115                                  
+   116 00000062 45                        inc bp
+   117                                  ; and bp,31
+   118                                  ;   add bp,[dir]
+   119                                  ;   ; inc bp        ; next frame
+   120                                  ;   cmp bp,63
+   121                                  ;   jne .n
+   122                                  ;   neg word [dir]
+   123                                  ; .n:
+   124                                  ;   or bp,bp
+   125                                  ;   jnz .r
+   126                                  ;   neg word [dir]
+   127                                  
+   128                                    ; and bp,63
+   129                                  
+   130                                  ;   cmp bp,179
+   131                                  ;   jb .r
+   132                                  ;   je .f
+   133                                  ;   mov bp,176
+   134                                  ;   jmp .r
+   135                                  ; .f
+   136                                  ;   mov bp,219
+   137                                  
+   138                                    ; and bp,255
+   139                                  .r
+   140 00000063 C3                        ret
+   141                                  
+   142                                  ; dir: dw 1
+   143                                  
+   144                                  switch:  
+   145                                    ; %ifdef MAME
+   146 00000064 B80008                    mov ax,0x0800    ; 0x0800 in MAME
+   147                                    ; %else
+   148                                    ; mov ax,0x0C00    ; 0x0C00 on Sanyo
+   149                                    ; %endif
+   150                                  
+   151 00000067 E8B9FF                    call draw_frame  ; draw offscreen
+   152 0000006A B004                      mov al,4         ; switch buffer
+   153 0000006C E610                      out 0x10,al
+   154                                  
+   155 0000006E B8001C                    mov ax,0x1c00    ; target segment
+   156 00000071 E8AFFF                    call draw_frame  ; draw offscreen
+   157 00000074 B005                      mov al,5         
+   158 00000076 E610                      out 0x10,al      ; switch buffer
+   159                                  
+   160 00000078 EBEA                      jmp switch
+   161                                  
+   162                                    ; hlt
+   163                                  
+   164                                  delay:
+   165                                    ; mov cx,5000
+   166                                    ; .delay: 
+   167                                    ; aam
+   168 0000007A E2FE                      loop delay
+   169 0000007C C3                        ret
+   170                                  
+   171                                  crt_init:
+   172 0000007D B001                      mov al,1
+   173 0000007F E630                      out 0x30,al
+   174 00000081 B050                      mov al,0x50
+   175 00000083 E632                      out 0x32,al
+   176 00000085 C3                        ret
+   177                                  
+   178                                  ;   xor bx,bx
+   179                                  ; .lp:
+   180                                  ;   mov al,bl
+   181                                  ;   out 0x30,al           ; address / register select
+   182                                  ;   mov al,[iosys+bx]
+   183                                  ;   out 0x32,al           ; data
+   184                                  ;   inc bx
+   185                                  ;   cmp bl,2 ;13
+   186                                  ;   jne .lp
+   187                                  ;   ret
+   188                                  
+   189                                  ; https://cpctech.cpcwiki.de/docs/hd6845s/hd6845sp.htm
+   190                                  ; iosys: db 0x70,0x50,0x59,0x48,0x41,0x00,0x32,0x38,0x00,0x03,0x00,0x00,0x00;,0x00,0x00,0x00
+   191                                  ; iosys: db 112,80,89,72,65,0,50,56,0,3,0,0,0,0,0,0
+   192                                  ; crt80: db 0x65,0x50,0x53,0x48,0x69,0x02,0x64,0x64,0x00,0x03,0,0,0,0,0,0
+   193                                  ; crt72: db 0x70,0x48,0x55,0x4A,0x41,0x00,0x32,0x38,0x00,0x03,0,0,0,0,0,0
+   194                                  ;           |    |    |    |    |    |    |    |    |    |__Cursor Start Raster Register (R10) (3 / 3)
+   195                                  ;           |    |    |    |    |    |    |    |    |__Maximum Raster Address Register    (R9) (0 / 0)
+   196                                  ;           |    |    |    |    |    |    |    |__Interlace and Skew Register (R8)   (0x64=100 / 0x38=56)   
+   197                                  ;           |    |    |    |    |    |    |__Vertical Displayed Register      (R6) V:(0x64=100 / 0x32=50)
+   198                                  ;           |    |    |    |    |    |__Vertical Total Adjust Register        (R5) V:(0x02=2   / 0x00=0)
+   199                                  ;           |    |    |    |    |__Vertical Total Register                    (R4) V:(0x41=65  / 0x69=105)
+   200                                  ;           |    |    |    |__Sync Width Register                             (R3)   (0x48=72  / 0x4a=74)
+   201                                  ;           |    |    |__Horizontal Sync Position Register                    (R2) H:(0x53=83  / 0x55=85)
+   202                                  ;           |    |__Horizontal Displayed Register                             (R1) H:(0x48=72  / 0x50=80)
+   203                                  ;           |__Horizontal Total Register                                      (R0) H:(0x65=101 / 0x70=112)
+   204                                                
+   205 00000086 <bin 100h>              font: incbin "vertical-gradient-256x8-hcenter.bin"
+   206                                  
+   207                                  generate_sin_table:   ; convert quart sine table to full sine table
+   208 00000186 0E                        push cs
+   209 00000187 07                        pop es
+   210 00000188 BF[0002]                  mov di,sin_table
+   211 0000018B 31C0                      xor ax,ax
+   212 0000018D B9FF00                    mov cx,255
+   213                                  .sin_loop:
+   214 00000190 50                        push ax
+   215 00000191 51                        push cx
+   216                                    ; call sin
+   217 00000192 B106                      mov cl,6
+   218 00000194 88C2                      mov dl,al        ; dl=angle 0..255
+   219 00000196 D2EA                      shr dl,cl        ; angle/6 = quadrant 0..3
+   220 00000198 88D6                      mov dh,dl        ; dh=copy of quadrant
+   221 0000019A 80E601                    and dh,1         ; dh=1 if quadrant is odd 1 or 3
+   222 0000019D 88F3                      mov bl,dh        ; bl=dh
+   223 0000019F D2E3                      shl bl,cl        ; r = bl<<6
+   224 000001A1 88D5                      mov ch,dl        ; gt1
+   225 000001A3 D0ED                      shr ch,1
+   226 000001A5 28F3                      sub bl,dh        ; s (0 of 63)
+   227 000001A7 243F                      and al,63        ; i
+   228 000001A9 30D8                      xor al,bl        ; i^bl
+   229 000001AB BB[C001]                  mov bx,qsin_table
+   230 000001AE D7                        xlat
+   231 000001AF F6DD                      neg ch
+   232 000001B1 30E8                      xor al,ch
+   233 000001B3 F6DD                      neg ch,
+   234 000001B5 00E8                      add al,ch
+   235 000001B7 0480                      add al,128
+   236                                    ; end call sin
+   237 000001B9 AA                        stosb
+   238 000001BA 59                        pop cx
+   239 000001BB 58                        pop ax
+   240 000001BC 40                        inc ax
+   241 000001BD E2D1                      loop .sin_loop
+   242 000001BF C3                        ret
+   243                                  
+   244 000001C0 000306090C0F121518-     qsin_table: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   244 000001C9 1B1E2124272A2D3033-
+   244 000001D2 36393B3E414346494B-
+   244 000001DB 4E50525557595B5E60-
+   244 000001E4 62646667696B6C6E70-
+   244 000001ED 71727475767778797A-
+   244 000001F6 7B7B7C7D7D7E7E7E7E-
+   244 000001FF 7E                 
+   245                                  
+   246                                  sin_table: 
+   247                                  
+   248                                  ; cos:
+   249                                  ;   add al,64
+   250                                  ; sin:
+   251                                  ;   mov cl,6
+   252                                  ;   mov dl,al        ; dl=angle 0..255
+   253                                  ;   shr dl,cl        ; angle/6 = quadrant 0..3
+   254                                  ;   mov dh,dl        ; dh=copy of quadrant
+   255                                  ;   and dh,1         ; dh=1 if quadrant is odd 1 or 3
+   256                                  ;   mov bl,dh        ; bl=dh
+   257                                  ;   shl bl,cl        ; r = bl<<6
+   258                                  ;   mov ch,dl        ; gt1
+   259                                  ;   shr ch,1
+   260                                  ;   sub bl,dh        ; s (0 or 63)
+   261                                  ;   and al,63        ; i
+   262                                  ;   xor al,bl        ; i^bl
+   263                                  ;   mov bx,qsin
+   264                                  ;   xlat
+   265                                  ;   neg ch
+   266                                  ;   xor al,ch
+   267                                  ;   neg ch,
+   268                                  ;   add al,ch
+   269                                  ;   add al,128
+   270                                  ;   ret
+   271                                  
+   272                                  ; ------------------------------------
+   273                                  
+   274                                  ; qsin: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   275                                  
+   276                                  
+   277                                  %assign num $-$$
+   278                                  %warning total num
+   278          ******************       warning: total 512 [-w+user]
+   279 00000200 00<rep 2CE00h>          times (180*1024)-num db 0

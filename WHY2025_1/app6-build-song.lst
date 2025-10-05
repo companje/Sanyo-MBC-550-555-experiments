@@ -1,0 +1,114 @@
+     1 00000000 EB23                    jmp setup
+     2                                  
+     3                                  G3  equ 0xFD  ; = 196Hz
+     4                                  C4  equ 0xBE  ; = 262Hz
+     5                                  E4  equ 0x96  ; = 330Hz
+     6                                  B3  equ 0xC9  ; = 247Hz
+     7                                  D4  equ 0xA8  ; = 294Hz
+     8                                  A3  equ 0xE1  ; = 220Hz
+     9                                  F4  equ 0x8E  ; = 349Hz
+    10                                  
+    11                                  NUM equ 32 ; wonderful days
+    12                                  PULSE_W equ 60
+    13                                  T equ 2*NUM
+    14                                  
+    15                                  song:
+    16 00000002 FDBE96BE                db G3,C4,E4,C4
+    17 00000006 FDBE96BE                db G3,C4,E4,C4
+    18 0000000A FDC9A8C9                db G3,B3,D4,B3
+    19 0000000E FDC9A8C9                db G3,B3,D4,B3
+    20 00000012 E1A88EA8                db A3,D4,F4,D4
+    21 00000016 E1A88EA8                db A3,D4,F4,D4
+    22 0000001A E1BE96BE                db A3,C4,E4,C4
+    23 0000001E E1BE96BE                db A3,C4,E4,C4
+    24                                  
+    25 00000022 00                      couplet: db 0
+    26 00000023 00                      maat: db 0
+    27 00000024 00                      noot: db 0
+    28                                  
+    29                                  setup:
+    30 00000025 0E                          push cs
+    31 00000026 1F                          pop ds
+    32 00000027 BE[0200]                    mov si,song
+    33                                      ; mov ax,0x0800
+    34                                      ; mov es,ax
+    35                                  update:
+    36 0000002A 45                          inc bp
+    37                                  
+    38 0000002B F7C50100                    test bp,1
+    39 0000002F 7412                        jz .ch2
+    40                                  .ch1:
+    41 00000031 B700                        mov bh,0
+    42 00000033 AC                          lodsb
+    43 00000034 88C3                        mov bl,al
+    44 00000036 83FD40                      cmp bp,T
+    45 00000039 7260                        jb .done_ch
+    46 0000003B BA0A00                      mov dx,10
+    47 0000003E E86500                      call play
+    48 00000041 EB58                        jmp .done_ch
+    49                                  .ch2:
+    50 00000043 51                          push cx
+    51 00000044 89E9                        mov cx,bp
+    52 00000046 A0[BD00]                    mov al,[mm]
+    53 00000049 30E4                        xor ah,ah
+    54 0000004B 21C1                        and cx,ax
+    55 0000004D D3E3                        shl bx,cl
+    56 0000004F 59                          pop cx
+    57 00000050 8B16[BE00]                  mov dx,[dv]
+    58 00000054 D1EB                        shr bx,1    ; higher
+    59 00000056 E84D00                      call play
+    60 00000059 A0[BD00]                    mov al,[mm]
+    61 0000005C 83FD40                      cmp bp,1*T
+    62 0000005F 7506                        jne .xx
+    63 00000061 C706[BE00]3200              mov word [dv],PULSE_W-10
+    64                                  .xx:
+    65 00000067 81FD7401                    cmp bp,6*T-T/5 ;4*T+T/2+5
+    66 0000006B 7F1F                        jg .q
+    67 0000006D 81FD4001                    cmp bp,5*T
+    68 00000071 7F1A                        jg .p
+    69 00000073 81FD0001                    cmp bp,4*T
+    70 00000077 7F19                        jg .o
+    71 00000079 81FDC000                    cmp bp,3*T
+    72 0000007D 7F19                        jg .z
+    73 0000007F 81FD8000                    cmp bp,2*T
+    74 00000083 7F0F                        jg .x
+    75 00000085 83FD40                      cmp bp,1*T
+    76 00000088 7F0E                        jg .z
+    77 0000008A EB0F                        jmp .done_ch
+    78 0000008C F4                      .q: hlt
+    79 0000008D 8306[BE00]03            .p: add word [dv],3
+    80 00000092 D0C8                    .o: ror al,1
+    81 00000094 D0C0                    .x: rol al,1
+    82 00000096 D0C0                        rol al,1
+    83 00000098 A2[BD00]                .z: mov [mm],al
+    84                                  .done_ch:
+    85 0000009B 81FE[2200]                  cmp si,song+NUM
+    86 0000009F 7289                        jb update
+    87 000000A1 BE[0200]                    mov si,song
+    88 000000A4 EB84                        jmp update
+    89                                  
+    90                                  play:             ; bx=note, dx=duration
+    91 000000A6 89D9                        mov cx,bx
+    92 000000A8 B83500                      mov ax,0x35
+    93 000000AB 3408                    .a: xor al,8       ; toggle 'break' bit
+    94 000000AD E63A                        out 0x3a,al    ; USART
+    95 000000AF FECC                    .b: dec ah
+    96 000000B1 7503                        jnz .c
+    97 000000B3 4A                          dec dx
+    98 000000B4 7406                        jz .e
+    99 000000B6 E2F7                    .c: loop .b
+   100 000000B8 89D9                        mov cx,bx      ; reset note
+   101 000000BA EBEF                        jmp .a
+   102 000000BC C3                      .e: ret
+   103                                  
+   104                                  
+   105                                  
+   106 000000BD 01                      mm: db 1
+   107 000000BE 3C00                    dv: dw PULSE_W
+   108                                  
+   109                                  %assign num $-$$
+   110                                  %warning total num
+   110          ******************       warning: total 192 [-w+user]
+   111 000000C0 00<rep 2CF40h>          times (180*1024)-num db 0
+   112                                  
+   113                                  

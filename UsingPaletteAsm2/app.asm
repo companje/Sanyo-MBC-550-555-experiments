@@ -92,9 +92,6 @@ draw:
 ; ───────────────────────────────────────────────────────────────────────────
 
 draw_cell:        ; draw 8x4px (12 bytes) from SI to DI
-  ; push di
-  ; push di
-  ; push di
   mov bx,di       ; dit zou sneller kunnen zijn dan push/pop. Wel meer bytes.
   mov ax,RED
   mov es,ax
@@ -102,18 +99,15 @@ draw_cell:        ; draw 8x4px (12 bytes) from SI to DI
   movsw
   mov ah,GREEN>>8 ; save 1 byte because AL is already 0
   mov es,ax
-  ; pop di
   mov di,bx
   movsw
   movsw
   mov ah,BLUE>>8
   mov es,ax
-  ; pop di
   mov di,bx
   movsw
   movsw
   mov di,bx
-  ; pop di
   ret
 
 clear_all:

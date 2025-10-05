@@ -3,8 +3,10 @@ PGraphics pg;
 int fontSize = 400;
 char chars[] = {'·','•','•',0xF9,0xFA};
 char charset[] = new char[255];
-String charstring = "☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼";
-//#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+String charstring = "░▒ï☼▓¥█" ; //☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼";
+
+//String charstring = "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+//String charstring = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■";
 //char charset[] = {'☺'};
 //char character = '·'; //·•*■0O';
 int index=0;
@@ -14,7 +16,7 @@ void setup() {
   size(334, 400);
   for (int i=0; i<charset.length; i++) charset[i]=char(i);
   
-  frameRate(3);
+  frameRate(60);
   
   font = createFont("Ac437_SanyoMBC55x",fontSize,false,charset);
   //font = loadFont("Ac437_SanyoMBC55x-80.vlw");
@@ -24,9 +26,12 @@ void draw() {
   background(0);
   textFont(font);
   char c = charstring.charAt(index); //frameCount%charstring.length());
+  //char c = (char)index;
   //char c = chars[index];
+  fill(255);
   text(c,0,fontSize-fontSize/8);
-  
+  fill(0,230);
+  rect(0,height/2,width,height/2);
   //textFont(
   //image( drawChar('☺'), 0, 0);
 }
@@ -34,7 +39,7 @@ void draw() {
 void keyPressed() {
  if (key==']') index++;
  if (key=='[') index--;
- index = int(constrain(index,0,charstring.length()-1));
+ //index = int(constrain(index,0,charstring.length()-1));
 }
 
 //PImage drawChar(char ch) {

@@ -92,109 +92,103 @@
     92                                  ; ───────────────────────────────────────────────────────────────────────────
     93                                  
     94                                  draw_cell:        ; draw 8x4px (12 bytes) from SI to DI
-    95                                    ; push di
-    96                                    ; push di
-    97                                    ; push di
-    98 00000065 89FB                      mov bx,di       ; dit zou sneller kunnen zijn dan push/pop. Wel meer bytes.
-    99 00000067 B800F0                    mov ax,RED
-   100 0000006A 8EC0                      mov es,ax
-   101 0000006C A5                        movsw
-   102 0000006D A5                        movsw
-   103 0000006E B41C                      mov ah,GREEN>>8 ; save 1 byte because AL is already 0
-   104 00000070 8EC0                      mov es,ax
-   105                                    ; pop di
-   106 00000072 89DF                      mov di,bx
-   107 00000074 A5                        movsw
-   108 00000075 A5                        movsw
-   109 00000076 B4F4                      mov ah,BLUE>>8
-   110 00000078 8EC0                      mov es,ax
-   111                                    ; pop di
-   112 0000007A 89DF                      mov di,bx
-   113 0000007C A5                        movsw
-   114 0000007D A5                        movsw
-   115 0000007E 89DF                      mov di,bx
-   116                                    ; pop di
-   117 00000080 C3                        ret
-   118                                  
-   119                                  clear_all:
-   120 00000081 B8001C                    mov ax,GREEN
-   121 00000084 E81000                    call clear_channel
-   122 00000087 B800F0                    mov ax,RED
-   123 0000008A E80A00                    call clear_channel
-   124 0000008D B800F4                    mov ax,BLUE
-   125 00000090 E80400                    call clear_channel
-   126 00000093 C3                        ret
-   127                                  
-   128                                  clear_green:
-   129 00000094 B8001C                    mov ax,GREEN
-   130                                  
-   131                                  clear_channel:
-   132 00000097 8EC0                      mov es,ax
-   133 00000099 B94038                    mov cx,COLS*4*ROWS
-   134 0000009C 31FF                      xor di,di
-   135 0000009E 31C0                      xor ax,ax
-   136 000000A0 F3AB                      rep stosw         ; clear screen
-   137 000000A2 C3                        ret
-   138                                  
-   139                                  ; ───────────────────────────────────────────────────────────────────────────
-   140                                  
-   141                                  generate_sin_table:   ; convert quart sine table to full sine table
-   142 000000A3 0E                        push cs
-   143 000000A4 07                        pop es
-   144 000000A5 BF[DD01]                  mov di,sin_table
-   145 000000A8 31C0                      xor ax,ax
-   146 000000AA B9FF00                    mov cx,255
-   147                                  .sin_loop:
-   148 000000AD 50                        push ax
-   149 000000AE 51                        push cx
-   150                                    ; call sin
-   151 000000AF B106                      mov cl,6
-   152 000000B1 88C2                      mov dl,al        ; dl=angle 0..255
-   153 000000B3 D2EA                      shr dl,cl        ; angle/6 = quadrant 0..3
-   154 000000B5 88D6                      mov dh,dl        ; dh=copy of quadrant
-   155 000000B7 80E601                    and dh,1         ; dh=1 if quadrant is odd 1 or 3
-   156 000000BA 88F3                      mov bl,dh        ; bl=dh
-   157 000000BC D2E3                      shl bl,cl        ; r = bl<<6
-   158 000000BE 88D5                      mov ch,dl        ; gt1
-   159 000000C0 D0ED                      shr ch,1
-   160 000000C2 28F3                      sub bl,dh        ; s (0 of 63)
-   161 000000C4 243F                      and al,63        ; i
-   162 000000C6 30D8                      xor al,bl        ; i^bl
-   163 000000C8 BB[DD00]                  mov bx,qsin_table
-   164 000000CB D7                        xlat
-   165 000000CC F6DD                      neg ch
-   166 000000CE 30E8                      xor al,ch
-   167 000000D0 F6DD                      neg ch,
-   168 000000D2 00E8                      add al,ch
-   169 000000D4 0480                      add al,128
-   170                                    ; end call sin
-   171 000000D6 AA                        stosb
-   172 000000D7 59                        pop cx
-   173 000000D8 58                        pop ax
-   174 000000D9 40                        inc ax
-   175 000000DA E2D1                      loop .sin_loop
-   176 000000DC C3                        ret
-   177                                  
-   178 000000DD 000306090C0F121518-     qsin_table: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
-   178 000000E6 1B1E2124272A2D3033-
-   178 000000EF 36393B3E414346494B-
-   178 000000F8 4E50525557595B5E60-
-   178 00000101 62646667696B6C6E70-
-   178 0000010A 71727475767778797A-
-   178 00000113 7B7B7C7D7D7E7E7E7E-
-   178 0000011C 7E                 
-   179                                  
-   180                                  ; ───────────────────────────────────────────────────────────────────────────
-   181                                  
-   182 0000011D <bin C0h>               img: incbin "material16x4-dit2.pal"
-   183                                  ; img: incbin "material-grey-dit2.pal"
-   184                                  ; img: incbin "yyyy-dit2.pal"
-   185                                  sin_table: 
+    95 00000065 89FB                      mov bx,di       ; dit zou sneller kunnen zijn dan push/pop. Wel meer bytes.
+    96 00000067 B800F0                    mov ax,RED
+    97 0000006A 8EC0                      mov es,ax
+    98 0000006C A5                        movsw
+    99 0000006D A5                        movsw
+   100 0000006E B41C                      mov ah,GREEN>>8 ; save 1 byte because AL is already 0
+   101 00000070 8EC0                      mov es,ax
+   102 00000072 89DF                      mov di,bx
+   103 00000074 A5                        movsw
+   104 00000075 A5                        movsw
+   105 00000076 B4F4                      mov ah,BLUE>>8
+   106 00000078 8EC0                      mov es,ax
+   107 0000007A 89DF                      mov di,bx
+   108 0000007C A5                        movsw
+   109 0000007D A5                        movsw
+   110 0000007E 89DF                      mov di,bx
+   111 00000080 C3                        ret
+   112                                  
+   113                                  clear_all:
+   114 00000081 B8001C                    mov ax,GREEN
+   115 00000084 E81000                    call clear_channel
+   116 00000087 B800F0                    mov ax,RED
+   117 0000008A E80A00                    call clear_channel
+   118 0000008D B800F4                    mov ax,BLUE
+   119 00000090 E80400                    call clear_channel
+   120 00000093 C3                        ret
+   121                                  
+   122                                  clear_green:
+   123 00000094 B8001C                    mov ax,GREEN
+   124                                  
+   125                                  clear_channel:
+   126 00000097 8EC0                      mov es,ax
+   127 00000099 B94038                    mov cx,COLS*4*ROWS
+   128 0000009C 31FF                      xor di,di
+   129 0000009E 31C0                      xor ax,ax
+   130 000000A0 F3AB                      rep stosw         ; clear screen
+   131 000000A2 C3                        ret
+   132                                  
+   133                                  ; ───────────────────────────────────────────────────────────────────────────
+   134                                  
+   135                                  generate_sin_table:   ; convert quart sine table to full sine table
+   136 000000A3 0E                        push cs
+   137 000000A4 07                        pop es
+   138 000000A5 BF[DD01]                  mov di,sin_table
+   139 000000A8 31C0                      xor ax,ax
+   140 000000AA B9FF00                    mov cx,255
+   141                                  .sin_loop:
+   142 000000AD 50                        push ax
+   143 000000AE 51                        push cx
+   144                                    ; call sin
+   145 000000AF B106                      mov cl,6
+   146 000000B1 88C2                      mov dl,al        ; dl=angle 0..255
+   147 000000B3 D2EA                      shr dl,cl        ; angle/6 = quadrant 0..3
+   148 000000B5 88D6                      mov dh,dl        ; dh=copy of quadrant
+   149 000000B7 80E601                    and dh,1         ; dh=1 if quadrant is odd 1 or 3
+   150 000000BA 88F3                      mov bl,dh        ; bl=dh
+   151 000000BC D2E3                      shl bl,cl        ; r = bl<<6
+   152 000000BE 88D5                      mov ch,dl        ; gt1
+   153 000000C0 D0ED                      shr ch,1
+   154 000000C2 28F3                      sub bl,dh        ; s (0 of 63)
+   155 000000C4 243F                      and al,63        ; i
+   156 000000C6 30D8                      xor al,bl        ; i^bl
+   157 000000C8 BB[DD00]                  mov bx,qsin_table
+   158 000000CB D7                        xlat
+   159 000000CC F6DD                      neg ch
+   160 000000CE 30E8                      xor al,ch
+   161 000000D0 F6DD                      neg ch,
+   162 000000D2 00E8                      add al,ch
+   163 000000D4 0480                      add al,128
+   164                                    ; end call sin
+   165 000000D6 AA                        stosb
+   166 000000D7 59                        pop cx
+   167 000000D8 58                        pop ax
+   168 000000D9 40                        inc ax
+   169 000000DA E2D1                      loop .sin_loop
+   170 000000DC C3                        ret
+   171                                  
+   172 000000DD 000306090C0F121518-     qsin_table: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   172 000000E6 1B1E2124272A2D3033-
+   172 000000EF 36393B3E414346494B-
+   172 000000F8 4E50525557595B5E60-
+   172 00000101 62646667696B6C6E70-
+   172 0000010A 71727475767778797A-
+   172 00000113 7B7B7C7D7D7E7E7E7E-
+   172 0000011C 7E                 
+   173                                  
+   174                                  ; ───────────────────────────────────────────────────────────────────────────
+   175                                  
+   176 0000011D <bin C0h>               img: incbin "material16x4-dit2.pal"
+   177                                  ; img: incbin "material-grey-dit2.pal"
+   178                                  ; img: incbin "yyyy-dit2.pal"
+   179                                  sin_table: 
+   180                                  
+   181                                  %assign num $-$$
+   182                                  %warning total num
+   182          ******************       warning: total 477 [-w+user]
+   183 000001DD 00<rep 2CE23h>          times (180*1024)-num db 0
+   184                                  
+   185                                  
    186                                  
-   187                                  %assign num $-$$
-   188                                  %warning total num
-   188          ******************       warning: total 477 [-w+user]
-   189 000001DD 00<rep 2CE23h>          times (180*1024)-num db 0
-   190                                  
-   191                                  
-   192                                  

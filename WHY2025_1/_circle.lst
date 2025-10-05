@@ -1,0 +1,191 @@
+     1                                  org 0
+     2                                  cpu 8086
+     3                                  COLS equ 72
+     4                                  CENTER EQU 25*288+144
+     5                                  
+     6                                  setup:
+     7 00000000 0E                        push cs
+     8 00000001 1F                        pop ds
+     9 00000002 B80008                    mov ax,0x0800  ; GREEN
+    10 00000005 8EC0                      mov es,ax
+    11                                  
+    12 00000007 E81C00                    call circle
+    13                                  
+    14 0000000A F4                        hlt
+    15                                  
+    16                                  
+    17                                  scale_bx:
+    18                                  ; in : BL, BH ∈ [-127..127]
+    19                                  ; out: BL, BH ∈ [-100..100]
+    20                                  ; trashes: AX
+    21                                  ; preserves: CX
+    22 0000000B 51                        push    cx
+    23                                  
+    24                                    ; BL -> [-100..100]
+    25 0000000C 88D8                      mov     al, bl
+    26 0000000E B164                      mov     cl, 100
+    27 00000010 F6E9                      imul    cl            ; AX = BL * 100 (signed)
+    28 00000012 B17F                      mov     cl, 127
+    29 00000014 F6F9                      idiv    cl            ; AL = (BL*100)/127 (truncate toward 0)
+    30 00000016 88C3                      mov     bl, al
+    31                                  
+    32                                    ; BH -> [-100..100]
+    33 00000018 88F8                      mov     al, bh
+    34 0000001A B164                      mov     cl, 100
+    35 0000001C F6E9                      imul    cl            ; AX = BH * 100
+    36 0000001E B17F                      mov     cl, 127
+    37 00000020 F6F9                      idiv    cl            ; AL = (BH*100)/127
+    38 00000022 88C7                      mov     bh, al
+    39                                  
+    40 00000024 59                        pop     cx
+    41                                  
+    42 00000025 C3                        ret
+    43                                  
+    44                                  circle:
+    45 00000026 B9FF00                    mov cx,255
+    46                                  .lp:
+    47 00000029 51                        push cx
+    48 0000002A 88C8                      mov al,cl
+    49 0000002C E86900                    call sin
+    50 0000002F 88C7                      mov bh,al
+    51                                  
+    52 00000031 88C8                      mov al,cl
+    53 00000033 E86000                    call cos
+    54 00000036 88C3                      mov bl,al
+    55                                  
+    56 00000038 E8D0FF                    call scale_bx ; from -127..127 to -100..100
+    57 0000003B E80400                    call dot
+    58                                  
+    59 0000003E 59                        pop cx
+    60 0000003F E2E8                      loop .lp
+    61 00000041 C3                        ret
+    62                                  
+    63                                  dot:
+    64 00000042 E80600                    call calc_di_dl_for_pixel
+    65 00000045 260895B01C                or [es:di + CENTER],dl  ; set pixel
+    66 0000004A C3                        ret
+    67                                  
+    68                                  
+    69                                  ;;;;; DEZE WERKT OOK MET NEGATIEVE GETALLEN DUS -127..127
+    70                                  
+    71                                  ;;; ZOU IK HIER OOK EEN LOOKUP TABLE VAN KUNNEN MAKEN?
+    72                                  ; bijv BL=x en BH=y en dan een LUT van BX naar DI
+    73                                  ; elke DI zal 8x voorkomen omdat telkens 8 pixels dezelfde DI hebben. Dat maakt de LUT wel behoorlijk groot.. maar dat is niet erg.
+    74                                  ; BL=-127..127, BH=-127..127 (BH zal nooit onder -100 of boven 100 mogen komen want dat valt buiten beeld)
+    75                                  ; en BL heeft dus een schaling van 2 vanwege de aspect ratio.
+    76                                  
+    77                                  ; en dan ook de sinus en cosinus in een lookup  ; met input 0..255 en output -127,127
+    78                                  
+    79                                  ; de output van die sinus wil je dan nog wel schalen naar -100..100 voordat je er een coordinaat van maakt.
+    80                                  
+    81                                  
+    82                                  ; COLS EQU 72
+    83                                  ; in : BL = x (signed 8-bit), BH = y (signed 8-bit)
+    84                                  ; out: DI = (y\4)*(4*COLS) + (y%4) + ((2x)\8)*4   (relatief t.o.v. CENTER)
+    85                                  ;      DL = 2^(7 - ((2x) % 8))
+    86                                  ; preserves: CX
+    87                                  ; trashes  : AX, DX, SI
+    88                                  
+    89                                  calc_di_dl_for_pixel:
+    90 0000004B 51                        push  cx
+    91                                  
+    92                                    ; ----- y uit BH: qy=floor(y/4), ry=y&3
+    93 0000004C 88F8                      mov   al, bh
+    94 0000004E 98                        cbw
+    95 0000004F 89C6                      mov   si, ax              ; SI = y
+    96 00000051 89C7                      mov   di, ax
+    97 00000053 83E703                    and   di, 3               ; DI = ry
+    98 00000056 89F0                      mov   ax, si
+    99 00000058 D1F8                      sar   ax, 1
+   100 0000005A D1F8                      sar   ax, 1               ; AX = qy
+   101 0000005C 89C6                      mov   si, ax              ; SI = qy
+   102                                  
+   103                                    ; DI += qy*(4*COLS) = qy*288 = (qy<<5) + (qy<<8)
+   104 0000005E 89F0                      mov   ax, si
+   105 00000060 B105                      mov   cl, 5
+   106 00000062 D3E0                      shl   ax, cl
+   107 00000064 01C7                      add   di, ax
+   108 00000066 89F0                      mov   ax, si
+   109 00000068 B108                      mov   cl, 8
+   110 0000006A D3E0                      shl   ax, cl
+   111 0000006C 01C7                      add   di, ax
+   112                                  
+   113                                    ; ----- x uit BL met aspectratio: x' = 2*x
+   114 0000006E 88D8                      mov   al, bl
+   115 00000070 98                        cbw                        ; AX = x (signed)
+   116 00000071 89C6                      mov   si, ax               ; SI = x
+   117                                  
+   118                                    ; qx2 = floor(x'/8) = floor((2*x)/8) = floor(x/4)
+   119 00000073 D1F8                      sar   ax, 1
+   120 00000075 D1F8                      sar   ax, 1                ; AX = qx2
+   121                                  
+   122                                    ; rx2 = x' - qx2*8
+   123 00000077 89F2                      mov   dx, si
+   124 00000079 D1E2                      shl   dx, 1                ; DX = x' = 2*x
+   125 0000007B 89C1                      mov   cx, ax
+   126 0000007D D1E1                      shl   cx, 1
+   127 0000007F D1E1                      shl   cx, 1
+   128 00000081 D1E1                      shl   cx, 1                ; CX = qx2*8
+   129 00000083 29CA                      sub   dx, cx               ; DX = rx2 (0..7)
+   130 00000085 88D1                      mov   cl, dl               ; CL = rx2
+   131 00000087 80E107                    and   cl, 7
+   132                                  
+   133                                    ; DL = bitmask 1<<(7-rx2)
+   134 0000008A B280                      mov   dl, 128
+   135 0000008C D2EA                      shr   dl, cl
+   136                                  
+   137                                    ; DI += (qx2*4)
+   138 0000008E D1E0                      shl   ax, 1
+   139 00000090 D1E0                      shl   ax, 1                ; AX = qx2*4
+   140 00000092 01C7                      add   di, ax
+   141                                  
+   142 00000094 59                        pop   cx
+   143 00000095 C3                        ret
+   144                                  
+   145                                  ; in:  AL = hoek 0..255
+   146                                  ; uit: AL = sin(hoek) in bereik -128..127 (feitelijk -126..126 op basis van tabel)
+   147                                  ; gebruikt: CL, DL, BL, BX
+   148                                  
+   149                                  cos:
+   150 00000096 0440                        add  al,64
+   151                                  sin:
+   152 00000098 51                          push cx
+   153 00000099 53                          push bx
+   154 0000009A 88C1                        mov  cl,al  ; deze ontbrak.......
+   155 0000009C B0FF                        mov  al,255
+   156 0000009E 28C8                        sub  al,cl   ; 0..255 ipv 255..0
+   157 000000A0 88C2                        mov  dl,al          ; dl = hoek
+   158 000000A2 B106                        mov  cl,6
+   159 000000A4 D2EA                        shr  dl,cl          ; q = hoek>>6 (0..3)
+   160 000000A6 243F                        and  al,63          ; i = hoek & 63 (0..63 binnen kwart)
+   161 000000A8 F6C201                      test dl,1           ; odd quadrants (1 of 3)?
+   162 000000AB 7406                        jz   .no_reflect
+   163 000000AD B33F                        mov  bl,63
+   164 000000AF 28C3                        sub  bl,al          ; i = 63 - i
+   165 000000B1 88D8                        mov  al,bl
+   166                                  .no_reflect:
+   167 000000B3 BB[C100]                    mov  bx, qsin
+   168 000000B6 D7                          xlat                 ; al = amplitude (0..~126)
+   169 000000B7 F6C202                      test dl,2           ; kwadranten 2 en 3 -> negatief
+   170 000000BA 7402                        jz   .done
+   171 000000BC F6D8                        neg  al
+   172                                  .done:
+   173 000000BE 5B                          pop  bx
+   174 000000BF 59                          pop  cx
+   175 000000C0 C3                          ret
+   176                                  
+   177 000000C1 000306090C0F121518-     qsin: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   177 000000CA 1B1E2124272A2D3033-
+   177 000000D3 36393B3E414346494B-
+   177 000000DC 4E50525557595B5E60-
+   177 000000E5 62646667696B6C6E70-
+   177 000000EE 71727475767778797A-
+   177 000000F7 7B7B7C7D7D7E7E7E7E-
+   177 00000100 7E                 
+   178                                  
+   179                                  
+   180                                  %assign num $-$$
+   181                                  %warning total num
+   181          ******************       warning: total 257 [-w+user]
+   182                                  
+   183 00000101 00<rep 2CEFFh>          times (180*1024)-num db  0                 ; fill up with zeros until file size=180k

@@ -8,7 +8,8 @@ int mem[] = new int[1024*1024*2];
 int R=0xf0000, G=0x0C000, B=0xf4000;
 int channels[] = {R, G, B};
 int colorTable[] = new int[256*4*4]; //256 colors, 4 line patterns per color, 3 color channels
-int hstep=4, vstep=256; // ; 4608;
+//int hstep=4, vstep=256; // ; 4608;
+int step=4608+4;
 
 void setup() {
   size(1280, 800, P2D);
@@ -96,7 +97,7 @@ void draw() {
     si = 0 + al.get();  //al should be between 0..16
     drawCell();
 
-    di+=hstep+vstep; //288*4*
+    di+=step; //hstep+vstep; //288*4*
     if (di>14400) {
       di-=14400;
     }
@@ -109,9 +110,9 @@ void draw() {
 
 void keyPressed() {
   if (key=='c') clearAll(); 
-  if (keyCode==LEFT) hstep-=4;
-  if (keyCode==RIGHT) hstep+=4;
-  if (keyCode==DOWN) vstep+=COLS*4;
-  if (keyCode==UP) vstep-=COLS*4;
-  println(hstep, vstep);
+  //if (keyCode==LEFT) hstep-=4;
+  //if (keyCode==RIGHT) hstep+=4;
+  //if (keyCode==DOWN) vstep+=COLS*4;
+  //if (keyCode==UP) vstep-=COLS*4;
+  //println(hstep, vstep);
 }

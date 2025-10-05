@@ -58,7 +58,7 @@ draw:
   inc byte [ci]
 .nx1:
   call calc_y
-  call fx_multibar
+  call fx_bar
 
 BAR_WIDTH equ 1
 BAR_START equ 32-BAR_WIDTH/2

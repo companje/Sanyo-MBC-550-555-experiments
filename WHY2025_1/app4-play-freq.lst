@@ -1,0 +1,34 @@
+     1 00000000 EB00                    jmp setup
+     2                                  
+     3                                  G3  equ 0xFD  ; = 196Hz
+     4                                  C4  equ 0xBE  ; = 262Hz
+     5                                  E4  equ 0x96  ; = 330Hz
+     6                                  B3  equ 0xC9  ; = 247Hz
+     7                                  D4  equ 0xA8  ; = 294Hz
+     8                                  A3  equ 0xE1  ; = 220Hz
+     9                                  F4  equ 0x8E  ; = 349Hz
+    10                                  
+    11                                  setup:
+    12 00000002 BB8E00                      mov bx,F4
+    13 00000005 BAE803                      mov dx,1000
+    14 00000008 E80100                      call play
+    15 0000000B F4                          hlt
+    16                                  
+    17                                  play:              ; bx=note, dx=duration
+    18 0000000C 89D9                        mov cx,bx
+    19 0000000E B83500                      mov ax,0x35
+    20 00000011 3408                    .a: xor al,8       ; toggle 'break' bit
+    21 00000013 E63A                        out 0x3a,al    ; USART
+    22 00000015 FECC                    .b: dec ah
+    23 00000017 7503                        jnz .c
+    24 00000019 4A                          dec dx
+    25 0000001A 7406                        jz .e
+    26 0000001C E2F7                    .c: loop .b
+    27 0000001E 89D9                        mov cx,bx      ; reset note
+    28 00000020 EBEF                        jmp .a
+    29 00000022 C3                      .e: ret
+    30                                  
+    31                                  
+    32 00000023 00<rep 2CFDDh>          times (360*512)-($-$$) db 0
+    33                                  
+    34                                  

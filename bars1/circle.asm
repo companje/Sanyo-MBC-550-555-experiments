@@ -8,13 +8,7 @@ setup:
   mov ax,0x0800  ; GREEN
   mov es,ax
 
-  mov cx,255
-.lp:
-  push cx
   call circle
-  pop cx
-  loop .lp
-
   hlt
 
 ; ------------------------------------

@@ -1,0 +1,59 @@
+     1                                  G3 equ 0xFD  ;196Hz
+     2                                  A3 equ 0xE1  ;220Hz
+     3                                  B3 equ 0xC9  ;247Hz
+     4                                  C4 equ 0xBE  ;262Hz
+     5                                  D4 equ 0xA8  ;294Hz
+     6                                  E4 equ 0x96  ;330Hz
+     7                                  F4 equ 0x8E  ;349Hz
+     8                                  
+     9                                  setup:
+    10 00000000 0E                        push cs
+    11 00000001 1F                        pop ds
+    12 00000002 BE[3E00]                  mov si,song
+    13                                  
+    14                                  update:
+    15 00000005 B700                      mov bh,0
+    16 00000007 AC                        lodsb
+    17 00000008 D0C0                      rol al,1
+    18 0000000A D0C0                      rol al,1
+    19 0000000C 88C3                      mov bl,al
+    20 0000000E BA6400                    mov dx,100
+    21 00000011 E80B00                    call play
+    22                                  
+    23 00000014 81FE[5E00]                cmp si,song+32
+    24 00000018 72EB                      jb update
+    25 0000001A BE[3E00]                  mov si,song
+    26 0000001D EBE6                      jmp update
+    27                                  
+    28                                  play:             ; bx=note/pulse_width, dx=duration
+    29 0000001F 89D9                       mov cx,bx
+    30 00000021 B83500                     mov ax,0x35
+    31 00000024 3408                    .a xor al,8       ; toggle 'break' bit
+    32 00000026 E63A                       out 0x3a,al    ; USART
+    33 00000028 FECC                    .b dec ah
+    34 0000002A 7503                       jnz .c
+    35 0000002C 4A                         dec dx
+    36 0000002D 7406                       jz .d
+    37 0000002F E2F7                    .c loop .b
+    38 00000031 89D9                       mov cx,bx      ; reset note
+    39 00000033 EBEF                       jmp .a
+    40 00000035 3408                    .d xor al,8       ; toggle 'control' bit
+    41 00000037 3C35                       cmp al,0x35    ; 'break' now on?
+    42 00000039 7502                       jnz .e         ; jump if not
+    43 0000003B E63A                       out 0x3A,al    ; reset USART
+    44 0000003D C3                      .e ret
+    45                                  
+    46                                  song: ; Wonderfull Days intro
+    47 0000003E FDBE96BE                db G3,C4,E4,C4
+    48 00000042 FDBE96BE                db G3,C4,E4,C4
+    49 00000046 FDC9A8C9                db G3,B3,D4,B3
+    50 0000004A FDC9A8C9                db G3,B3,D4,B3
+    51 0000004E E1A88EA8                db A3,D4,F4,D4
+    52 00000052 E1A88EA8                db A3,D4,F4,D4
+    53 00000056 E1BE96BE                db A3,C4,E4,C4
+    54 0000005A E1BE96BE                db A3,C4,E4,C4
+    55                                  
+    56                                  %assign num $-$$
+    57                                  %warning total num
+    57          ******************       warning: total 94 [-w+user]
+    58 0000005E 00<rep 2CFA2h>          times (180*1024)-num db 0

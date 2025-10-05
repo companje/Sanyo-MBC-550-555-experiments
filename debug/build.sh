@@ -20,5 +20,6 @@ fi
 
 # -aviwrite screendump.avi
 
-mame mbc55x -flop1 "$img"  -debug -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 800x600 -prescale 2 -gamma 3 -contrast 1.5
+mame mbc55x -flop1 "$img" -speed 40.0 -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 800x600 -prescale 2 -gamma 3 -contrast 1.5
+ # -debug -debugscript autostart.txt 
 

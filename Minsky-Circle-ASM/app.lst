@@ -1,0 +1,208 @@
+     1                                  RED   equ 0xf000
+     2                                  GREEN equ 0x0800
+     3                                  BLUE  equ 0xf400
+     4                                  
+     5                                  setup:
+     6 00000000 0E                        push cs
+     7 00000001 1F                        pop ds
+     8 00000002 B408                      mov ah,8   ; only in MAME green segment=0x0800
+     9 00000004 8EC0                      mov es,ax
+    10                                  
+    11                                  draw: 
+    12 00000006 B90040                    mov cx,2<<13
+    13 00000009 8B1E[8100]                mov bx,[d]
+    14                                    
+    15 0000000D A1[8500]                  mov ax,[y]
+    16 00000010 99                        cwd
+    17 00000011 F7EB                      imul bx
+    18 00000013 F7F9                      idiv cx
+    19                                  
+    20 00000015 50                        push ax
+    21                                    
+    22 00000016 A1[8300]                  mov ax,[x]
+    23 00000019 99                        cwd
+    24 0000001A F7EB                      imul bx
+    25 0000001C F7F9                      idiv cx
+    26                                  
+    27 0000001E 2906[8500]                sub [y],ax ; y-=b
+    28 00000022 58                        pop ax
+    29 00000023 0106[8300]                add [x],ax ; x+=a
+    30                                  
+    31 00000027 B105                      mov cl,5
+    32 00000029 8B1E[8300]                mov bx,[x]
+    33 0000002D D3FB                      sar bx,cl  
+    34 0000002F 81C32001                  add bx,288
+    35                                  
+    36 00000033 FEC1                      inc cl ; aspect ratio
+    37 00000035 8B16[8500]                mov dx,[y]
+    38 00000039 D3FA                      sar dx,cl
+    39 0000003B 83C264                    add dx,100
+    40                                   
+    41 0000003E E88900                    call calc_bit_for_pixel
+    42 00000041 260815                    or [es:di],dl
+    43                                  
+    44 00000044 45                        inc bp
+    45 00000045 F7C5FF03                  test bp,1023
+    46 00000049 74BB                      jz draw
+    47                                  
+    48 0000004B E86000                    call next_channel
+    49 0000004E FF06[8100]                inc word [d]
+    50                                    ; inc word [x]
+    51                                    ; inc word [y]
+    52                                  
+    53 00000052 A1[8100]                  mov ax,[d]
+    54 00000055 BBF0D8                    mov bx,-10000
+    55 00000058 BA1027                    mov dx,10000
+    56 0000005B E83800                    call wrap
+    57 0000005E A3[8100]                  mov [d],ax
+    58                                  
+    59 00000061 A1[8300]                  mov ax,[x]
+    60 00000064 BBCCDE                    mov bx,-8500
+    61 00000067 BA3421                    mov dx,8500
+    62 0000006A E82900                    call wrap
+    63 0000006D A3[8300]                  mov [x],ax
+    64                                  
+    65 00000070 A1[8500]                  mov ax,[y]
+    66 00000073 BB90E8                    mov bx,-6000
+    67 00000076 BA7017                    mov dx,6000
+    68 00000079 E81A00                    call wrap
+    69 0000007C A3[8500]                  mov [y],ax
+    70                                  
+    71 0000007F EB85                      jmp draw
+    72                                  
+    73 00000081 0000                    d: dw 0
+    74 00000083 6400                    x: dw 100
+    75 00000085 0100                    y: dw 1
+    76                                  
+    77                                  clamp:
+    78 00000087 39D8                      cmp ax, bx
+    79 00000089 7C05                      jl .too_low       ; AX < BX → clamp to BX
+    80 0000008B 39D0                      cmp ax, dx
+    81 0000008D 7F04                      jg .too_high      ; AX > DX → clamp to DX
+    82 0000008F C3                        ret
+    83                                  .too_low:
+    84 00000090 89D8                      mov ax, bx
+    85 00000092 C3                        ret
+    86                                  .too_high:
+    87 00000093 89D0                      mov ax, dx
+    88 00000095 C3                        ret
+    89                                  
+    90                                  ; input:
+    91                                  ;   AX = waarde om te wrappen
+    92                                  ;   BX = minimum waarde (ondergrens)
+    93                                  ;   DX = maximum waarde (bovengrens)
+    94                                  ; output:
+    95                                  ;   AX = gewrapte waarde binnen [BX, DX]
+    96                                  
+    97                                  wrap:
+    98 00000096 51                        push cx
+    99                                  
+   100 00000097 89D1                      mov cx, dx
+   101 00000099 29D9                      sub cx, bx        ; cx = DX - BX
+   102 0000009B 41                        inc cx            ; cx = bereikgrootte
+   103                                  
+   104 0000009C 29D8                      sub ax, bx        ; AX = offset t.o.v. ondergrens
+   105 0000009E 99                        cwd               ; tekenextensie voor IDIV
+   106 0000009F F7F9                      idiv cx           ; AX = AX mod bereikgrootte
+   107                                                      ; (rest in AX, quotiënt in AX overschreven, rest blijft in DX)
+   108 000000A1 83FA00                    cmp dx, 0
+   109 000000A4 7D02                      jge .no_adjust
+   110 000000A6 01CA                      add dx, cx        ; als rest negatief → maak positief
+   111                                  
+   112                                  .no_adjust:
+   113 000000A8 89D0                      mov ax, dx        ; AX = positieve rest
+   114 000000AA 01D8                      add ax, bx        ; terug naar originele schaal
+   115                                  
+   116 000000AC 59                        pop cx
+   117 000000AD C3                        ret
+   118                                  
+   119                                  
+   120                                  next_channel:
+   121 000000AE 06                        push es
+   122 000000AF 58                        pop ax
+   123                                    ; xor ax,0x400
+   124 000000B0 3D00F0                    cmp ax,RED
+   125 000000B3 7505                      jne .b
+   126 000000B5 B80008                    mov ax,GREEN
+   127 000000B8 EB0D                      jmp .c2
+   128                                  .b:
+   129 000000BA 3D00F4                    cmp ax,BLUE
+   130 000000BD 7405                      je .rd
+   131 000000BF B800F4                    mov ax,BLUE
+   132 000000C2 EB03                      jmp .c2
+   133                                  .rd:
+   134 000000C4 B800F0                    mov ax,RED
+   135                                  .c2:
+   136 000000C7 50                        push ax
+   137 000000C8 07                        pop es
+   138 000000C9 C3                        ret
+   139                                  
+   140                                  
+   141                                  calc_bit_for_pixel:
+   142                                    ; input: BX = x, DX = y
+   143                                    ; output: DI = offset, DL = bitmask
+   144 000000CA B90300                    mov cx, 3
+   145 000000CD 51                        push cx
+   146 000000CE 89D0                      mov ax, dx         ; AX = y
+   147 000000D0 21CA                      and dx, cx         ; DX = y % 4
+   148 000000D2 89D7                      mov di, dx         ; DI = y % 4
+   149 000000D4 49                        dec cx             ; CX = 2
+   150 000000D5 D3E8                      shr ax, cl         ; AX = y / 4
+   151 000000D7 B92001                    mov cx, 288
+   152 000000DA F7E1                      mul cx             ; AX *= 288
+   153 000000DC 01C7                      add di, ax         ; DI += line offset
+   154                                  
+   155 000000DE 89D8                      mov ax, bx         ; AX = x
+   156 000000E0 83E307                    and bx, 7          ; BX = x % 8
+   157 000000E3 59                        pop cx             ; CX = 3
+   158 000000E4 D3E8                      shr ax, cl         ; AX = x / 8
+   159 000000E6 49                        dec cx
+   160 000000E7 D3E0                      shl ax, cl         ; AX *= 4
+   161 000000E9 01C7                      add di, ax         ; DI += column offset
+   162                                  
+   163 000000EB B280                      mov dl, 80h        ; DL = 0b10000000
+   164 000000ED 88D9                      mov cl, bl         ; BL = x % 8
+   165 000000EF D2EA                      shr dl, cl         ; DL = bitmask
+   166                                  
+   167 000000F1 C3                        ret
+   168                                  
+   169                                  sin_table:
+   170                                    
+   171                                  
+   172                                  
+   173                                  ; cos:
+   174                                  ;   add al,64
+   175                                  ; sin:
+   176                                  ;   mov cl,6
+   177                                  ;   mov dl,al        ; dl=angle 0..255
+   178                                  ;   shr dl,cl        ; angle/6 = quadrant 0..3
+   179                                  ;   mov dh,dl        ; dh=copy of quadrant
+   180                                  ;   and dh,1         ; dh=1 if quadrant is odd 1 or 3
+   181                                  ;   mov bl,dh        ; bl=dh
+   182                                  ;   shl bl,cl        ; r = bl<<6
+   183                                  ;   mov ch,dl        ; gt1
+   184                                  ;   shr ch,1
+   185                                  ;   sub bl,dh        ; s (0 or 63)
+   186                                  ;   and al,63        ; i
+   187                                  ;   xor al,bl        ; i^bl
+   188                                  ;   mov bx,qsin
+   189                                  ;   xlat
+   190                                  ;   neg ch
+   191                                  ;   xor al,ch
+   192                                  ;   neg ch,
+   193                                  ;   add al,ch
+   194                                  ;   add al,128
+   195                                  ;   ret
+   196                                  
+   197                                  ; ; ------------------------------------
+   198                                  
+   199                                  ; qsin: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   200                                  
+   201                                  
+   202                                  %assign num $-$$
+   203                                  %warning total num
+   203          ******************       warning: total 242 [-w+user]
+   204 000000F2 00<rep 2CF0Eh>          times (180*1024)-num db 0
+   205                                  
+   206                                  
+   207                                  

@@ -106,7 +106,7 @@ void draw() {
   setImageFromMemory(img);
   image(img, 0, 0, width, height);
 
-  save("tmp.png");
+  //save("tmp.png");
 }
 
 void keyPressed() {

@@ -1,5 +1,10 @@
 prefix="0314. "
 base=sanyo-days
+base=app-play-wav
+base=app-jamming-wonderfull-days
+base=app
+base=app-play-wav
+
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
 
 # set -x

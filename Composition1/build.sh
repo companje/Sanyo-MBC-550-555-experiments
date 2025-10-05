@@ -37,7 +37,8 @@ img=`pwd`/$base.img
 
 WAV_OUTPUT=output.wav
 # -autoboot_script script.lua 
-mame mbc55x -flop1 "$img" -debug  -wavwrite $WAV_OUTPUT -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 800x600 -prescale 2 -gamma 3 -contrast 1.5
+# -wavwrite $WAV_OUTPUT
+mame mbc55x -flop1 "$img" -debug   -debugscript autostart.txt -ramsize 256K -skip_gameinfo -window -nomaximize -resolution0 800x600 -prescale 2 -gamma 3 -contrast 1.5
  # -wavwrite $WAV_OUTPUT
 
 # ffmpeg -i $WAV_OUTPUT -ss 00:00:02 -filter:a "volume=5dB" -y ${WAV_OUTPUT}.volume.wav

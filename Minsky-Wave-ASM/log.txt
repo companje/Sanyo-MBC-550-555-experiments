@@ -1,0 +1,194 @@
+FFE00: mov     al,4h
+FFE02: out     10h,al
+FFE04: mov     al,0FFh
+FFE06: out     3Ah,al
+FFE08: mov     al,30h
+FFE0A: out     3Ah,al
+FFE0C: mov     ax,800h
+FFE0F: mov     es,ax
+FFE11: mov     cx,4000h
+FFE14: xor     ax,ax
+FFE16: mov     di,ax
+FFE18: cld     
+FFE19: rep     stosw   
+FFE19: rep     stosw   
+
+   (loops for 11115 instructions)
+
+FFE1B: mov     ax,0F000h
+FFE1E: mov     es,ax
+FFE20: mov     cx,8000h
+FFE23: xor     ax,ax
+FFE25: mov     di,ax
+FFE27: cld     
+FFE28: rep     stosw   
+FFE28: rep     stosw   
+
+   (loops for 22221 instructions)
+
+FFE2A: mov     si,1EBCh
+FFE2D: mov     bx,0h
+FFE30: in      al,1Ch
+FFE32: and     al,80h
+FFE34: je      0FFE39h
+FFE36: mov     si,1ECCh
+FFE39: mov     al,bl
+FFE3B: out     30h,al
+FFE3D: mov     al,cs:[bx+si]
+FFE42: out     32h,al
+FFE44: inc     bx
+FFE45: cmp     bl,10h
+FFE48: jne     0FFE39h
+FFE39: mov     al,bl
+FFE3B: out     30h,al
+FFE3D: mov     al,cs:[bx+si]
+FFE42: out     32h,al
+FFE44: inc     bx
+FFE45: cmp     bl,10h
+FFE48: jne     0FFE39h
+
+   (loops for 98 instructions)
+
+FFE4A: mov     al,0D8h
+FFE4C: out     8h,al
+FFE4E: mov     al,98h
+FFE50: out     1Eh,al
+FFE52: in      al,8h
+FFE54: test    al,1h
+FFE56: jne     0FFE52h
+FFE58: mov     al,8h
+FFE5A: out     8h,al
+FFE5C: aam     0Ah
+FFE5E: aam     0Ah
+FFE60: aam     0Ah
+FFE62: aam     0Ah
+FFE64: in      al,8h
+FFE66: test    al,1h
+FFE68: jne     0FFE64h
+FFE64: in      al,8h
+FFE66: test    al,1h
+FFE68: jne     0FFE64h
+
+   (loops for 2067 instructions)
+
+FFE6A: test    al,80h
+FFE6C: jne     0FFE58h
+FFE58: mov     al,8h
+FFE5A: out     8h,al
+FFE5C: aam     0Ah
+FFE5E: aam     0Ah
+FFE60: aam     0Ah
+FFE62: aam     0Ah
+
+   (loops for 2073 instructions)
+
+FFE6A: test    al,80h
+FFE6C: jne     0FFE58h
+
+   (loops for 66592 instructions)
+
+FFE6E: cld     
+FFE6F: mov     al,1h
+FFE71: out     0Ch,al
+FFE73: mov     ax,38h
+FFE76: mov     es,ax
+FFE78: mov     dx,8h
+FFE7B: mov     si,1EA0h
+FFE7E: mov     di,0h
+FFE81: mov     bh,2h
+FFE83: mov     ah,0h
+FFE85: mov     al,80h
+FFE87: out     8h,al
+FFE89: aam     0Ah
+FFE8B: aam     0Ah
+FFE8D: aam     0Ah
+FFE8F: aam     0Ah
+FFE91: in      al,dx
+FFE92: sar     al,1
+FFE94: jae     0FFEB2h
+FFE96: jne     0FFE91h
+FFE98: in      al,dx
+FFE99: and     al,bh
+FFE9B: je      0FFE98h
+FFE98: in      al,dx
+FFE99: and     al,bh
+FFE9B: je      0FFE98h
+
+   (loops for 2481 instructions)
+
+FFE9D: in      al,0Eh
+FFE9F: stosb   
+FFEA0: in      al,dx
+FFEA1: dec     ax
+FFEA2: je      0FFEA0h
+FFEA0: in      al,dx
+FFEA1: dec     ax
+FFEA2: je      0FFEA0h
+
+   (loops for 6 instructions)
+
+FFEA4: cmp     al,bh
+FFEA6: jne     0FFEB2h
+FFEA8: in      al,0Eh
+FFEAA: stosb   
+FFEAB: in      al,dx
+FFEAC: cmp     al,bh
+FFEAE: je      0FFEA8h
+FFEB0: jmp     si
+
+   (loops for 9 instructions)
+
+FFEA4: cmp     al,bh
+FFEA6: jne     0FFEB2h
+FFEA8: in      al,0Eh
+FFEAA: stosb   
+FFEAB: in      al,dx
+FFEAC: cmp     al,bh
+FFEAE: je      0FFEA8h
+FFEB0: jmp     si
+
+   (loops for 8355 instructions)
+
+FFEB2: in      al,dx
+FFEB3: test    al,1Ch
+FFEB5: jne     0FFE52h
+FFEB7: jmp     0038h:0h
+00380: push    cs 
+00381: pop     ds 
+00382: mov     ax,800h
+00385: mov     es,ax
+00387: call    3B1h
+003B1: mov     bp,44Ch
+003B4: mov     si,1h
+003B7: xor     di,di
+003B9: mov     cx,40h
+003BC: push    cx
+003BD: mov     cx,194h
+003C0: mov     bx,4000h
+003C3: mov     ax,si
+003C5: xor     dx,dx
+003C7: imul    cx
+003C9: idiv    bx
+003CB: push    ax
+003CC: mov     ax,bp
+003CE: xor     dx,dx
+003D0: imul    cx
+003D2: idiv    bx
+003D4: sub     si,ax
+003D6: pop     ax
+003D7: add     bp,ax
+003D9: mov     cx,1Ch
+003DC: mov     ax,si
+003DE: imul    cx
+003E0: mov     cl,8h
+003E2: shr     ax,cl
+003E4: add     al,80h
+003E6: mov     cx,5h
+003E9: mov     bx,cx
+003EB: push    ax
+003EC: push    di
+003ED: push    cx
+003EE: mov     cl,6h
+003F0: shl     bx,cl
+003F2: pop     cx
+003F3: hlt     

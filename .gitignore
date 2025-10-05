@@ -12,3 +12,17 @@ Composition1/app.lst
 venv311/
 *.vlw
 mame0277/
+/CityInABottle-asm-frames
+/CityInABottle/data2
+/CityInABottle/masks
+/CityInABottle2/data
+/CityInABottle2/data2
+/CityInABottle4/data2
+/CityInABottle4/masks
+/CityInABottle4/out
+/CityInABottle5/data2
+/CityInABottle5/masks
+/CityInABottle5/out
+/BootpicGreen2-4k-bak/data
+*.bin
+*.avi

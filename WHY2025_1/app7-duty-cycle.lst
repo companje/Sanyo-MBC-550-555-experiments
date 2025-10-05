@@ -1,0 +1,146 @@
+     1                                  F2C equ 350000; 198504 ; freq to cycles F2C/G3 = num cycles for G3
+     2                                  ;    _       _        _
+     3                                  ;  _| |_____| |______| |_____
+     4                                  ;
+     5                                  ; freq equ C5         ; Hz
+     6                                  ; duty_cycle equ 10   ; percent
+     7                                  ; duration equ 200    ; ms
+     8                                  
+     9                                  ; num_cycles equ freq * duration / 1000
+    10                                  ; cycle_time equ F2C * 4 / freq
+    11                                  ; pulse_width equ cycle_time * duty_cycle / 100
+    12                                  ; space_width equ cycle_time - pulse_width
+    13                                  
+    14 00000000 EB08                    jmp setup
+    15                                  
+    16                                  ; make sure DS=CS
+    17 00000002 0501                    freq: dw 261 ; 261 ;Hz  C4
+    18 00000004 3200                    duty_cycle: dw 50 ; percent
+    19                                  ; duty_step: dw 1
+    20                                  ; duration: dw 50 ; ms
+    21                                  ; cycles: dw 1000 ; count ('remaining' cycles to play)
+    22 00000006 0000                    pulse_width: dw 0
+    23 00000008 0000                    space_width: dw 0
+    24                                  
+    25                                  setup:
+    26 0000000A 0E                        push cs
+    27 0000000B 1F                        pop ds
+    28 0000000C BE0100                    mov si,1
+    29                                    ; mov bp
+    30                                  
+    31                                  
+    32                                  
+    33                                  update:
+    34                                    ; mov bh,0
+    35                                    ; lodsw
+    36                                  
+    37                                    ; push cx  
+    38                                    ; call calc_num_cycles
+    39                                    ; call calc_cycle_widths ; input: [freq],[duty_cycle], output: result [pulse_width],[space_width]
+    40                                    ; call play_cycles
+    41                                    ; pop cx
+    42                                    
+    43                                    scale equ 2
+    44                                    min equ 1<<scale
+    45                                    max equ 99<<scale
+    46                                  
+    47                                    ; and bp,63
+    48 0000000F 01F5                      add bp,si
+    49 00000011 83FD04                    cmp bp,min
+    50 00000014 7F05                      jg .a
+    51 00000016 F7DE                      neg si
+    52 00000018 BD0400                    mov bp,min
+    53                                  .a:
+    54 0000001B 81FD8C01                  cmp bp,max
+    55 0000001F 7C05                      jl .b
+    56 00000021 F7DE                      neg si
+    57 00000023 BD8C01                    mov bp,max
+    58                                  .b:
+    59                                  
+    60                                  
+    61                                  
+    62 00000026 55                        push bp
+    63 00000027 51                        push cx
+    64                                    ; mov word [freq],261
+    65                                  
+    66 00000028 B102                      mov cl,scale
+    67 0000002A D3ED                      shr bp,cl
+    68                                    ; mov [duty_cycle],bp
+    69                                  
+    70 0000002C 892E[0200]                mov [freq],bp
+    71 00000030 8106[0200]C800            add word [freq],200  
+    72                                  
+    73 00000036 59                        pop cx
+    74 00000037 5D                        pop bp
+    75                                  
+    76 00000038 E80A00                    call calc_cycle_widths
+    77                                  
+    78                                  
+    79 0000003B 31C0                      xor ax,ax ; reset ax to prevent wrong value to USART
+    80 0000003D E82500                    call play_half_cycle ; high or low
+    81 00000040 E82200                    call play_half_cycle ; low or high
+    82                                  
+    83 00000043 EBCA                      jmp update
+    84                                  
+    85                                  ; play_cycles:
+    86                                  ;     xor ax,ax ; reset ax to prevent wrong value to USART
+    87                                  ; .p: call play_half_cycle ; high or low
+    88                                  ;     call play_half_cycle ; low or high
+    89                                  ;     ;update duty cycle here
+    90                                  ;     ;call calc_cycle_widths here for if duty_cycle has changed?
+    91                                      
+    92                                  ;     call calc_cycle_widths
+    93                                  
+    94                                  ;     dec word [cycles]
+    95                                  ;     jnz .p
+    96                                  ;     ret
+    97                                  
+    98                                  calc_cycle_widths:
+    99                                      ; calculates pulse_width and space_width for 1 cycle
+   100                                      ; input: [freq], [duty_cycle]
+   101                                      ; output: cx=pulse_width, dx=space_width
+   102                                      ; cycle_time equ F2C * 4 / freq  (= (F2C/freq)*4)
+   103                                      ; pulse_width equ cycle_time * duty_cycle / 100
+   104                                      ; space_width equ cycle_time - pulse_width
+   105 00000045 B83057                      mov ax,F2C & 0xFFFF          ; 32 bit
+   106 00000048 BA0500                      mov dx,F2C >> 16
+   107 0000004B F736[0200]                  div word [freq]              ; ax is now cycle_time
+   108 0000004F 50                          push ax
+   109 00000050 F726[0400]                  mul word [duty_cycle]        ; ax is now cycle_time * duty_cycle
+   110 00000054 B96400                      mov cx,100
+   111 00000057 F7F1                        div cx        ; ax is now pulse_width
+   112 00000059 A3[0600]                    mov [pulse_width],ax
+   113 0000005C 8F06[0800]                  pop word [space_width]
+   114 00000060 2906[0800]                  sub [space_width],ax
+   115 00000064 C3                          ret
+   116                                  
+   117                                  play_half_cycle:
+   118 00000065 E63A                        out 0x3a,al
+   119 00000067 3408                        xor al,8               ; toggle break bit
+   120 00000069 8B0E[0600]                  mov cx, [pulse_width] 
+   121 0000006D 870E[0800]                  xchg cx, [space_width] ; swap cx,dx every half cycle
+   122 00000071 890E[0600]                  mov [pulse_width], cx
+   123 00000075 E2FE                    .d: loop .d
+   124 00000077 C3                          ret
+   125                                  
+   126                                  calc_num_cycles:
+   127                                      ; input [duration],[freq], output=[cycles]
+   128                                      ; num_cycles equ freq * duration / 1000
+   129                                      mov ax,[duration]
+   129          ******************       error: symbol `duration' not defined
+   130 00000078 99                          cwd
+   131 00000079 F726[0200]                  mul word [freq]
+   132 0000007D B9E803                      mov cx,1000
+   133 00000080 F7F1                        div cx
+   134                                      mov word [cycles],ax
+   134          ******************       error: symbol `cycles' not defined
+   135 00000082 C3                          ret
+   136                                  
+   137                                  
+   138                                  %assign num $-$$
+   139                                  %warning total num
+   139          ******************       warning: total 131 [-w+user]
+   140 00000083 00<rep 2CF7Dh>          times (180*1024)-num db 0
+   141                                  
+   142                                  
+   143                                  

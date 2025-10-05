@@ -1,0 +1,300 @@
+     1                                  COLS  equ 80
+     2                                  ROWS  equ 50
+     3                                  GREEN equ 0x1C00
+     4                                  NUM   equ ROWS*COLS
+     5                                  SCALE equ 127
+     6                                  
+     7                                  setup:
+     8 00000000 0E                        push cs
+     9 00000001 1F                        pop ds
+    10 00000002 E80B00                    call init_video
+    11                                  
+    12                                  draw:
+    13 00000005 31FF                      xor di,di
+    14 00000007 B9A00F                    mov cx,NUM ;/ 2 ; /2 for speed
+    15                                  .lp:
+    16 0000000A E84E00                    call draw_cell
+    17 0000000D E2FB                      loop .lp
+    18 0000000F F4                        hlt
+    19                                  
+    20                                  %include "inc.asm"
+     1                              <1> init_video:
+     2 00000010 B005                <1>   mov al, 5
+     3 00000012 E610                <1>   out 10h, al
+     4 00000014 B001                <1>   mov al,1
+     5 00000016 E630                <1>   out 0x30,al
+     6 00000018 B050                <1>   mov al,COLS
+     7 0000001A E632                <1>   out 0x32,al
+     8 0000001C B8001C              <1>   mov ax,GREEN
+     9 0000001F 8EC0                <1>   mov es,ax
+    10 00000021 C3                  <1>   ret
+    11                              <1> 
+    12                              <1> calc_xy_and_ray:
+    13 00000022 89F8                <1>   mov ax,di
+    14 00000024 B102                <1>   mov cl,2
+    15 00000026 D3E8                <1>   shr ax,cl
+    16 00000028 B350                <1>   mov bl,COLS
+    17 0000002A F6F3                <1>   div bl
+    18 0000002C 8826[6401]          <1>   mov [x],ah
+    19 00000030 A2[6501]            <1>   mov [y],al
+    20                              <1> 
+    21                              <1>   ;calc x-ray 
+    22 00000033 50                  <1>   push ax
+    23 00000034 86E0                <1>   xchg al,ah  ; al=x
+    24 00000036 41                  <1>   inc cx      ; cx is now 3
+    25 00000037 F6E1                <1>   mul cl
+    26 00000039 2C7F                <1>   sub al,SCALE
+    27 0000003B A2[6601]            <1>   mov [a],al
+    28                              <1> 
+    29                              <1>   ;calc y-ray
+    30 0000003E 58                  <1>   pop ax  ; al=y
+    31 0000003F 49                  <1>   dec cx  ; cx is now 2
+    32 00000040 D2E0                <1>   shl al,cl ; *=4
+    33 00000042 B17F                <1>   mov cl,SCALE ;
+    34 00000044 28C1                <1>   sub cl,al ; flip vertical
+    35 00000046 880E[6701]          <1>   mov [b],cl
+    36                              <1> 
+    37 0000004A C3                  <1>   ret
+    38                              <1> 
+    39                              <1> 
+    40                              <1> constrain16:
+    41 0000004B 240F                <1>   and al,15 ;tmp
+    42 0000004D C3                  <1>   ret
+    43                              <1>   
+    44 0000004E 3C10                <1>   cmp al,16
+    45 00000050 7202                <1>   jb .a
+    46 00000052 B010                <1>   mov al,16  ; tmp to indicate
+    47                              <1> .a:
+    48 00000054 3C00                <1>   cmp al,0
+    49 00000056 7702                <1>   ja .r
+    50 00000058 B000                <1>   mov al,0
+    51 0000005A C3                  <1> .r: ret
+    52                              <1> 
+    21                                  
+    22                                  draw_cell:
+    23 0000005B 51                        push cx
+    24 0000005C E8C3FF                    call calc_xy_and_ray
+    25                                  
+    26 0000005F 8A0E[6701]                mov cl,[b]
+    27 00000063 880E[6901]                mov [s],cl  ; background
+    28 00000067 B87F00                    mov ax,SCALE
+    29 0000006A A2[6A01]                  mov [d],al  ; byte
+    30 0000006D A3[6C01]                  mov [X],ax
+    31 00000070 A3[6E01]                  mov [Y],ax
+    32 00000073 A3[7001]                  mov [Z],ax
+    33                                  
+    34 00000076 E82300                    call raycast
+    35                                  
+    36 00000079 30E4                      xor ah,ah
+    37 0000007B A0[6A01]                  mov al,[d]     ; d set by raycast
+    38 0000007E F62E[7701]                imul byte [zs]  ; zs set by raycast
+    39 00000082 B150                      mov cl,COLS
+    40 00000084 F6F9                      idiv cl
+    41 00000086 2A06[6901]                sub al,[s]
+    42                                  
+    43 0000008A B103                      mov cl,3
+    44 0000008C D2E8                      shr al,cl ; scale color /=8
+    45 0000008E 30E4                      xor ah,ah ; important!
+    46                                  
+    47 00000090 E8B8FF                    call constrain16
+    48                                  
+    49 00000093 05[7801]                  add ax,dots
+    50 00000096 89C6                      mov si,ax
+    51 00000098 A5                        movsw
+    52 00000099 A5                        movsw
+    53                                  
+    54                                  ;   add di,288+6
+    55                                  ;   cmp di,14400
+    56                                  ;   jl .c
+    57                                  ;   sub di,14400
+    58                                  ; .c:
+    59                                  
+    60 0000009A 59                        pop cx
+    61 0000009B C3                        ret
+    62                                  
+    63                                  raycast:
+    64 0000009C 51                        push cx
+    65 0000009D C606[6A01]7F              mov byte [d],SCALE
+    66                                  .do:
+    67 000000A2 B107                      mov cl,7
+    68                                    ;Z
+    69 000000A4 A1[7001]                  mov ax,[Z]
+    70 000000A7 D3E8                      shr ax,cl   ; Z>>7   = ax/=SCALE
+    71 000000A9 A2[7701]                  mov [zs],al
+    72 000000AC 3C50                      cmp al,COLS
+    73 000000AE 7D62                      jge .r      ; if ((Z>>7)>=w) return
+    74                                  
+    75                                    ; X
+    76 000000B0 A1[6C01]                  mov ax,[X]
+    77 000000B3 D3E8                      shr ax,cl
+    78 000000B5 A2[7501]                  mov [xs],al ; now byte
+    79                                    ; Y
+    80 000000B8 A1[6E01]                  mov ax,[Y]
+    81 000000BB D3E8                      shr ax,cl
+    82 000000BD A2[7601]                  mov [ys],al ; byte
+    83                                  
+    84 000000C0 E85100                    call hit2
+    85 000000C3 7836                      js .h ; not SF: if !hit()
+    86 000000C5 A0[6A01]                  mov al,[d]
+    87 000000C8 A2[6B01]                  mov [prev_d],al
+    88 000000CB A0[7701]                  mov al,[zs]
+    89 000000CE A2[6A01]                  mov [d],al
+    90                                  
+    91 000000D1 B17F                      mov cl,SCALE
+    92 000000D3 380E[6A01]                cmp [d],cl
+    93 000000D7 731C                      jnb .v
+    94                                    ; new dir
+    95 000000D9 880E[6601]                mov [a],cl
+    96 000000DD 880E[6701]                mov [b],cl
+    97                                    ;tex
+    98 000000E1 A0[7201]                  mov al,[t]
+    99 000000E4 0206[7501]                add al,[xs]
+   100 000000E8 2206[7601]                and al,[ys]
+   101 000000EC 2206[7701]                and al,[zs]
+   102 000000F0 2407                      and al,7
+   103 000000F2 A2[6901]                  mov [s],al
+   104                                  .v:
+   105 000000F5 380E[6B01]                cmp [prev_d],cl
+   106 000000F9 7217                      jb .r
+   107                                  
+   108                                  .h:
+   109 000000FB 30E4                      xor ah,ah
+   110 000000FD A0[6601]                  mov al,[a]
+   111 00000100 0106[6C01]                add [X],ax
+   112 00000104 A0[6701]                  mov al,[b]
+   113 00000107 2906[6E01]                sub [Y],ax
+   114 0000010B 8306[7001]7F              add word [Z],SCALE
+   115                                  
+   116 00000110 EB90                      jmp .do
+   117                                  .r: 
+   118 00000112 59                        pop cx
+   119                                    ; mov al,[d]
+   120                                    ; hlt
+   121                                    ; mov byte [zs],100
+   122                                    ; mov byte [d],100
+   123 00000113 C3                        ret
+   124                                  
+   125                                  hit2:
+   126                                    ; mov al,[ys]
+   127                                    ; sub al,6 ; GROUND_PLANE
+   128                                    ; ret
+   129 00000114 EB46                      jmp hit.bxdone
+   130                                  
+   131                                  hit: ; city in a bottle hitTest
+   132                                    ; xor ax,ax
+   133 00000116 A0[7501]                  mov al,[xs]
+   134 00000119 98                        cbw ; !!
+   135 0000011A 0306[7201]                add ax,[t]
+   136 0000011E B109                      mov cl,9
+   137 00000120 F6F1                      div cl
+   138                                  
+   139 00000122 8A1E[7701]                mov bl,[zs]
+   140 00000126 B103                      mov cl,3
+   141 00000128 D2EB                      shr bl,cl
+   142 0000012A 30D8                      xor al,bl
+   143                                  
+   144 0000012C 98                        cbw
+   145                                    ; xor ah,ah
+   146 0000012D D3E0                      shl ax,cl ; *=8, cl is still 3
+   147 0000012F B12D                      mov cl,45
+   148 00000131 F6F1                      div cl   ; remainder % in ah
+   149                                    
+   150                                  ;?????
+   151                                  ; cbw nodig hier ???
+   152 00000133 86E0                      xchg al,ah  ; al=ah
+   153 00000135 98                        cbw
+   154                                    ; xor ah,ah   ; ah=0
+   155                                  ;?????
+   156 00000136 50                        push ax ; modifier
+   157                                  
+   158 00000137 09C0                      or ax,ax ; c3: ax==0 ? 0 : 1
+   159 00000139 B80000                    mov ax,0 ; don't affact flag
+   160 0000013C 7401                      jz .c3done
+   161 0000013E 40                        inc ax ; mov ax,1
+   162                                  .c3done:
+   163 0000013F 50                        push ax ; condition3
+   164                                  
+   165 00000140 803E[7701]22              cmp byte [zs],34 ; condition 1 (CITY_DISTANCE)
+   166 00000145 7E04                      jle .c1done
+   167 00000147 B80000                    mov ax,0 ; don't affact flag
+   168 0000014A 40                        inc ax
+   169                                  .c1done:
+   170 0000014B 50                        push ax ; condition 1
+   171                                  
+   172                                    ;ah always 0 here
+   173                                    ; mov al,[xs]
+   174                                    ; cbw
+   175                                    ; add ax,[t]
+   176                                    ; mov cl,99
+   177                                    ; div cl
+   178                                    ; xchg al,ah ; remainder now in al
+   179                                    ; cbw ; ?
+   180                                    ; ; xor ah,ah
+   181                                    ; cmp ax,27 ; condition 2 AVENUE_WIDTH
+   182                                    ; mov ax,0 ; don't affact flag
+   183                                    ; jle .c2done
+   184                                    ; inc ax
+   185                                  
+   186 0000014C B80100                    mov ax,1 ; condition 2 always on: no streets between buildings
+   187                                  
+   188                                  .c2done:
+   189                                    ; push ax ; condition 2  ; overbodig
+   190                                    ; pop ax ; condition 2   ; overbodig
+   191 0000014F 5B                        pop bx
+   192 00000150 21D8                      and ax,bx
+   193 00000152 5B                        pop bx
+   194 00000153 21D8                      and ax,bx
+   195                                  
+   196 00000155 5B                        pop bx ; combined modifier
+   197 00000156 09C0                      or ax,ax
+   198 00000158 7502                      jnz .bxdone 
+   199 0000015A 31DB                      xor bx,bx  ; if (ax==0) bx=0
+   200                                  .bxdone:
+   201                                    ; mov al,[ys]
+   202                                    ; sub al,6 ; GROUND_PLANE
+   203                                    ; ret
+   204                                    ; mov ah,0
+   205 0000015C A0[7601]                  mov al,[ys]
+   206 0000015F 98                        cbw ; !!!!!!!!!! belangrijk omdat al negatief kan zijn. extend sign into ah
+   207 00000160 83E806                    sub ax,6 ; GROUND_PLANE
+   208                                    ; add ax,bx
+   209                                    ; or ax,ax  ; if SF (ax<0) then hit
+   210 00000163 C3                        ret
+   211                                  
+   212                                  ; hit3:
+   213                                  ; boolean hitTest(float X, float Y, float Z, float t) {
+   214                                  ;   //return Z%50>30 && (Y+110)%50<20 && X%50<20;
+   215                                  ;   float x=(X+100)%50;
+   216                                  ;   float y=(Y+110)%50;
+   217                                  ;   float z=Z;
+   218                                  ;   //Z near=62 ... far=98 
+   219                                  ;   return x>20 && y<20 && z>80;   
+   220                                  
+   221                                  
+   222                                  
+   223 00000164 00                      x: db 0
+   224 00000165 00                      y: db 0
+   225 00000166 00                      a: db 0  ; Ray direction in world space
+   226 00000167 00                      b: db 0  ; Ray direction in world space
+   227 00000168 00                      c: db 0
+   228 00000169 00                      s: db 0
+   229 0000016A 00                      d: db 0
+   230 0000016B 00                      prev_d: db 0
+   231 0000016C 0000                    X: dw 0  ; World space coordinates
+   232 0000016E 0000                    Y: dw 0  ; World space coordinates
+   233 00000170 0000                    Z: dw 0  ; World space coordinates
+   234 00000172 0000                    t: dw 0
+   235 00000174 50                      w: db COLS
+   236 00000175 00                      xs: db 0 ; now byte
+   237 00000176 00                      ys: db 0 ; 
+   238 00000177 00                      zs: db 0 ; 
+   239                                  
+   240 00000178 <bin 14h>               dots: incbin "data/vertical-gradient-20x8.bin"
+   241                                  
+   242                                  %assign num $-$$
+   243                                  %warning total num
+   243          ******************       warning: total 396 [-w+user]
+   244 0000018C 00<rep 2CE74h>          times (180*1024)-($-$$) db 0
+   245                                  
+   246                                  
+   247                                  

@@ -39,7 +39,6 @@ y-=t;
    si = font + (( sq<<1) %255)*8; //(al.get()>>4)*12;
     drawCell();
 
-
     di+=step;
     if (di>NUM) di-=NUM;
 

@@ -1,0 +1,90 @@
+     1                                  ; mov dx,0x3a
+     2 00000000 0E                      push cs
+     3 00000001 1F                      pop ds
+     4 00000002 0E                      push cs
+     5 00000003 07                      pop es
+     6                                  
+     7                                  MAX_DELAY equ 200
+     8                                  
+     9                                  setup:
+    10                                    ; mov si,data
+    11                                    ; xor ch,ch
+    12                                    ; xor bh,bh
+    13                                  
+    14 00000004 B99001                    mov cx,400
+    15 00000007 E80100                    call sweep
+    16 0000000A F4                        hlt
+    17                                  
+    18                                  sweep:    ; cx start-note
+    19 0000000B 89CB                      mov bx,cx   ; note
+    20 0000000D BA2C01                    mov dx,300    ; duration
+    21 00000010 51                        push cx
+    22 00000011 89CB                      mov bx,cx
+    23 00000013 E80E00                    call play
+    24                                  
+    25 00000016 B91027                    mov cx,10000
+    26 00000019 D40A                      .lp aam 
+    27 0000001B E2FC                      loop .lp
+    28                                  
+    29 0000001D 59                        pop cx
+    30 0000001E 83E901                    sub cx,1
+    31 00000021 79E8                      jns sweep
+    32 00000023 C3                        ret
+    33                                  
+    34                                  
+    35                                  play:             ; bx=note, dx=duration
+    36 00000024 89D9                       mov cx,bx
+    37 00000026 B83500                     mov ax,0x35
+    38 00000029 3408                    .a xor al,8       ; toggle 'break' bit
+    39 0000002B E63A                       out 0x3a,al    ; USART
+    40 0000002D FECC                    .b dec ah
+    41 0000002F 7503                       jnz .c
+    42 00000031 4A                         dec dx
+    43 00000032 7406                       jz .d
+    44 00000034 E2F7                    .c loop .b
+    45 00000036 89D9                       mov cx,bx      ; reset note
+    46 00000038 EBEF                       jmp .a
+    47                                  ; .d ret
+    48 0000003A 3408                    .d xor al,8       ; toggle 'control' bit
+    49 0000003C 3C35                       cmp al,0x35    ; 'break' now on?
+    50 0000003E 7502                       jnz .e         ; jump if not
+    51 00000040 E63A                       out 0x3A,al    ; reset USART
+    52 00000042 C3                      .e ret
+    53                                  
+    54                                  
+    55                                  ; play_tone:
+    56                                  ;   out 0x3a,al
+    57                                  ;   call pulse_delay
+    58                                  ;   xor al,8    ;toggle bit
+    59                                  ;   dec bx      ;tone length
+    60                                  ;   jnz play_tone
+    61                                  ;   ret
+    62                                  
+    63                                  ; pulse_delay:
+    64                                  ;   push cx
+    65                                  ;   mov dx, 200 ; max delay
+    66                                  ;   sub dx, cx
+    67                                  ;   mov cx, dx
+    68                                  ; .d: loop .d
+    69                                  ;   pop cx
+    70                                  ;   ret
+    71                                  
+    72                                  ; pulse_delay:
+    73                                  ;   push cx
+    74                                  ;   .d: loop .d     ;pulse delay (tone)
+    75                                  ;   pop cx
+    76                                  ;   ret
+    77                                  
+    78                                  data: ; alleen bootsector wordt geladen. dus voor een clear moet je een loop doen in de setup
+    79 00000043 C832                      db  200, 50   ; pulse delay (tone), tone_length
+    80                                    ; db  100, 50
+    81                                    ; db  255, 50
+    82                                  
+    83                                  end_data: ; music ends when pulse delay cx=0
+    84                                  
+    85                                  %assign num $-$$
+    86                                  %warning total num
+    86          ******************       warning: total 69 [-w+user]
+    87 00000045 00<rep 2CFBBh>          times (180*1024)-num db 0
+    88                                  
+    89                                  

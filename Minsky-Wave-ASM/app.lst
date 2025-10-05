@@ -1,0 +1,159 @@
+     1                                  RED   equ 0xf000
+     2                                  GREEN equ 0x0800
+     3                                  BLUE  equ 0xf400
+     4                                  STEP equ 4608
+     5                                  COLS equ 72
+     6                                  ROWS equ 50
+     7                                  cos_table equ sin_table+64
+     8                                  
+     9                                  setup:
+    10 00000000 0E                      push cs
+    11 00000001 1F                      pop ds
+    12 00000002 B80008                  mov ax,GREEN
+    13 00000005 8EC0                    mov es,ax
+    14                                  
+    15 00000007 E82F00                  call generate_sine_table
+    16                                  
+    17                                  
+    18                                  draw:
+    19 0000000A 55                        push bp
+    20 0000000B BE[C800]                  mov si,sin_table
+    21 0000000E 01EE                      add si,bp
+    22 00000010 81E6FF00                  and si,255
+    23 00000014 E80700                    call draw_wave
+    24                                  
+    25 00000017 E80400                    call draw_wave
+    26 0000001A 5D                        pop bp
+    27 0000001B 45                        inc bp
+    28 0000001C EBEC                      jmp draw
+    29                                  
+    30                                  
+    31                                  draw_wave:
+    32 0000001E B9FF00                    mov cx,255
+    33                                  .x:
+    34 00000021 51                        push cx
+    35 00000022 56                        push si
+    36                                  
+    37 00000023 01CE                      add si,cx
+    38 00000025 AC                        lodsb
+    39                                  
+    40 00000026 89CB                      mov bx,cx      ;x
+    41 00000028 88C2                      mov dl,al      ;y
+    42 0000002A 30F6                      xor dh,dh
+    43 0000002C D0EA                      shr dl,1
+    44                                  
+    45 0000002E E86900                    call calc_bit_for_pixel
+    46 00000031 263015                    xor [es:di],dl
+    47                                  
+    48 00000034 5E                        pop si
+    49 00000035 59                        pop cx
+    50                                  
+    51 00000036 E2E9                      loop .x
+    52 00000038 C3                        ret
+    53                                  
+    54                                  generate_sine_table:
+    55 00000039 BD4C04                    mov bp,1100
+    56 0000003C BE0100                    mov si,1
+    57 0000003F 31FF                      xor di,di
+    58 00000041 B94000                    mov cx,64
+    59                                  .a:
+    60 00000044 51                        push cx
+    61 00000045 B99401                    mov cx,404
+    62 00000048 BB0040                    mov bx,2<<13
+    63 0000004B 89F0                      mov ax,si
+    64 0000004D 31D2                      xor dx,dx
+    65 0000004F F7E9                      imul cx
+    66 00000051 F7FB                      idiv bx
+    67                                  
+    68 00000053 50                        push ax
+    69 00000054 89E8                      mov ax,bp
+    70 00000056 31D2                      xor dx,dx
+    71 00000058 F7E9                      imul cx
+    72 0000005A F7FB                      idiv bx
+    73 0000005C 29C6                      sub si,ax
+    74 0000005E 58                        pop ax
+    75 0000005F 01C5                      add bp,ax
+    76                                  
+    77 00000061 B91C00                    mov cx,28
+    78 00000064 89F0                      mov ax,si
+    79 00000066 F7E9                      imul cx
+    80 00000068 B108                      mov cl,8
+    81 0000006A D3E8                      shr ax,cl
+    82 0000006C 0480                      add al,128
+    83                                  
+    84                                    ;from here the qsin is repeated/flipped for sin and cos
+    85                                  
+    86 0000006E 49                        dec cx  ; cx was 8 here, now 7
+    87                                  .d:
+    88 0000006F 89CB                      mov bx,cx
+    89 00000071 4B                        dec bx
+    90 00000072 50                        push ax
+    91 00000073 57                        push di
+    92 00000074 51                        push cx
+    93 00000075 B106                      mov cl,6
+    94 00000077 D3E3                      shl bx,cl
+    95 00000079 59                        pop cx
+    96 0000007A 49                        dec cx     ; because loop repeats unless 0 not including 0
+    97                                  
+    98 0000007B F6C101                    test cl,1  ; cx [5..1]
+    99 0000007E 7405                      jz .b
+   100 00000080 F7DF                      neg di
+   101 00000082 83C33F                    add bx,63  ; add bl equal bytes
+   102                                  .b:
+   103 00000085 F6C102                    test cl,2
+   104 00000088 7402                      jz .c
+   105 0000008A F6D0                      not al
+   106                                  .c:
+   107 0000008C 8881[C800]                mov [di+bx+sin_table],al
+   108 00000090 5F                        pop di
+   109 00000091 58                        pop ax
+   110 00000092 41                        inc cx ; restore cx after decrease
+   111 00000093 E2DA                      loop .d
+   112                                  
+   113                                  ;-------
+   114                                  
+   115 00000095 59                        pop cx
+   116 00000096 47                        inc di
+   117 00000097 E2AB                      loop .a 
+   118 00000099 C3                        ret
+   119                                  
+   120                                  
+   121                                  ; --------------------------------------------------
+   122                                  
+   123                                  calc_bit_for_pixel:
+   124                                    ;input BX,DX = x,y
+   125                                    ;output DI = (y\4)*(4*COLS) + (y%4) + (x\8)*4
+   126                                    ;output DL = 2^(7-(x % 8))
+   127                                    ;or [es:di],dl  ; set pixel
+   128 0000009A 89D0                      mov ax,dx        ; y
+   129 0000009C B90300                    mov cx,3
+   130 0000009F 21CA                      and dx,cx        ; dx=y%4
+   131 000000A1 FEC9                      dec cl
+   132 000000A3 D3E8                      shr ax,cl        ; ax=y/4        
+   133 000000A5 89D7                      mov di,dx        ; vram offset (dx=y%4)
+   134 000000A7 B92001                    mov cx,4*COLS    
+   135 000000AA F7E1                      mul cx           ; ax*=(4*COLS)
+   136 000000AC 01C7                      add di,ax        ; di+=ax
+   137 000000AE 89D8                      mov ax,bx        ; x
+   138 000000B0 89C2                      mov dx,ax
+   139 000000B2 83E207                    and dx,7         ; %=8
+   140 000000B5 B103                      mov cl,3
+   141 000000B7 D3E8                      shr ax,cl        ; /=8      
+   142 000000B9 FEC9                      dec cl
+   143 000000BB D3E0                      shl ax,cl        ; *=4
+   144 000000BD 01C7                      add di,ax        ; di+=(x/8)*4
+   145 000000BF B080                      mov al,128       ; highest bit
+   146 000000C1 88D1                      mov cl,dl        ; dl contains x%8
+   147 000000C3 D2E8                      shr al,cl        ; shift right number of bits to the correct pixel in char
+   148 000000C5 88C2                      mov dl,al
+   149 000000C7 C3                        ret
+   150                                  
+   151                                  sin_table:
+   152                                  
+   153                                  %assign num $-$$
+   154                                  %warning total num
+   154          ******************       warning: total 200 [-w+user]
+   155 000000C8 00<rep 2CF38h>          times (180*1024)-num db 0
+   156                                  
+   157                                  
+   158                                  

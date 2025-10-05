@@ -1,0 +1,113 @@
+     1                                  FONT equ 0xFF00
+     2                                  COLS equ 72
+     3                                  ROWS equ 50
+     4                                  NUM equ 4*COLS*ROWS
+     5                                  ; STEP equ 5;  4608+4
+     6                                  
+     7                                  setup:
+     8 00000000 0E                        push cs
+     9 00000001 1F                        pop ds
+    10 00000002 B408                      mov ah,8   ; only in mame green segment=0x0800
+    11 00000004 8EC0                      mov es,ax
+    12 00000006 B800FF                    mov ax,FONT
+    13 00000009 8ED8                      mov ds,ax
+    14 0000000B 31FF                      xor di,di
+    15 0000000D 31F6                      xor si,si
+    16                                  
+    17                                  draw:
+    18                                    ; inc si
+    19                                  
+    20                                    ; mov al,0xee
+    21                                  
+    22 0000000F 81FFC832                  cmp di,13000
+    23 00000013 7206                      jb .s
+    24                                  
+    25 00000015 89EE                      mov si,bp
+    26                                    ; ; add si,[t]
+    27                                    ; and si,3
+    28                                    ; add si,176
+    29                                    ; shl si,1
+    30                                    ; shl si,1
+    31                                    ; shl si,1
+    32 00000017 A5                        movsw
+    33 00000018 A5                        movsw
+    34 00000019 EB01                      jmp .q
+    35                                  .s:
+    36 0000001B 47                        inc di
+    37                                  .q:
+    38                                  
+    39                                    ; movsb
+    40                                    ; movsb
+    41                                  
+    42 0000001C 2E033E[3C00]              add di,[cs:step]
+    43 00000021 81FF4038                  cmp di,NUM
+    44                                  
+    45 00000025 7EE8                      jle draw
+    46 00000027 81EF4038                  sub di,NUM
+    47                                  
+    48 0000002B 45                        inc bp
+    49                                  
+    50                                    ; xor si,si
+    51                                    ; add si,bp
+    52                                  
+    53 0000002C 2EFF06[3A00]              inc word [cs:t]
+    54 00000031 2EFF06[3C00]              inc word [cs:step]
+    55                                  
+    56                                    
+    57                                  
+    58 00000036 75D7                      jnz draw
+    59                                  
+    60 00000038 EBD5                     jmp draw
+    61                                  
+    62                                    ; jmp draw
+    63                                  
+    64                                    ; ; mov ax,FONT
+    65                                    ; ; mov ds,ax
+    66                                    ; mov si,64*8
+    67                                    ; ; and si,255
+    68                                    ; ; times 3 shl si,1
+    69                                    ; ; add si,FONT
+    70                                  
+    71                                    ; mov ax,[ds:si]
+    72                                    ; ; mov ax,0x5555
+    73                                    ; mov [es:di],ax
+    74                                    ; ; push si
+    75                                    ; ; push di
+    76                                    ; ; movsw
+    77                                    ; ; movsw
+    78                                    ; ; pop di
+    79                                    ; ; pop si
+    80                                  
+    81                                    ; add di,STEP
+    82                                    ; cmp di,NUM
+    83                                    ; jl draw
+    84                                    ; sub di,NUM
+    85                                    ; jmp draw
+    86                                  
+    87                                  ; draw_cell:
+    88                                  ; movsw
+    89                                    ; movsw
+    90                                  
+    91                                    ; mov cx,3
+    92                                    ; push cx
+    93                                    ; push si
+    94                                    ; push di
+    95                                    ; mov cx,4
+    96                                    ; .lp
+    97                                    ; movsw
+    98                                    ; movsw
+    99                                    ; loop .lp
+   100                                    ; pop di
+   101                                    ; pop si
+   102                                    ; pop cx
+   103                                  
+   104 0000003A 0000                    t: dw 0
+   105 0000003C 0000                    step: dw 0
+   106                                  
+   107                                  %assign num $-$$
+   108                                  %warning total num
+   108          ******************       warning: total 62 [-w+user]
+   109 0000003E 00<rep 2CFC2h>          times (180*1024)-num db 0
+   110                                  
+   111                                  
+   112                                  

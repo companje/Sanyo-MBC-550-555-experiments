@@ -1,0 +1,25 @@
+     1                                  COLS  equ 80
+     2                                  ROWS  equ 50
+     3                                  GREEN equ 0x1C00
+     4                                  
+     5                                  setup:
+     6 00000000 B005                      mov al, 5
+     7 00000002 E610                      out 10h, al
+     8 00000004 B001                      mov al,1
+     9 00000006 E630                      out 0x30,al
+    10 00000008 B050                      mov al,COLS
+    11 0000000A E632                      out 0x32,al
+    12 0000000C B8001C                    mov ax,GREEN
+    13 0000000F 8EC0                      mov es,ax
+    14 00000011 C3                        ret
+    15                                  
+    16                                  draw:
+    17 00000012 EBFE                      jmp draw
+    18                                  
+    19                                  %assign num $-$$
+    20                                  %warning total num
+    20          ******************       warning: total 20 [-w+user]
+    21 00000014 00<rep 2CFECh>          times (180*1024)-($-$$) db 0
+    22                                  
+    23                                  
+    24                                  

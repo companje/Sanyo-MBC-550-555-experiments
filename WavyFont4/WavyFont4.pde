@@ -100,7 +100,7 @@ void draw() {
   setImageFromMemory(img);
   image(img, 0, 0, width, height);
   //fill(255);
-  //text(step + " " + (step/4), 50, 100);
+  text(step + " " + (step/4), 50, 100);
 
   img.get(0, 0, 40, 40).save("tmp.png");
 }
