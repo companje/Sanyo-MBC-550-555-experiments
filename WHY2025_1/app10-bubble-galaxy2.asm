@@ -2,13 +2,15 @@
 
 HISTORY_CAP   EQU 1000
 CENTER EQU 25*288+144
-N EQU 20
+N EQU 40
 M EQU 100
 
 K equ 41
 u: db 0
 v: db 0
 iBytes: db 0
+i: dw 0
+; hist_clear_pending: db 0
 
 
 setup:
@@ -17,9 +19,10 @@ setup:
   mov ax,GREEN
   mov es,ax
 
-  call init_history
+  call init_history ; lijkt zonder ook goed te werken
   
 draw:
+  call history_clear_all
   ; call clear_history
   ; mov ax,RED
   ; call clear
@@ -34,20 +37,20 @@ draw:
   call iterate
   jmp draw
 
-clear:
-  mov es,ax
-  xor di,di
-  xor ax,ax
-  mov cx,14400/2
-  rep stosw
-  ret
+; clear:
+;   mov es,ax
+;   xor di,di
+;   xor ax,ax
+;   mov cx,14400/2
+;   rep stosw
+;   ret
 
 iterate:
   mov cx,N
 .while_n:
+  mov [i],cx
   push cx
   mov ax,cx
-
   mov cl,K
   mul cl
   mov [iBytes],al
@@ -57,15 +60,60 @@ iterate:
 
   call calc_bl_bh
   call calc_di_dl_for_pixel
-
   call add_to_history
 
-  or [es:di + CENTER],dl  ; set pixel
+  ; int hue = (i*40) & 255; // 360;
+
+  call draw_rgb
+  ; or [es:di + CENTER],dl  ; set pixel
+
   pop cx
   loop .while_m
   pop cx
   loop .while_n
   ret
+
+draw_rgb:
+  ; xor dx,dx
+  mov ax,[i]
+  ; xor ah,ah
+  mov bl,40
+  mul bl
+  and ax,255
+  div bl
+  and ax,7
+
+  mov bx,mask
+  xlat
+
+  test al,1
+  jz .n1
+  push ax
+  mov ax,RED
+  mov es,ax
+  pop ax
+  or [es:di + CENTER],dl  ; set pixel
+.n1:
+  test al,2
+  jz .n2
+  push ax
+  mov ax,GREEN
+  mov es,ax
+  pop ax
+  or [es:di + CENTER],dl  ; set pixel
+.n2:
+  test al,4
+  jz .n3
+  push ax
+  mov ax,BLUE
+  mov es,ax
+  pop ax
+  or [es:di + CENTER],dl  ; set pixel
+.n3:
+  ;..
+
+  ret
+mask: db 1,3,2,6,4,5 ,1,3
 
 calc_bl_bh:
 ;0
@@ -73,6 +121,7 @@ calc_bl_bh:
   add [v],al
   mov ax,bp
   add [u],al
+
 
 ;1
   mov al,[u]
@@ -121,6 +170,50 @@ push ax
 
   ret
 
+
+history_clear_all:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+
+    mov si, [hist_tail]
+.cl_loop:
+    cmp si, [hist_head]
+    je .empty
+
+    mov di, [si]
+
+    mov ax, RED
+    mov es, ax
+    mov word [es:di + CENTER], 0
+
+    mov ax, GREEN
+    mov es, ax
+    mov word [es:di + CENTER], 0
+
+    mov ax, BLUE
+    mov es, ax
+    mov word [es:di + CENTER], 0
+
+    add si, 2
+    cmp si, indexes_buf_end
+    jne .no_wrap
+    mov si, indexes_buf
+.no_wrap:
+    jmp .cl_loop
+
+.empty:
+    mov [hist_tail], si
+    mov [hist_head], si
+
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
 
 
 ; clear_history:
@@ -282,7 +375,19 @@ add_to_history:
 
     push di
     mov di, [si]                 ; AX = oudste DI
+    
+    mov ax,GREEN
+    mov es,ax
     mov word [es:di + CENTER], 0 ; wis oudste pixel
+    
+    mov ax,RED
+    mov es,ax
+    mov word [es:di + CENTER], 0 ; wis oudste pixel
+    
+    ; mov ax,BLUE
+    ; mov es,ax
+    mov word [es:di + CENTER + 0x400], 0 ; wis oudste pixel
+    
     pop di
 
     add si, 2

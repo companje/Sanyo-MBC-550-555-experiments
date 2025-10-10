@@ -440,7 +440,7 @@
    356                              <1>   set_cursor 1,1 ; nodig?
     43                              <2> 
     44 00000191 BF0000              <2>  mov di,(%1-1) * BYTES_PER_ROW + (%2-1) * 4
-   357 00000194 E9B101              <1>   jmp setup
+   357 00000194 E9B301              <1>   jmp setup
    358                              <1> 
    359                              <1> ; ───────────────────────────────────────────────────────────────────────────
    360                              <1> 
@@ -856,329 +856,434 @@
      2                                  
      3                                  HISTORY_CAP   EQU 1000
      4                                  CENTER EQU 25*288+144
-     5                                  N EQU 20
+     5                                  N EQU 40
      6                                  M EQU 100
      7                                  
      8                                  K equ 41
      9 00000345 00                      u: db 0
     10 00000346 00                      v: db 0
     11 00000347 00                      iBytes: db 0
-    12                                  
-    13                                  
-    14                                  setup:
-    15 00000348 0E                        push cs
-    16 00000349 1F                        pop ds
-    17 0000034A B8001C                    mov ax,GREEN
-    18 0000034D 8EC0                      mov es,ax
-    19                                  
-    20 0000034F E84701                    call init_history
-    21                                    
-    22                                  draw:
-    23                                    ; call clear_history
-    24                                    ; mov ax,RED
-    25                                    ; call clear
-    26                                    ; mov ax,BLUE
-    27                                    ; call clear
-    28                                    ; mov ax,GREEN
-    29                                    ; call clear
-    30                                  
-    31 00000352 45                        inc bp
-    32 00000353 81E5FF00                  and bp,255
+    12 00000348 0000                    i: dw 0
+    13                                  ; hist_clear_pending: db 0
+    14                                  
+    15                                  
+    16                                  setup:
+    17 0000034A 0E                        push cs
+    18 0000034B 1F                        pop ds
+    19 0000034C B8001C                    mov ax,GREEN
+    20 0000034F 8EC0                      mov es,ax
+    21                                  
+    22 00000351 E8DD01                    call init_history ; lijkt zonder ook goed te werken
+    23                                    
+    24                                  draw:
+    25 00000354 E8D100                    call history_clear_all
+    26                                    ; call clear_history
+    27                                    ; mov ax,RED
+    28                                    ; call clear
+    29                                    ; mov ax,BLUE
+    30                                    ; call clear
+    31                                    ; mov ax,GREEN
+    32                                    ; call clear
     33                                  
-    34 00000357 E80E00                    call iterate
-    35 0000035A EBF6                      jmp draw
+    34 00000357 45                        inc bp
+    35 00000358 81E5FF00                  and bp,255
     36                                  
-    37                                  clear:
-    38 0000035C 8EC0                      mov es,ax
-    39 0000035E 31FF                      xor di,di
-    40 00000360 31C0                      xor ax,ax
-    41 00000362 B9201C                    mov cx,14400/2
-    42 00000365 F3AB                      rep stosw
-    43 00000367 C3                        ret
-    44                                  
-    45                                  iterate:
-    46 00000368 B91400                    mov cx,N
-    47                                  .while_n:
-    48 0000036B 51                        push cx
-    49 0000036C 89C8                      mov ax,cx
-    50                                  
-    51 0000036E B129                      mov cl,K
-    52 00000370 F6E1                      mul cl
-    53 00000372 A2[4703]                  mov [iBytes],al
-    54 00000375 B96400                    mov cx,M
-    55                                  .while_m:
-    56 00000378 51                        push cx
-    57                                  
-    58 00000379 E81200                    call calc_bl_bh
-    59 0000037C E86200                    call calc_di_dl_for_pixel
+    37 0000035C E80200                    call iterate
+    38 0000035F EBF3                      jmp draw
+    39                                  
+    40                                  ; clear:
+    41                                  ;   mov es,ax
+    42                                  ;   xor di,di
+    43                                  ;   xor ax,ax
+    44                                  ;   mov cx,14400/2
+    45                                  ;   rep stosw
+    46                                  ;   ret
+    47                                  
+    48                                  iterate:
+    49 00000361 B92800                    mov cx,N
+    50                                  .while_n:
+    51 00000364 890E[4803]                mov [i],cx
+    52 00000368 51                        push cx
+    53 00000369 89C8                      mov ax,cx
+    54 0000036B B129                      mov cl,K
+    55 0000036D F6E1                      mul cl
+    56 0000036F A2[4703]                  mov [iBytes],al
+    57 00000372 B96400                    mov cx,M
+    58                                  .while_m:
+    59 00000375 51                        push cx
     60                                  
-    61 0000037F E82101                    call add_to_history
-    62                                  
-    63 00000382 260895B01C                or [es:di + CENTER],dl  ; set pixel
-    64 00000387 59                        pop cx
-    65 00000388 E2EE                      loop .while_m
-    66 0000038A 59                        pop cx
-    67 0000038B E2DE                      loop .while_n
-    68 0000038D C3                        ret
+    61 00000376 E85C00                    call calc_bl_bh
+    62 00000379 E8FD00                    call calc_di_dl_for_pixel
+    63 0000037C E8BC01                    call add_to_history
+    64                                  
+    65                                    ; int hue = (i*40) & 255; // 360;
+    66                                  
+    67 0000037F E80700                    call draw_rgb
+    68                                    ; or [es:di + CENTER],dl  ; set pixel
     69                                  
-    70                                  calc_bl_bh:
-    71                                  ;0
-    72 0000038E A0[4703]                  mov al,[iBytes]
-    73 00000391 0006[4603]                add [v],al
-    74 00000395 89E8                      mov ax,bp
-    75 00000397 0006[4503]                add [u],al
-    76                                  
-    77                                  ;1
-    78 0000039B A0[4503]                  mov al,[u]
-    79 0000039E E88F00                    call sin
-    80 000003A1 98                        cbw        ; ax=al
-    81 000003A2 89C3                      mov bx,ax
-    82                                  
-    83                                  ;2
-    84 000003A4 A0[4603]                  mov al,[v]
-    85 000003A7 E88600                    call sin
-    86 000003AA 98                        cbw        ; ax=al
-    87 000003AB 01D8                      add ax,bx
+    70 00000382 59                        pop cx
+    71 00000383 E2F0                      loop .while_m
+    72 00000385 59                        pop cx
+    73 00000386 E2DC                      loop .while_n
+    74 00000388 C3                        ret
+    75                                  
+    76                                  draw_rgb:
+    77                                    ; xor dx,dx
+    78 00000389 A1[4803]                  mov ax,[i]
+    79                                    ; xor ah,ah
+    80 0000038C B328                      mov bl,40
+    81 0000038E F6E3                      mul bl
+    82 00000390 25FF00                    and ax,255
+    83 00000393 F6F3                      div bl
+    84 00000395 83E007                    and ax,7
+    85                                  
+    86 00000398 BB[CD03]                  mov bx,mask
+    87 0000039B D7                        xlat
     88                                  
-    89 000003AD 50                      push ax
-    90                                  
-    91                                  ;3
-    92 000003AE A0[4503]                  mov al,[u]
-    93 000003B1 E87A00                    call cos
-    94 000003B4 98                        cbw        ; ax=al
-    95 000003B5 89C3                      mov bx,ax
-    96                                  
-    97                                  ;4
-    98 000003B7 A0[4603]                  mov al,[v]
-    99 000003BA E87100                    call cos
-   100 000003BD 98                        cbw        ; ax=al
-   101 000003BE 01D8                      add ax,bx
-   102                                  
-   103                                  ;5
-   104 000003C0 31D2                      xor dx,dx
-   105 000003C2 B17F                      mov cl,127
-   106 000003C4 BB2900                    mov bx,K
-   107 000003C7 F7EB                      imul bx
-   108 000003C9 F6F9                      idiv cl
-   109 000003CB A2[4603]                  mov [v],al
-   110                                  
-   111                                  ;6
-   112 000003CE 58                        pop ax
-   113 000003CF 31D2                      xor dx,dx
-   114 000003D1 F7EB                      imul bx
-   115 000003D3 F6F9                      idiv cl
-   116 000003D5 A2[4503]                  mov [u],al
+    89 0000039C A801                      test al,1
+    90 0000039E 740C                      jz .n1
+    91 000003A0 50                        push ax
+    92 000003A1 B800F0                    mov ax,RED
+    93 000003A4 8EC0                      mov es,ax
+    94 000003A6 58                        pop ax
+    95 000003A7 260895B01C                or [es:di + CENTER],dl  ; set pixel
+    96                                  .n1:
+    97 000003AC A802                      test al,2
+    98 000003AE 740C                      jz .n2
+    99 000003B0 50                        push ax
+   100 000003B1 B8001C                    mov ax,GREEN
+   101 000003B4 8EC0                      mov es,ax
+   102 000003B6 58                        pop ax
+   103 000003B7 260895B01C                or [es:di + CENTER],dl  ; set pixel
+   104                                  .n2:
+   105 000003BC A804                      test al,4
+   106 000003BE 740C                      jz .n3
+   107 000003C0 50                        push ax
+   108 000003C1 B800F4                    mov ax,BLUE
+   109 000003C4 8EC0                      mov es,ax
+   110 000003C6 58                        pop ax
+   111 000003C7 260895B01C                or [es:di + CENTER],dl  ; set pixel
+   112                                  .n3:
+   113                                    ;..
+   114                                  
+   115 000003CC C3                        ret
+   116 000003CD 0103020604050103        mask: db 1,3,2,6,4,5 ,1,3
    117                                  
-   118                                  ;7
-   119 000003D8 8A1E[4503]                mov bl,[u]
-   120 000003DC 8A3E[4603]                mov bh,[v]
-   121                                  
-   122 000003E0 C3                        ret
-   123                                  
+   118                                  calc_bl_bh:
+   119                                  ;0
+   120 000003D5 A0[4703]                  mov al,[iBytes]
+   121 000003D8 0006[4603]                add [v],al
+   122 000003DC 89E8                      mov ax,bp
+   123 000003DE 0006[4503]                add [u],al
    124                                  
    125                                  
-   126                                  ; clear_history:
-   127                                  ;   sub si,2
-   128                                  ;   mov di,[si]
-   129                                  ;   mov word [es:di + CENTER],0
-   130                                  ;   cmp si,indexes_ptr
-   131                                  ;   ja clear_history
-   132                                  ;   ret
-   133                                  
-   134                                  ; add_to_history:
-   135                                  ;   test [es:di + CENTER],dl
-   136                                  ;   jnz .r
-   137                                  ;   mov word [si],di
-   138                                  ;   add si,2
-   139                                  ; .r: ret
-   140                                  
-   141                                  
-   142                                  
-   143                                  
-   144                                  
-   145                                  ; dot:
-   146                                  ;   call calc_di_dl_for_pixel
-   147                                  ;   or [es:di + CENTER],dl  ; set pixel
-   148                                  ;   ret
-   149                                  
-   150                                  ; in : BL = x (signed 8-bit), BH = y (signed 8-bit)
-   151                                  ; out: DI = (y\4)*(4*COLS) + (y%4) + ((2x)\8)*4   (relatief t.o.v. CENTER)
-   152                                  ;      DL = 2^(7 - ((2x) % 8))
-   153                                  ; preserves: CX
-   154                                  ; trashes  : AX, DX, SI
-   155                                  
-   156                                  calc_di_dl_for_pixel:
-   157 000003E1 56                        push si
-   158 000003E2 51                        push  cx
+   126                                  ;1
+   127 000003E2 A0[4503]                  mov al,[u]
+   128 000003E5 E8E000                    call sin
+   129 000003E8 98                        cbw        ; ax=al
+   130 000003E9 89C3                      mov bx,ax
+   131                                  
+   132                                  ;2
+   133 000003EB A0[4603]                  mov al,[v]
+   134 000003EE E8D700                    call sin
+   135 000003F1 98                        cbw        ; ax=al
+   136 000003F2 01D8                      add ax,bx
+   137                                  
+   138 000003F4 50                      push ax
+   139                                  
+   140                                  ;3
+   141 000003F5 A0[4503]                  mov al,[u]
+   142 000003F8 E8CB00                    call cos
+   143 000003FB 98                        cbw        ; ax=al
+   144 000003FC 89C3                      mov bx,ax
+   145                                  
+   146                                  ;4
+   147 000003FE A0[4603]                  mov al,[v]
+   148 00000401 E8C200                    call cos
+   149 00000404 98                        cbw        ; ax=al
+   150 00000405 01D8                      add ax,bx
+   151                                  
+   152                                  ;5
+   153 00000407 31D2                      xor dx,dx
+   154 00000409 B17F                      mov cl,127
+   155 0000040B BB2900                    mov bx,K
+   156 0000040E F7EB                      imul bx
+   157 00000410 F6F9                      idiv cl
+   158 00000412 A2[4603]                  mov [v],al
    159                                  
-   160                                    ; ----- y uit BH: qy=floor(y/4), ry=y&3
-   161 000003E3 88F8                      mov   al, bh
-   162 000003E5 98                        cbw
-   163 000003E6 89C6                      mov   si, ax              ; SI = y
-   164 000003E8 89C7                      mov   di, ax
-   165 000003EA 83E703                    and   di, 3               ; DI = ry
-   166 000003ED 89F0                      mov   ax, si
-   167 000003EF D1F8                      sar   ax, 1
-   168 000003F1 D1F8                      sar   ax, 1               ; AX = qy
-   169 000003F3 89C6                      mov   si, ax              ; SI = qy
+   160                                  ;6
+   161 00000415 58                        pop ax
+   162 00000416 31D2                      xor dx,dx
+   163 00000418 F7EB                      imul bx
+   164 0000041A F6F9                      idiv cl
+   165 0000041C A2[4503]                  mov [u],al
+   166                                  
+   167                                  ;7
+   168 0000041F 8A1E[4503]                mov bl,[u]
+   169 00000423 8A3E[4603]                mov bh,[v]
    170                                  
-   171                                    ; DI += qy*(4*COLS) = qy*288 = (qy<<5) + (qy<<8)
-   172 000003F5 89F0                      mov   ax, si
-   173 000003F7 B105                      mov   cl, 5
-   174 000003F9 D3E0                      shl   ax, cl
-   175 000003FB 01C7                      add   di, ax
-   176 000003FD 89F0                      mov   ax, si
-   177 000003FF B108                      mov   cl, 8
-   178 00000401 D3E0                      shl   ax, cl
-   179 00000403 01C7                      add   di, ax
+   171 00000427 C3                        ret
+   172                                  
+   173                                  
+   174                                  history_clear_all:
+   175 00000428 50                          push ax
+   176 00000429 53                          push bx
+   177 0000042A 51                          push cx
+   178 0000042B 56                          push si
+   179 0000042C 57                          push di
    180                                  
-   181                                    ; ----- x uit BL met aspectratio: x' = 2*x
-   182 00000405 88D8                      mov   al, bl
-   183 00000407 98                        cbw                        ; AX = x (signed)
-   184 00000408 89C6                      mov   si, ax               ; SI = x
+   181 0000042D 8B36[780D]                  mov si, [hist_tail]
+   182                                  .cl_loop:
+   183 00000431 3B36[760D]                  cmp si, [hist_head]
+   184 00000435 7434                        je .empty
    185                                  
-   186                                    ; qx2 = floor(x'/8) = floor((2*x)/8) = floor(x/4)
-   187 0000040A D1F8                      sar   ax, 1
-   188 0000040C D1F8                      sar   ax, 1                ; AX = qx2
-   189                                  
-   190                                    ; rx2 = x' - qx2*8
-   191 0000040E 89F2                      mov   dx, si
-   192 00000410 D1E2                      shl   dx, 1                ; DX = x' = 2*x
-   193 00000412 89C1                      mov   cx, ax
-   194 00000414 D1E1                      shl   cx, 1
-   195 00000416 D1E1                      shl   cx, 1
-   196 00000418 D1E1                      shl   cx, 1                ; CX = qx2*8
-   197 0000041A 29CA                      sub   dx, cx               ; DX = rx2 (0..7)
-   198 0000041C 88D1                      mov   cl, dl               ; CL = rx2
-   199 0000041E 80E107                    and   cl, 7
-   200                                  
-   201                                    ; DL = bitmask 1<<(7-rx2)
-   202 00000421 B280                      mov   dl, 128
-   203 00000423 D2EA                      shr   dl, cl
-   204                                  
-   205                                    ; DI += (qx2*4)
-   206 00000425 D1E0                      shl   ax, 1
-   207 00000427 D1E0                      shl   ax, 1                ; AX = qx2*4
-   208 00000429 01C7                      add   di, ax
-   209                                  
-   210 0000042B 59                        pop   cx
-   211 0000042C 5E                        pop si
-   212 0000042D C3                        ret
-   213                                  
-   214                                  ; in:  AL = hoek 0..255
-   215                                  ; uit: AL = sin(hoek) in bereik -128..127 (feitelijk -126..126 op basis van tabel)
-   216                                  ; gebruikt: CL, DL, BL, BX
+   186 00000437 8B3C                        mov di, [si]
+   187                                  
+   188 00000439 B800F0                      mov ax, RED
+   189 0000043C 8EC0                        mov es, ax
+   190 0000043E 26C785B01C0000              mov word [es:di + CENTER], 0
+   191                                  
+   192 00000445 B8001C                      mov ax, GREEN
+   193 00000448 8EC0                        mov es, ax
+   194 0000044A 26C785B01C0000              mov word [es:di + CENTER], 0
+   195                                  
+   196 00000451 B800F4                      mov ax, BLUE
+   197 00000454 8EC0                        mov es, ax
+   198 00000456 26C785B01C0000              mov word [es:di + CENTER], 0
+   199                                  
+   200 0000045D 83C602                      add si, 2
+   201 00000460 81FE[760D]                  cmp si, indexes_buf_end
+   202 00000464 7503                        jne .no_wrap
+   203 00000466 BE[A605]                    mov si, indexes_buf
+   204                                  .no_wrap:
+   205 00000469 EBC6                        jmp .cl_loop
+   206                                  
+   207                                  .empty:
+   208 0000046B 8936[780D]                  mov [hist_tail], si
+   209 0000046F 8936[760D]                  mov [hist_head], si
+   210                                  
+   211 00000473 5F                          pop di
+   212 00000474 5E                          pop si
+   213 00000475 59                          pop cx
+   214 00000476 5B                          pop bx
+   215 00000477 58                          pop ax
+   216 00000478 C3                          ret
    217                                  
-   218                                  cos:
-   219 0000042E 0440                        add  al,64
-   220                                  sin:
-   221 00000430 51                          push cx
-   222 00000431 53                          push bx
-   223 00000432 88C1                        mov  cl,al  ; deze ontbrak.......
-   224 00000434 B0FF                        mov  al,255
-   225 00000436 28C8                        sub  al,cl   ; 0..255 ipv 255..0
-   226 00000438 88C2                        mov  dl,al          ; dl = hoek
-   227 0000043A B106                        mov  cl,6
-   228 0000043C D2EA                        shr  dl,cl          ; q = hoek>>6 (0..3)
-   229 0000043E 243F                        and  al,63          ; i = hoek & 63 (0..63 binnen kwart)
-   230 00000440 F6C201                      test dl,1           ; odd quadrants (1 of 3)?
-   231 00000443 7406                        jz   .no_reflect
-   232 00000445 B33F                        mov  bl,63
-   233 00000447 28C3                        sub  bl,al          ; i = 63 - i
-   234 00000449 88D8                        mov  al,bl
-   235                                  .no_reflect:
-   236 0000044B BB[5904]                    mov  bx, qsin
-   237 0000044E D7                          xlat                 ; al = amplitude (0..~126)
-   238 0000044F F6C202                      test dl,2           ; kwadranten 2 en 3 -> negatief
-   239 00000452 7402                        jz   .done
-   240 00000454 F6D8                        neg  al
-   241                                  .done:
-   242 00000456 5B                          pop  bx
-   243 00000457 59                          pop  cx
-   244 00000458 C3                          ret
-   245                                  
-   246 00000459 000306090C0F121518-     qsin: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
-   246 00000462 1B1E2124272A2D3033-
-   246 0000046B 36393B3E414346494B-
-   246 00000474 4E50525557595B5E60-
-   246 0000047D 62646667696B6C6E70-
-   246 00000486 71727475767778797A-
-   246 0000048F 7B7B7C7D7D7E7E7E7E-
-   246 00000498 7E                 
-   247                                  
+   218                                  
+   219                                  ; clear_history:
+   220                                  ;   sub si,2
+   221                                  ;   mov di,[si]
+   222                                  ;   mov word [es:di + CENTER],0
+   223                                  ;   cmp si,indexes_ptr
+   224                                  ;   ja clear_history
+   225                                  ;   ret
+   226                                  
+   227                                  ; add_to_history:
+   228                                  ;   test [es:di + CENTER],dl
+   229                                  ;   jnz .r
+   230                                  ;   mov word [si],di
+   231                                  ;   add si,2
+   232                                  ; .r: ret
+   233                                  
+   234                                  
+   235                                  
+   236                                  
+   237                                  
+   238                                  ; dot:
+   239                                  ;   call calc_di_dl_for_pixel
+   240                                  ;   or [es:di + CENTER],dl  ; set pixel
+   241                                  ;   ret
+   242                                  
+   243                                  ; in : BL = x (signed 8-bit), BH = y (signed 8-bit)
+   244                                  ; out: DI = (y\4)*(4*COLS) + (y%4) + ((2x)\8)*4   (relatief t.o.v. CENTER)
+   245                                  ;      DL = 2^(7 - ((2x) % 8))
+   246                                  ; preserves: CX
+   247                                  ; trashes  : AX, DX, SI
    248                                  
-   249                                  ; ==== init één keer aan het begin ====
-   250                                  init_history:
-   251 00000499 B8[F604]                    mov ax, indexes_buf
-   252 0000049C A3[C60C]                    mov [hist_head], ax
-   253 0000049F A3[C80C]                    mov [hist_tail], ax
-   254 000004A2 C3                          ret
-   255                                  
-   256                                  ; ==== toevoegen met evict-oudste indien vol ====
-   257                                  ; in:  DI = pixel-offset, DL = bitmask (zoals bij jouw test/or)
-   258                                  ; uses: ES en CENTER zoals bij jou
-   259                                  add_to_history:
-   260 000004A3 50                          push ax
-   261 000004A4 53                          push bx
-   262 000004A5 51                          push cx
-   263 000004A6 56                          push si
-   264                                  
-   265                                      ; al gezet? niets doen
-   266 000004A7 268495B01C                  test [es:di + CENTER], dl
-   267 000004AC 7543                        jnz .done
-   268                                  
-   269                                      ; bereken next-head (wrap)
-   270 000004AE 8B36[C60C]                  mov si, [hist_head]
-   271 000004B2 89F3                        mov bx, si
-   272 000004B4 83C302                      add bx, 2
-   273 000004B7 81FB[C60C]                  cmp bx, indexes_buf_end
-   274 000004BB 7503                        jne .nh_ok
-   275 000004BD BB[F604]                    mov bx, indexes_buf
-   276                                  .nh_ok:
-   277                                  
-   278                                      ; vol als next-head == tail  -> eerst oudste wissen en tail++ (wrap)
-   279 000004C0 3B1E[C80C]                  cmp bx, [hist_tail]
-   280 000004C4 751F                        jne .store_new
-   281 000004C6 8B36[C80C]                  mov si, [hist_tail]
+   249                                  calc_di_dl_for_pixel:
+   250 00000479 56                        push si
+   251 0000047A 51                        push  cx
+   252                                  
+   253                                    ; ----- y uit BH: qy=floor(y/4), ry=y&3
+   254 0000047B 88F8                      mov   al, bh
+   255 0000047D 98                        cbw
+   256 0000047E 89C6                      mov   si, ax              ; SI = y
+   257 00000480 89C7                      mov   di, ax
+   258 00000482 83E703                    and   di, 3               ; DI = ry
+   259 00000485 89F0                      mov   ax, si
+   260 00000487 D1F8                      sar   ax, 1
+   261 00000489 D1F8                      sar   ax, 1               ; AX = qy
+   262 0000048B 89C6                      mov   si, ax              ; SI = qy
+   263                                  
+   264                                    ; DI += qy*(4*COLS) = qy*288 = (qy<<5) + (qy<<8)
+   265 0000048D 89F0                      mov   ax, si
+   266 0000048F B105                      mov   cl, 5
+   267 00000491 D3E0                      shl   ax, cl
+   268 00000493 01C7                      add   di, ax
+   269 00000495 89F0                      mov   ax, si
+   270 00000497 B108                      mov   cl, 8
+   271 00000499 D3E0                      shl   ax, cl
+   272 0000049B 01C7                      add   di, ax
+   273                                  
+   274                                    ; ----- x uit BL met aspectratio: x' = 2*x
+   275 0000049D 88D8                      mov   al, bl
+   276 0000049F 98                        cbw                        ; AX = x (signed)
+   277 000004A0 89C6                      mov   si, ax               ; SI = x
+   278                                  
+   279                                    ; qx2 = floor(x'/8) = floor((2*x)/8) = floor(x/4)
+   280 000004A2 D1F8                      sar   ax, 1
+   281 000004A4 D1F8                      sar   ax, 1                ; AX = qx2
    282                                  
-   283 000004CA 57                          push di
-   284 000004CB 8B3C                        mov di, [si]                 ; AX = oudste DI
-   285 000004CD 26C785B01C0000              mov word [es:di + CENTER], 0 ; wis oudste pixel
-   286 000004D4 5F                          pop di
-   287                                  
-   288 000004D5 83C602                      add si, 2
-   289 000004D8 81FE[C60C]                  cmp si, indexes_buf_end
-   290 000004DC 7503                        jne .tail_ok
-   291 000004DE BE[F604]                    mov si, indexes_buf
-   292                                  .tail_ok:
-   293 000004E1 8936[C80C]                  mov [hist_tail], si
-   294                                  
-   295                                  .store_new:
-   296                                      ; schrijf nieuwe DI op head en head++ (wrap)
-   297 000004E5 8B36[C60C]                  mov si, [hist_head]
-   298 000004E9 893C                        mov [si], di
-   299 000004EB 89DE                        mov si, bx                   ; bx was al next-head (gesaved)
-   300 000004ED 8936[C60C]                  mov [hist_head], si
-   301                                  
-   302                                  .done:
-   303 000004F1 5E                          pop si
-   304 000004F2 59                          pop cx
-   305 000004F3 5B                          pop bx
-   306 000004F4 58                          pop ax
-   307 000004F5 C3                          ret
-   308                                  
-   309                                  
-   310                                  ; section .bss
-   311 000004F6 0000<rep 3E8h>          indexes_buf:      times HISTORY_CAP dw 0
-   312                                  indexes_buf_end:
-   313                                  ; section .data
-   314 00000CC6 [F604]                  hist_head:        dw indexes_buf
-   315 00000CC8 [F604]                  hist_tail:        dw indexes_buf
-   316                                  
-   317                                  
-   318                                  ; indexes_ptr: ; ...
-   319                                  
-   320                                  %assign num $-$$
-   321                                  %warning total num
-   321          ******************       warning: total 3274 [-w+user]
-   322 00000CCA 00<rep 2C336h>          times (180*1024)-num db 0
+   283                                    ; rx2 = x' - qx2*8
+   284 000004A6 89F2                      mov   dx, si
+   285 000004A8 D1E2                      shl   dx, 1                ; DX = x' = 2*x
+   286 000004AA 89C1                      mov   cx, ax
+   287 000004AC D1E1                      shl   cx, 1
+   288 000004AE D1E1                      shl   cx, 1
+   289 000004B0 D1E1                      shl   cx, 1                ; CX = qx2*8
+   290 000004B2 29CA                      sub   dx, cx               ; DX = rx2 (0..7)
+   291 000004B4 88D1                      mov   cl, dl               ; CL = rx2
+   292 000004B6 80E107                    and   cl, 7
+   293                                  
+   294                                    ; DL = bitmask 1<<(7-rx2)
+   295 000004B9 B280                      mov   dl, 128
+   296 000004BB D2EA                      shr   dl, cl
+   297                                  
+   298                                    ; DI += (qx2*4)
+   299 000004BD D1E0                      shl   ax, 1
+   300 000004BF D1E0                      shl   ax, 1                ; AX = qx2*4
+   301 000004C1 01C7                      add   di, ax
+   302                                  
+   303 000004C3 59                        pop   cx
+   304 000004C4 5E                        pop si
+   305 000004C5 C3                        ret
+   306                                  
+   307                                  ; in:  AL = hoek 0..255
+   308                                  ; uit: AL = sin(hoek) in bereik -128..127 (feitelijk -126..126 op basis van tabel)
+   309                                  ; gebruikt: CL, DL, BL, BX
+   310                                  
+   311                                  cos:
+   312 000004C6 0440                        add  al,64
+   313                                  sin:
+   314 000004C8 51                          push cx
+   315 000004C9 53                          push bx
+   316 000004CA 88C1                        mov  cl,al  ; deze ontbrak.......
+   317 000004CC B0FF                        mov  al,255
+   318 000004CE 28C8                        sub  al,cl   ; 0..255 ipv 255..0
+   319 000004D0 88C2                        mov  dl,al          ; dl = hoek
+   320 000004D2 B106                        mov  cl,6
+   321 000004D4 D2EA                        shr  dl,cl          ; q = hoek>>6 (0..3)
+   322 000004D6 243F                        and  al,63          ; i = hoek & 63 (0..63 binnen kwart)
+   323 000004D8 F6C201                      test dl,1           ; odd quadrants (1 of 3)?
+   324 000004DB 7406                        jz   .no_reflect
+   325 000004DD B33F                        mov  bl,63
+   326 000004DF 28C3                        sub  bl,al          ; i = 63 - i
+   327 000004E1 88D8                        mov  al,bl
+   328                                  .no_reflect:
+   329 000004E3 BB[F104]                    mov  bx, qsin
+   330 000004E6 D7                          xlat                 ; al = amplitude (0..~126)
+   331 000004E7 F6C202                      test dl,2           ; kwadranten 2 en 3 -> negatief
+   332 000004EA 7402                        jz   .done
+   333 000004EC F6D8                        neg  al
+   334                                  .done:
+   335 000004EE 5B                          pop  bx
+   336 000004EF 59                          pop  cx
+   337 000004F0 C3                          ret
+   338                                  
+   339 000004F1 000306090C0F121518-     qsin: db 0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48,51,54,57,59,62,65,67,70,73,75,78,80,82,85,87,89,91,94,96,98,100,102,103,105,107,108,110,112,113,114,116,117,118,119,120,121,122,123,123,124,125,125,126,126,126,126,126
+   339 000004FA 1B1E2124272A2D3033-
+   339 00000503 36393B3E414346494B-
+   339 0000050C 4E50525557595B5E60-
+   339 00000515 62646667696B6C6E70-
+   339 0000051E 71727475767778797A-
+   339 00000527 7B7B7C7D7D7E7E7E7E-
+   339 00000530 7E                 
+   340                                  
+   341                                  
+   342                                  ; ==== init één keer aan het begin ====
+   343                                  init_history:
+   344 00000531 B8[A605]                    mov ax, indexes_buf
+   345 00000534 A3[760D]                    mov [hist_head], ax
+   346 00000537 A3[780D]                    mov [hist_tail], ax
+   347 0000053A C3                          ret
+   348                                  
+   349                                  ; ==== toevoegen met evict-oudste indien vol ====
+   350                                  ; in:  DI = pixel-offset, DL = bitmask (zoals bij jouw test/or)
+   351                                  ; uses: ES en CENTER zoals bij jou
+   352                                  add_to_history:
+   353 0000053B 50                          push ax
+   354 0000053C 53                          push bx
+   355 0000053D 51                          push cx
+   356 0000053E 56                          push si
+   357                                  
+   358                                      ; al gezet? niets doen
+   359 0000053F 268495B01C                  test [es:di + CENTER], dl
+   360 00000544 755B                        jnz .done
+   361                                  
+   362                                      ; bereken next-head (wrap)
+   363 00000546 8B36[760D]                  mov si, [hist_head]
+   364 0000054A 89F3                        mov bx, si
+   365 0000054C 83C302                      add bx, 2
+   366 0000054F 81FB[760D]                  cmp bx, indexes_buf_end
+   367 00000553 7503                        jne .nh_ok
+   368 00000555 BB[A605]                    mov bx, indexes_buf
+   369                                  .nh_ok:
+   370                                  
+   371                                      ; vol als next-head == tail  -> eerst oudste wissen en tail++ (wrap)
+   372 00000558 3B1E[780D]                  cmp bx, [hist_tail]
+   373 0000055C 7537                        jne .store_new
+   374 0000055E 8B36[780D]                  mov si, [hist_tail]
+   375                                  
+   376 00000562 57                          push di
+   377 00000563 8B3C                        mov di, [si]                 ; AX = oudste DI
+   378                                      
+   379 00000565 B8001C                      mov ax,GREEN
+   380 00000568 8EC0                        mov es,ax
+   381 0000056A 26C785B01C0000              mov word [es:di + CENTER], 0 ; wis oudste pixel
+   382                                      
+   383 00000571 B800F0                      mov ax,RED
+   384 00000574 8EC0                        mov es,ax
+   385 00000576 26C785B01C0000              mov word [es:di + CENTER], 0 ; wis oudste pixel
+   386                                      
+   387                                      ; mov ax,BLUE
+   388                                      ; mov es,ax
+   389 0000057D 26C785B0200000              mov word [es:di + CENTER + 0x400], 0 ; wis oudste pixel
+   390                                      
+   391 00000584 5F                          pop di
+   392                                  
+   393 00000585 83C602                      add si, 2
+   394 00000588 81FE[760D]                  cmp si, indexes_buf_end
+   395 0000058C 7503                        jne .tail_ok
+   396 0000058E BE[A605]                    mov si, indexes_buf
+   397                                  .tail_ok:
+   398 00000591 8936[780D]                  mov [hist_tail], si
+   399                                  
+   400                                  .store_new:
+   401                                      ; schrijf nieuwe DI op head en head++ (wrap)
+   402 00000595 8B36[760D]                  mov si, [hist_head]
+   403 00000599 893C                        mov [si], di
+   404 0000059B 89DE                        mov si, bx                   ; bx was al next-head (gesaved)
+   405 0000059D 8936[760D]                  mov [hist_head], si
+   406                                  
+   407                                  .done:
+   408 000005A1 5E                          pop si
+   409 000005A2 59                          pop cx
+   410 000005A3 5B                          pop bx
+   411 000005A4 58                          pop ax
+   412 000005A5 C3                          ret
+   413                                  
+   414                                  
+   415                                  ; section .bss
+   416 000005A6 0000<rep 3E8h>          indexes_buf:      times HISTORY_CAP dw 0
+   417                                  indexes_buf_end:
+   418                                  ; section .data
+   419 00000D76 [A605]                  hist_head:        dw indexes_buf
+   420 00000D78 [A605]                  hist_tail:        dw indexes_buf
+   421                                  
+   422                                  
+   423                                  ; indexes_ptr: ; ...
+   424                                  
+   425                                  %assign num $-$$
+   426                                  %warning total num
+   426          ******************       warning: total 3450 [-w+user]
+   427 00000D7A 00<rep 2C286h>          times (180*1024)-num db 0

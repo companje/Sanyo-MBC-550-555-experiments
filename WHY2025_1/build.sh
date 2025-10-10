@@ -6,7 +6,8 @@ prefix="0400. WHY2025-"
 # base=app5-play-wav
 # base=app6-build-song
 # base=app7-duty-cycle
-base=app9-bubble-galaxy
+# base=app9-bubble-galaxy
+base=app10-bubble-galaxy2
 # base=_circle
 
 flashfloppy_image_folder=/Volumes/FLASHFLOPPY/diskimages/
